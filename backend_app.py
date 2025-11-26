@@ -9,17 +9,16 @@ from fastapi.responses import FileResponse, JSONResponse
 from pathlib import Path
 
 # ------------------------------------------------------------
-# קונפיג – נתיבי פרויקט
-# ------------------------------------------------------------
-# ------------------------------------------------------------
 # קונפיג – נתיבי פרויקט (יחסיים)
 # ------------------------------------------------------------
 BASE_DIR = Path(__file__).resolve().parent
 OUTPUT_DIR = BASE_DIR / "output"
 
-# קובץ ה־SPA
+# קובץ ה־SPA (פרונטאנד)
 FRONTEND_FILE = BASE_DIR / "frontend_spa.html"
 
+# שם קובץ ה-CSV הקבוע שממנו נטענים הנתונים
+FIXED_CSV_NAME = "all_companies_all_yields.csv"
 
 NO_CACHE_HEADERS = {
     "Cache-Control": "no-cache, no-store, must-revalidate",
@@ -39,26 +38,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-
-# ------------------------------------------------------------
-# פונקציה לאיתור קובץ CSV האחרון
-# ------------------------------------------------------------
-def find_latest_csv(folder) -> Optional[str]:
-    folder = str(folder)
-    if not os.path.isdir(folder):
-        return None
-
-    files = [
-        os.path.join(folder, f)
-        for f in os.listdir(folder)
-        if f.lower().endswith(".csv")
-    ]
-    if not files:
-        return None
-
-    return max(files, key=os.path.getmtime)
-
 
 
 # ------------------------------------------------------------
@@ -99,11 +78,16 @@ def root():
 def api_data():
     """
     מחזיר את כל הרשומות + meta בצורה אחידה.
+    קורא תמיד מקובץ קבוע: all_companies_all_yields.csv בתיקיית output.
     """
 
-    csv_path = find_latest_csv(OUTPUT_DIR)
-    if not csv_path:
-        raise HTTPException(status_code=404, detail="לא נמצא קובץ CSV בתיקייה output")
+    csv_path = OUTPUT_DIR / FIXED_CSV_NAME
+
+    if not csv_path.exists():
+        raise HTTPException(
+            status_code=404,
+            detail=f"לא נמצא קובץ CSV: {csv_path}",
+        )
 
     # קריאה עם קידוד
     df = pd.read_csv(csv_path, encoding="utf-8-sig")
@@ -172,14 +156,14 @@ def api_data():
     # ניקוי NaN/INF בכל שורה
     rows: List[Dict] = [clean_row(r) for r in raw_rows]
 
-    # meta עבור פילטרים
+    # meta עבור פילטרים ותצוגה
     def unique_sorted(col: str):
         vals = sorted({r[col] for r in rows if r.get(col) is not None})
         return vals
 
     years = unique_sorted("year")
     meta = {
-        "file": os.path.basename(csv_path),
+        "file": FIXED_CSV_NAME,
         "companies": unique_sorted("company_short"),
         "tracks": unique_sorted("track_name"),
         "categories": unique_sorted("category"),
@@ -191,7 +175,7 @@ def api_data():
         "total_rows": len(rows),
     }
 
-    # החזרת JSON תקין לחלוטין (ללא NaN)
+    # החזרת JSON תקין לחלוטין (ללא NaN/INF)
     return JSONResponse(
         {
             "status": "ok",
