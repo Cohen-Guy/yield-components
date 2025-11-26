@@ -454,8 +454,13 @@
   }
   function safeNumber(v) { const x = Number(v); return isNaN(x) ? null : x; }
   function uniqueSortedYears(rows) {
-    return Array.from(new Set(rows.map(r => r.year).filter(v => v !== null && v !== undefined))).sort((a,b)=>a-b);
+    return Array.from(new Set(
+      rows
+        .map(r => r.year)
+        .filter(v => v !== null && v !== undefined && Number(v) >= 2022)
+    )).sort((a, b) => a - b);
   }
+
 
   // קריאת ערכים מסלקט (בודד / מרובה)
   function getSelectValues(selectEl, multi = false) {
