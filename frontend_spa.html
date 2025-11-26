@@ -412,10 +412,11 @@
     raw: [],
     filtered: [],
     meta: {},
-    currentView: "overview",
+    currentView: "tracks",   // << במקום "overview"
     chartYield: null,
     chartWeight: null
   };
+
 
   const FILTERS = {
     company:   { id: "f_company",     field: "company_short", sort: "locale" },
@@ -1094,9 +1095,20 @@
   /* ===========================
      אתחול
   ============================ */
+/* ===========================
+   אתחול
+============================ */
   document.getElementById("btn_reload").addEventListener("click", reloadData);
+
+  // אתחול הניווט
   initNav();
+
+  // להציג כבר בטעינה הראשונה את ה־view של "מסלולים וחברות"
+  setView("tracks");
+
+  // ואז לטעון את הנתונים
   reloadData();
+
 </script>
 
 </body>
