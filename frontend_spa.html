@@ -412,11 +412,10 @@
     raw: [],
     filtered: [],
     meta: {},
-    currentView: "tracks",   // << במקום "overview"
+    currentView: "tracks",   // ברירת מחדל: מסלולים
     chartYield: null,
     chartWeight: null
   };
-
 
   const FILTERS = {
     company:   { id: "f_company",     field: "company_short", sort: "locale" },
@@ -476,12 +475,18 @@
   }
   function setView(viewName) {
     state.currentView = viewName;
+
+    // מעדכן את ה-sidebar
     document.querySelectorAll(".nav-item").forEach(el =>
       el.classList.toggle("active", el.getAttribute("data-view") === viewName)
     );
+
+    // מעדכן איזה view מופיע על המסך
     document.querySelectorAll(".view").forEach(el =>
       el.classList.toggle("active", el.id.replace("view_", "") === viewName)
     );
+
+    // מרנדר את התוכן הרלוונטי
     if (viewName === "overview") renderOverviewMatrix();
     else if (viewName === "tracks") renderTracksMatrix();
     else if (viewName === "charts") renderCharts();
@@ -548,7 +553,6 @@
 
     Object.values(FILTERS).forEach(({id})=>{
       const sel = document.getElementById(id);
-      // ב-single זה מאפס, במרובה זה מבטל בחירה
       sel.value = "";
       sel.addEventListener("change", onFilterChange);
     });
@@ -578,7 +582,6 @@
       const sel = document.getElementById(meta.id);
       const isMulti = !!meta.multi;
 
-      // ערכים שנבחרו לפני הרענון
       const prevValues = isMulti
         ? Array.from(sel.selectedOptions).map(o=>o.value)
         : [sel.value];
@@ -738,10 +741,10 @@
     const ylds = [];
     for (const y of visibleYears) {
       const cell = entityYearsData[y];
-      if (!cell || cell.yield===null || isNaN(cell.yield)) return null; // חסרה שנה → BLANK
+      if (!cell || cell.yield===null || isNaN(cell.yield)) return null;
       ylds.push(cell.yield);
     }
-    if (ylds.length===1) return ylds[0]; // שנה בודדת → רגיל
+    if (ylds.length===1) return ylds[0];
     let prod = 1;
     ylds.forEach(v=> prod *= (1+v));
     return prod - 1;
@@ -754,7 +757,6 @@
     const scopeYears = yearsInScope(rows);
     const hasCategory = (getCurrentFilters().category || []).length > 0;
 
-    // 1) קיבוץ לפי ישות
     const entityKeyFn = byTracks
       ? (r)=> (r.company_short||r.company||"לא ידוע") + "||" + (r.track_name || (r.track_id ? "מסלול "+r.track_id : ""))
       : (r)=> (r.company_short||r.company||"לא ידוע");
@@ -766,8 +768,7 @@
 
     const aggs = aggregateByEntityYear(rows, entityKeyFn);
 
-    // 2) חישוב Yield & Weight לתצוגה לכל שנה
-    const perEntity = {}; // key -> { years: {y: {yield, wDisp}}, allPeriod: {yieldCum, wDispAvg} }
+    const perEntity = {};
     for (const [key, yearsMap] of Object.entries(aggs)) {
       const yearsData = {};
       let wDispSum=0, wDispN=0;
@@ -782,20 +783,16 @@
         if (wDisp!==null) { wDispSum += wDisp; wDispN += 1; }
       }
 
-      // תשואה מצטברת לכל התקופה (רק אם יש נתונים לכל השנים)
       const yieldCum = cumulativeReturnForEntity(yearsData, scopeYears);
-
       const wDispAvg = wDispN ? (wDispSum / wDispN) : (hasCategory ? null : 1.0);
       perEntity[key] = { years: yearsData, allPeriod: { yieldCum, wDispAvg } };
     }
 
-    // 3) דירוגים DENSE לפי weight לתצוגה ולפי yield – לכל שנה וגם לכל התקופה
     const rankAllWeight = {};
     const rankAllYield  = {};
     const rankPerYearWeight = {};
     const rankPerYearYield  = {};
 
-    // לכל התקופה
     const mapAllWeight = {};
     const mapAllYield  = {};
     for (const [k,obj] of Object.entries(perEntity)) {
@@ -805,7 +802,6 @@
     Object.assign(rankAllWeight, denseRankDesc(mapAllWeight));
     Object.assign(rankAllYield,  denseRankDesc(mapAllYield));
 
-    // פר-שנה
     for (const y of scopeYears) {
       const mW = {};
       const mY = {};
@@ -820,25 +816,20 @@
     return { scopeYears, perEntity, rankAllWeight, rankAllYield, rankPerYearWeight, rankPerYearYield, entityLabel };
   }
 
-  // רינדור כותרות מטריצה: “כל התקופה” + קבוצות שנים (לכל קבוצה 4 עמודות: דירוג אחזקה/דירוג תשואה/שיעור/תשואה)
   function renderMatrixHeader({ includeTrack=false, scopeYears }) {
-    const colsStatic = includeTrack ? 2 : 1; // חברה [+ מסלול]
+    const colsStatic = includeTrack ? 2 : 1;
     let thead = `<thead>`;
 
-    // שורת קבוצה עליונה
     thead += `<tr class="th-group">`;
     thead += `<th colspan="${colsStatic}">ישות</th>`;
     thead += `<th colspan="4">כל התקופה</th>`;
     scopeYears.forEach(y => { thead += `<th colspan="4">${y}</th>`; });
     thead += `</tr>`;
 
-    // שורת תתי-עמודות
     thead += `<tr>`;
     thead += `<th>חברה</th>`;
     if (includeTrack) thead += `<th>מסלול</th>`;
-    // כל התקופה
     thead += `<th>דירוג אחזקה</th><th>דירוג תשואה</th><th>שיעור (%)</th><th>תשואה (%)</th>`;
-    // שנים
     scopeYears.forEach(()=> {
       thead += `<th>דירוג אחזקה</th><th>דירוג תשואה</th><th>שיעור (%)</th><th>תשואה (%)</th>`;
     });
@@ -848,7 +839,6 @@
     return thead;
   }
 
-  // שורת נתונים לישות
   function renderMatrixRow(key, data, rankings, includeTrack) {
     const { label, years, allP } = data;
     const { rankAllWeight, rankAllYield, rankPerYearWeight, rankPerYearYield } = rankings;
@@ -857,7 +847,6 @@
     tr += `<td>${label.company}</td>`;
     if (includeTrack) tr += `<td>${label.track||""}</td>`;
 
-    // כל התקופה
     const rwAll = rankAllWeight[key] || "";
     const ryAll = rankAllYield[key]  || "";
     tr += `<td>${rwAll}</td>`;
@@ -865,7 +854,6 @@
     tr += `<td>${(allP.wDispAvg!==null && !isNaN(allP.wDispAvg)) ? (allP.wDispAvg*100).toFixed(2)+"%" : ""}</td>`;
     tr += `<td>${(allP.yieldCum!==null && !isNaN(allP.yieldCum)) ? (allP.yieldCum*100).toFixed(2)+"%" : ""}</td>`;
 
-    // שנים
     years.order.forEach(y=>{
       const cell = years.map[y];
       const rW = rankPerYearWeight[y] && rankPerYearWeight[y][key] ? rankPerYearWeight[y][key] : "";
@@ -878,7 +866,6 @@
     return tr;
   }
 
-  // טבלת מטריצה כללית
   function renderMatrix(wrapperId, { byTracks=false } = {}) {
     const wrapper = document.getElementById(wrapperId);
     const rows = state.filtered || [];
@@ -901,7 +888,6 @@
       entityLabel
     } = buildMatrix(rows, { byTracks });
 
-    // סידור ישויות לפי א-ב חברה ואז מסלול
     const keys = Object.keys(perEntity).sort((a,b)=>{
       const la = entityLabel(a), lb = entityLabel(b);
       const c = la.company.localeCompare(lb.company,"he");
@@ -910,11 +896,8 @@
       return 0;
     });
 
-    // Header
     let html = `<table>`;
     html += renderMatrixHeader({ includeTrack: byTracks, scopeYears });
-
-    // Body
     html += `<tbody>`;
     keys.forEach(k=>{
       const ent = perEntity[k];
@@ -1095,19 +1078,15 @@
   /* ===========================
      אתחול
   ============================ */
-/* ===========================
-   אתחול
-============================ */
   document.getElementById("btn_reload").addEventListener("click", reloadData);
-
-  // אתחול הניווט
   initNav();
 
-  // להציג כבר בטעינה הראשונה את ה־view של "מסלולים וחברות"
+  // קובע את המסך הראשוני ל-"tracks" (מסלולים וחברות)
   setView("tracks");
 
-  // ואז לטעון את הנתונים
+  // ואז טוען נתונים
   reloadData();
+
 
 </script>
 
