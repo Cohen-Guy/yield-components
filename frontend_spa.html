@@ -948,10 +948,7 @@
       avgDisplayWeight = sumW / n;
     }
 
-    el.innerHTML = `
-      <div><strong>סיכום:</strong> תשואה משוקללת: ${weightedYield!==null ? (weightedYield*100).toFixed(2)+"%" : "—"} • אחזקה ממוצעת (לתצוגה): ${pct(avgDisplayWeight)}</div>
-      <div class="meta">רשומות בתצוגה: ${n}</div>
-    `;
+
   }
 
   /* ===========================
