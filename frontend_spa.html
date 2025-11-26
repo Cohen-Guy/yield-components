@@ -475,8 +475,12 @@
   }
   function setView(viewName) {
     state.currentView = viewName;
-    document.querySelectorAll(".nav-item").forEach(el => el.classList.toggle("active", el.getAttribute("data-view") === viewName));
-    document.querySelectorAll(".view").forEach(el => el.classList.toggle("active", el.id.replace("view_", "") === viewName));
+    document.querySelectorAll(".nav-item").forEach(el =>
+      el.classList.toggle("active", el.getAttribute("data-view") === viewName)
+    );
+    document.querySelectorAll(".view").forEach(el =>
+      el.classList.toggle("active", el.id.replace("view_", "") === viewName)
+    );
     if (viewName === "overview") renderOverviewMatrix();
     else if (viewName === "tracks") renderTracksMatrix();
     else if (viewName === "charts") renderCharts();
