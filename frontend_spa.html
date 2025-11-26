@@ -630,8 +630,12 @@
 
   function applyFilters() {
     const f = getCurrentFilters();
-    const rows = state.raw || [];
-    state.filtered = rows.filter(r=>{
+
+    // מסנן מראש רשומות משנים לפני 2022
+    const rows = (state.raw || []).filter(r => r.year == null || Number(r.year) >= 2022);
+
+    // מסנן לפי הפילטרים שנבחרו
+    state.filtered = rows.filter(r => {
       if (f.company && r.company_short !== f.company) return false;
       if (f.track && r.track_name !== f.track) return false;
 
@@ -643,14 +647,18 @@
 
       if (f.saving_type && r.saving_type !== f.saving_type) return false;
       if (f.fund_type && r.fund_type !== f.fund_type) return false;
+
       return true;
     });
+
+    // רענון תצוגות אחרי הסינון
     updateFiltersStatus();
     renderKPIs();
     renderOverviewMatrix();
     renderTracksMatrix();
     renderCharts();
   }
+
 
   function updateFiltersStatus() {
     const f = getCurrentFilters();
