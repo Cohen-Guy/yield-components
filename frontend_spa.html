@@ -235,7 +235,7 @@
       <div class="sidebar-logo-icon">⧉</div>
       <div class="sidebar-logo-text">
         <div class="sidebar-logo-title">מרכיבי תשואה</div>
-        <div class="sidebar-logo-sub">Dashboard v3.0 • Matrix</div>
+        <div class="sidebar-logo-sub">Dashboard v3.1 • Matrix</div>
       </div>
     </div>
 
@@ -247,7 +247,6 @@
         <span class="icon">📈</span><span class="label">גרפים</span>
       </div>
     </div>
-
 
     <div class="sidebar-meta" id="sidebar_meta">
       <span><span>חברות:</span><span>-</span></span>
@@ -275,11 +274,13 @@
 
     <!-- FILTERS -->
     <section class="filters-bar">
+      <!-- חברה (נשאר ראשון) -->
       <div class="field">
         <label>חברה</label>
         <select id="f_company"></select>
       </div>
 
+      <!-- סדר מבוקש: סוג חיסכון → סוג קופה → מסלול → סחירות → אפיק השקעה → שנה -->
       <div class="field">
         <label>סוג חיסכון</label>
         <select id="f_saving_type"></select>
@@ -295,6 +296,12 @@
         <select id="f_track"></select>
       </div>
 
+      <!-- חדש: סחירות -->
+      <div class="field">
+        <label>סחירות</label>
+        <select id="f_liquidity"></select>
+      </div>
+
       <div class="field">
         <label>אפיק השקעה</label>
         <!-- בחירה מרובה -->
@@ -307,7 +314,6 @@
         <select id="f_year" multiple></select>
       </div>
     </section>
-
 
     <!-- KPIs -->
     <section class="panels-row">
@@ -327,7 +333,6 @@
     </section>
 
     <!-- VIEWS -->
-    <!-- VIEWS -->
     <section class="views-wrapper">
       <!-- View 1: Overview -->
       <section class="view" id="view_overview">
@@ -343,7 +348,6 @@
           </div>
 
           <div class="table-wrapper" id="table_overview_wrapper">טוען...</div>
-
         </div>
       </section>
 
@@ -361,7 +365,6 @@
           </div>
 
           <div class="table-wrapper" id="table_tracks_wrapper">טוען...</div>
-
         </div>
       </section>
 
@@ -390,7 +393,6 @@
               <canvas id="chart_weight"></canvas>
             </div>
           </div>
-
         </div>
       </section>
     </section>
@@ -412,12 +414,13 @@
   };
 
   const FILTERS = {
-    company:   { id: "f_company",     field: "company_short", sort: "locale" },
-    track:     { id: "f_track",       field: "track_name",    sort: "locale" },
-    year:      { id: "f_year",        field: "year",          sort: "numeric", multi: true },
-    category:  { id: "f_category",    field: "category",      sort: "locale",  multi: true },
-    saving_type:{ id: "f_saving_type",field: "saving_type",   sort: "locale" },
-    fund_type: { id: "f_fund_type",   field: "fund_type",     sort: "locale" }
+    company:     { id: "f_company",     field: "company_short", sort: "locale" },
+    saving_type: { id: "f_saving_type", field: "saving_type",   sort: "locale" },
+    fund_type:   { id: "f_fund_type",   field: "fund_type",     sort: "locale" },
+    track:       { id: "f_track",       field: "track_name",    sort: "locale" },
+    liquidity:   { id: "f_liquidity",   field: "liquidity",     sort: "locale" },              // ← חדש
+    category:    { id: "f_category",    field: "category",      sort: "locale",  multi: true },
+    year:        { id: "f_year",        field: "year",          sort: "numeric", multi: true }
   };
 
   /* ===========================
@@ -452,7 +455,6 @@
         .filter(v => v !== null && v !== undefined && Number(v) >= 2022)
     )).sort((a, b) => a - b);
   }
-
 
   // קריאת ערכים מסלקט (בודד / מרובה)
   function getSelectValues(selectEl, multi = false) {
@@ -536,23 +538,25 @@
   function buildFilters() {
     const rows = state.raw || [];
     const companies   = Array.from(new Set(rows.map(r=>r.company_short).filter(Boolean))).sort((a,b)=>a.localeCompare(b,"he"));
-    const tracks      = Array.from(new Set(rows.map(r=>r.track_name).filter(Boolean))).sort((a,b)=>a.localeCompare(b,"he"));
-    const years       = uniqueSortedYears(rows);
-    const categories  = Array.from(new Set(rows.map(r=>r.category).filter(Boolean))).sort((a,b)=>a.localeCompare(b,"he"));
     const savingTypes = Array.from(new Set(rows.map(r=>r.saving_type).filter(Boolean))).sort((a,b)=>a.localeCompare(b,"he"));
     const fundTypes   = Array.from(new Set(rows.map(r=>r.fund_type).filter(Boolean))).sort((a,b)=>a.localeCompare(b,"he"));
+    const tracks      = Array.from(new Set(rows.map(r=>r.track_name).filter(Boolean))).sort((a,b)=>a.localeCompare(b,"he"));
+    const liquidities = Array.from(new Set(rows.map(r=>r.liquidity).filter(Boolean))).sort((a,b)=>a.localeCompare(b,"he")); // חדש
+    const categories  = Array.from(new Set(rows.map(r=>r.category).filter(Boolean))).sort((a,b)=>a.localeCompare(b,"he"));
+    const years       = uniqueSortedYears(rows);
 
-    setSelectOptions(document.getElementById(FILTERS.company.id),   companies);
-    setSelectOptions(document.getElementById(FILTERS.track.id),     tracks);
-    // לא מוסיפים "הכול" לסלקט מרובה
-    setSelectOptions(document.getElementById(FILTERS.year.id),      years,      { includeAll:false });
-    setSelectOptions(document.getElementById(FILTERS.category.id),  categories, { includeAll:false });
+    setSelectOptions(document.getElementById(FILTERS.company.id),     companies);
     setSelectOptions(document.getElementById(FILTERS.saving_type.id), savingTypes);
     setSelectOptions(document.getElementById(FILTERS.fund_type.id),   fundTypes);
+    setSelectOptions(document.getElementById(FILTERS.track.id),       tracks);
+    setSelectOptions(document.getElementById(FILTERS.liquidity.id),   liquidities);                 // חדש
+    setSelectOptions(document.getElementById(FILTERS.category.id),    categories, { includeAll:false });
+    setSelectOptions(document.getElementById(FILTERS.year.id),        years,     { includeAll:false });
 
     Object.values(FILTERS).forEach(({id})=>{
       const sel = document.getElementById(id);
-      sel.value = "";
+      if (!sel) return;
+      if (!sel.multiple) sel.value = "";
       sel.addEventListener("change", onFilterChange);
     });
   }
@@ -561,16 +565,17 @@
     const rows = state.raw || [];
     return rows.filter(r=>{
       if (ignoreKey!=="company"     && filters.company     && r.company_short !== filters.company) return false;
-      if (ignoreKey!=="track"       && filters.track       && r.track_name    !== filters.track)    return false;
-
-      if (ignoreKey!=="year" && Array.isArray(filters.year) && filters.year.length &&
-          !filters.year.includes(String(r.year))) return false;
+      if (ignoreKey!=="saving_type" && filters.saving_type && r.saving_type   !== filters.saving_type) return false;
+      if (ignoreKey!=="fund_type"   && filters.fund_type   && r.fund_type     !== filters.fund_type)   return false;
+      if (ignoreKey!=="track"       && filters.track       && r.track_name    !== filters.track)       return false;
+      if (ignoreKey!=="liquidity"   && filters.liquidity   && r.liquidity     !== filters.liquidity)   return false;
 
       if (ignoreKey!=="category" && Array.isArray(filters.category) && filters.category.length &&
           !filters.category.includes(r.category)) return false;
 
-      if (ignoreKey!=="saving_type" && filters.saving_type && r.saving_type   !== filters.saving_type) return false;
-      if (ignoreKey!=="fund_type"   && filters.fund_type   && r.fund_type     !== filters.fund_type)   return false;
+      if (ignoreKey!=="year" && Array.isArray(filters.year) && filters.year.length &&
+          !filters.year.includes(String(r.year))) return false;
+
       return true;
     });
   }
@@ -579,6 +584,7 @@
     const filters = getCurrentFilters();
     Object.entries(FILTERS).forEach(([key, meta])=>{
       const sel = document.getElementById(meta.id);
+      if (!sel) return;
       const isMulti = !!meta.multi;
 
       const prevValues = isMulti
@@ -609,12 +615,13 @@
 
   function getCurrentFilters() {
     return {
-      company:     getSelectValues(document.getElementById(FILTERS.company.id),   false),
-      track:       getSelectValues(document.getElementById(FILTERS.track.id),     false),
-      year:        getSelectValues(document.getElementById(FILTERS.year.id),      true),
-      category:    getSelectValues(document.getElementById(FILTERS.category.id),  true),
+      company:     getSelectValues(document.getElementById(FILTERS.company.id),     false),
       saving_type: getSelectValues(document.getElementById(FILTERS.saving_type.id), false),
       fund_type:   getSelectValues(document.getElementById(FILTERS.fund_type.id),   false),
+      track:       getSelectValues(document.getElementById(FILTERS.track.id),       false),
+      liquidity:   getSelectValues(document.getElementById(FILTERS.liquidity.id),   false), // חדש
+      category:    getSelectValues(document.getElementById(FILTERS.category.id),    true),
+      year:        getSelectValues(document.getElementById(FILTERS.year.id),        true),
     };
   }
 
@@ -629,16 +636,16 @@
     // מסנן לפי הפילטרים שנבחרו
     state.filtered = rows.filter(r => {
       if (f.company && r.company_short !== f.company) return false;
+      if (f.saving_type && r.saving_type !== f.saving_type) return false;
+      if (f.fund_type && r.fund_type !== f.fund_type) return false;
       if (f.track && r.track_name !== f.track) return false;
-
-      if (Array.isArray(f.year) && f.year.length &&
-          !f.year.includes(String(r.year))) return false;
+      if (f.liquidity && r.liquidity !== f.liquidity) return false;
 
       if (Array.isArray(f.category) && f.category.length &&
           !f.category.includes(r.category)) return false;
 
-      if (f.saving_type && r.saving_type !== f.saving_type) return false;
-      if (f.fund_type && r.fund_type !== f.fund_type) return false;
+      if (Array.isArray(f.year) && f.year.length &&
+          !f.year.includes(String(r.year))) return false;
 
       return true;
     });
@@ -651,17 +658,17 @@
     renderCharts();
   }
 
-
   function updateFiltersStatus() {
     const f = getCurrentFilters();
     const rowsCount = (state.filtered || []).length;
     const parts = [];
     if (f.company) parts.push("חברה: " + f.company);
-    if (f.track) parts.push("מסלול: " + f.track);
-    if (Array.isArray(f.year) && f.year.length) parts.push("שנים: " + f.year.join(", "));
-    if (Array.isArray(f.category) && f.category.length) parts.push("אפיק: " + f.category.join(", "));
     if (f.saving_type) parts.push("סוג חיסכון: " + f.saving_type);
     if (f.fund_type) parts.push("סוג קופה: " + f.fund_type);
+    if (f.track) parts.push("מסלול: " + f.track);
+    if (f.liquidity) parts.push("סחירות: " + f.liquidity);                      // חדש
+    if (Array.isArray(f.category) && f.category.length) parts.push("אפיק: " + f.category.join(", "));
+    if (Array.isArray(f.year) && f.year.length) parts.push("שנים: " + f.year.join(", "));
     document.getElementById("status_filters").textContent =
       (parts.length ? parts.join(" • ") : "ללא סינון – מוצגות כל הרשומות") +
       ` • רשומות לאחר סינון: ${rowsCount}`;
@@ -697,9 +704,7 @@
   /* ===========================
      לוגיקת Measures 1:1
   ============================ */
-  function yearsInScope(rows) {
-    return uniqueSortedYears(rows);
-  }
+  function yearsInScope(rows) { return uniqueSortedYears(rows); }
   function renderYearsBadges(containerId, rows) {
     const el = document.getElementById(containerId);
     const yrs = yearsInScope(rows);
@@ -728,7 +733,7 @@
     return hasCategoryFilter ? avgWeightSimple : 1.0; // בלי אפיק → 100%
   }
 
-  // דירוג DENSE יורד: מקבל {entity -> value} ומחזיר {entity -> "rank/total"}
+  // דירוג DENSE יורד
   function denseRankDesc(rankMap) {
     const entries = Object.entries(rankMap).filter(([,v])=>v!==null && v!==undefined && !isNaN(v));
     const total = entries.length;
@@ -758,7 +763,7 @@
   }
 
   /* ===========================
-     בניית מטריצת “דירוג אחזקה / דירוג תשואה / שיעור / תשואה”
+     בניית מטריצת דירוג/שיעור/תשואה
   ============================ */
   function buildMatrix(rows, { byTracks=false } = {}) {
     const scopeYears = yearsInScope(rows);
@@ -927,10 +932,11 @@
   }
 
   /* ===========================
-     פוטרים
+     פוטרים (שמורים להרחבה עתידית)
   ============================ */
   function renderFooter(containerId) {
     const el = document.getElementById(containerId);
+    if (!el) return;
     const rows = state.filtered || [];
     const n = rows.length;
 
@@ -947,8 +953,7 @@
     } else {
       avgDisplayWeight = sumW / n;
     }
-
-
+    // ניתן להוסיף כאן תצוגת פוטר בהתאם לצורך
   }
 
   /* ===========================
@@ -1085,13 +1090,11 @@
   document.getElementById("btn_reload").addEventListener("click", reloadData);
   initNav();
 
-  // קובע את המסך הראשוני ל-"tracks" (מסלולים וחברות)
+  // קובע את המסך הראשוני ל-"tracks"
   setView("tracks");
 
   // ואז טוען נתונים
   reloadData();
-
-
 </script>
 
 </body>
