@@ -338,8 +338,8 @@
       <section class="view" id="view_overview">
         <div class="panel">
           <div class="panel-header">
-            <div class="panel-header-title"><span class="icon">📌</span><span>טבלת סיכום לפי מסלול</span></div>
-            <div class="panel-header-sub">אותו מבנה: כל התקופה + 2022/2023/2024 → דירוג אחזקה/דירוג תשואה/שיעור/תשואה</div>
+            <div class="panel-header-title"><span class="icon">📌</span><span>טבלת סיכום לפי חברה</span></div>
+            <div class="panel-header-sub">“כל התקופה” + 2022/2023/2024 → דירוג אחזקה/דירוג תשואה/שיעור/תשואה</div>
           </div>
 
           <div class="table-meta">
@@ -377,7 +377,7 @@
           </div>
 
           <div style="margin-bottom:6px; font-size:0.78rem; color:var(--text-muted);">
-            טיפ: צמצם פילטרים (חברה/מסלול/אפיק) כדי שהגרפים יהיו קריאים יותר.
+            טיפ: צמצם פילטרים (חברה/מסלול/אפיק/סחירות) כדי שהגרפים יהיו קריאים יותר.
           </div>
 
           <div class="chart-block">
@@ -728,9 +728,13 @@
     return by;
   }
 
-  // חישוב weight לתצוגה (לפי כלל האפיק)
-  function displayWeight(avgWeightSimple, hasCategoryFilter) {
-    return hasCategoryFilter ? avgWeightSimple : 1.0; // בלי אפיק → 100%
+  // === שינוי עיקרי: משקל לתצוגה רגיש גם ל-liquidity ולא רק ל-category ===
+  function displayWeight(avgWeightSimple, filters) {
+    const sliceByCategory = Array.isArray(filters.category) && filters.category.length > 0;
+    const sliceByLiquidity = !!filters.liquidity;
+    const sliceSelected = sliceByCategory || sliceByLiquidity;
+    // אם יש פריסה לפי אפיק או לפי סחירות – מציגים ממוצע משקלים אמיתי; אחרת 100%
+    return sliceSelected ? avgWeightSimple : 1.0;
   }
 
   // דירוג DENSE יורד
@@ -767,7 +771,7 @@
   ============================ */
   function buildMatrix(rows, { byTracks=false } = {}) {
     const scopeYears = yearsInScope(rows);
-    const hasCategory = (getCurrentFilters().category || []).length > 0;
+    const filters = getCurrentFilters(); // ← כדי לבדוק category/liquidity
 
     const entityKeyFn = byTracks
       ? (r)=> (r.company_short||r.company||"לא ידוע") + "||" + (r.track_name || (r.track_id ? "מסלול "+r.track_id : ""))
@@ -790,13 +794,17 @@
         if (!c) { yearsData[y] = { yield:null, wDisp:null }; continue; }
         const yieldY = c.wSum ? (c.cSum / c.wSum) : null;
         const avgWeightSimple = c.n ? (c.wSum / c.n) : null;
-        const wDisp = (avgWeightSimple===null) ? null : displayWeight(avgWeightSimple, hasCategory);
+        const wDisp = (avgWeightSimple===null) ? null : displayWeight(avgWeightSimple, filters); // ← שימוש בפילטרים
         yearsData[y] = { yield: yieldY, wDisp };
         if (wDisp!==null) { wDispSum += wDisp; wDispN += 1; }
       }
 
       const yieldCum = cumulativeReturnForEntity(yearsData, scopeYears);
-      const wDispAvg = wDispN ? (wDispSum / wDispN) : (hasCategory ? null : 1.0);
+
+      // אם אין פריסה לפי קטגוריה/סחירות – נשאר 100%; אחרת ממוצע בפועל
+      const sliceSelected = (filters.category && filters.category.length>0) || !!filters.liquidity;
+      const wDispAvg = wDispN ? (wDispSum / wDispN) : (sliceSelected ? null : 1.0);
+
       perEntity[key] = { years: yearsData, allPeriod: { yieldCum, wDispAvg } };
     }
 
@@ -944,11 +952,12 @@
     rows.forEach(r=>{ sumW += safeNumber(r.weight)||0; sumC += safeNumber(r.contribution)||0; });
     const weightedYield = sumW ? (sumC/sumW) : null;
 
-    const categorySelected = (getCurrentFilters().category || []).length > 0;
+    const f = getCurrentFilters();
+    const sliceSelected = (f.category && f.category.length>0) || !!f.liquidity;
     let avgDisplayWeight;
     if (!n) {
       avgDisplayWeight = null;
-    } else if (!categorySelected) {
+    } else if (!sliceSelected) {
       avgDisplayWeight = 1.0;
     } else {
       avgDisplayWeight = sumW / n;
@@ -1000,7 +1009,8 @@
     };
 
     const seriesYield = {};
-    const categorySelected = (getCurrentFilters().category || []).length > 0;
+    const f = getCurrentFilters();
+    const sliceSelectedCharts = (f.category && f.category.length>0) || !!f.liquidity; // ← גם liquidity משפיע
     const seriesWeightSum = {};
     const seriesWeightN   = {};
 
@@ -1045,7 +1055,8 @@
     const datasetsWeight = seriesKeys.map((name,idx)=>{
       const color = palette[idx%palette.length];
       const data = timeKeys.map(k=>{
-        if (!categorySelected) {
+        if (!sliceSelectedCharts) {
+          // ללא פריסה לפי אפיק/סחירות – מציגים 100% כדי לשמור על ההיגיון של “כלל האפיקים/סחירויות”
           const hasData = (seriesYield[name] && seriesYield[name][k] && (seriesYield[name][k].w>0 || seriesYield[name][k].c!==undefined))
                        || (seriesWeightN[name] && seriesWeightN[name][k]>0);
           return hasData ? 100 : null;
