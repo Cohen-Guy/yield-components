@@ -115,13 +115,11 @@
     }
     .field { display: flex; flex-direction: column; gap: 3px; min-width: 140px; }
     .field label { font-size: 0.78rem; color: var(--text-muted); }
-    select, button.reset {
+    select {
       background: #050816; border-radius: 10px; border: 1px solid rgba(255,255,255,0.25);
       color: var(--text-main); font-size: 0.8rem; padding: 5px 9px; outline: none; min-height: 30px;
     }
     select:focus { border-color: var(--accent); box-shadow: 0 0 0 1px rgba(93,208,255,0.5); }
-    button.reset { cursor: pointer; }
-    button.reset:hover { border-color: var(--accent); }
 
     /* Panels / cards */
     .panels-row { display: grid; grid-template-columns: 2fr 1.8fr; gap: 10px; margin-top: 8px; margin-bottom: 10px; }
@@ -180,6 +178,33 @@
     tr:nth-child(even) { background: rgba(255,255,255,0.015); }
     tr:hover { background: rgba(83,211,255,0.09); }
 
+    .table-footer {
+      margin-top: 6px;
+      font-size: 0.8rem;
+      color: var(--text-main);
+      background: linear-gradient(90deg, rgba(93,208,255,0.12), rgba(140,120,255,0.12));
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 10px;
+      padding: 8px 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .table-footer .meta { color: var(--text-muted); font-size: 0.76rem; }
+
+    /* Chart panel */
+    .chart-block { margin-top: 8px; }
+    .chart-title {
+      margin: 6px 0 4px;
+      font-size: 0.9rem;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .chart-container { position: relative; width: 100%; height: 260px; }
+
     .status-text { font-size: 0.75rem; color: var(--text-muted); }
 
     @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
@@ -196,6 +221,7 @@
       .main { padding: 12px; }
       .panels-row { grid-template-columns: 1fr; }
       .kpi-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .table-footer { flex-direction: column; align-items: flex-start; }
       .chart-container { height: 240px; }
     }
   </style>
@@ -209,7 +235,7 @@
       <div class="sidebar-logo-icon">⧉</div>
       <div class="sidebar-logo-text">
         <div class="sidebar-logo-title">מרכיבי תשואה</div>
-        <div class="sidebar-logo-sub">Dashboard v3.2 • Matrix</div>
+        <div class="sidebar-logo-sub">Dashboard v3.1 • Matrix</div>
       </div>
     </div>
 
@@ -243,7 +269,6 @@
       <div class="main-header-actions">
         <div class="badge-file" id="badge_file">קובץ: -</div>
         <button class="btn-ghost" type="button" id="btn_reload">↻ רענון נתונים</button>
-        <button class="btn-ghost" type="button" id="btn_reset_filters">🧹 אפס פילטרים</button>
       </div>
     </header>
 
@@ -348,6 +373,7 @@
         <div class="panel">
           <div class="panel-header">
             <div class="panel-header-title"><span class="icon">📈</span><span>גרפים רבעוניים</span></div>
+            <div class="panel-header-sub">ציר X: שנה+רבעון • ציר Y: אחוזים</div>
           </div>
 
           <div style="margin-bottom:6px; font-size:0.78rem; color:var(--text-muted);">
@@ -382,7 +408,7 @@
     raw: [],
     filtered: [],
     meta: {},
-    currentView: "tracks",
+    currentView: "tracks",   // ברירת מחדל: מסלולים
     chartYield: null,
     chartWeight: null
   };
@@ -392,7 +418,7 @@
     saving_type: { id: "f_saving_type", field: "saving_type",   sort: "locale" },
     fund_type:   { id: "f_fund_type",   field: "fund_type",     sort: "locale" },
     track:       { id: "f_track",       field: "track_name",    sort: "locale" },
-    liquidity:   { id: "f_liquidity",   field: "liquidity",     sort: "locale" },
+    liquidity:   { id: "f_liquidity",   field: "liquidity",     sort: "locale" },              // ← חדש
     category:    { id: "f_category",    field: "category",      sort: "locale",  multi: true },
     year:        { id: "f_year",        field: "year",          sort: "numeric", multi: true }
   };
@@ -416,13 +442,6 @@
       frag.appendChild(opt);
     });
     selectEl.appendChild(frag);
-  }
-  function setMultiSelectSelected(selectEl, values) {
-    const set = new Set((values || []).map(String));
-    Array.from(selectEl.options).forEach(o => o.selected = set.has(String(o.value)));
-  }
-  function clearMultiSelect(selectEl) {
-    Array.from(selectEl.options).forEach(o => o.selected = false);
   }
   function pct(val, digits = 2) {
     if (val === null || val === undefined || isNaN(val)) return "—";
@@ -458,14 +477,17 @@
   function setView(viewName) {
     state.currentView = viewName;
 
+    // מעדכן את ה-sidebar
     document.querySelectorAll(".nav-item").forEach(el =>
       el.classList.toggle("active", el.getAttribute("data-view") === viewName)
     );
 
+    // מעדכן איזה view מופיע על המסך
     document.querySelectorAll(".view").forEach(el =>
       el.classList.toggle("active", el.id.replace("view_", "") === viewName)
     );
 
+    // מרנדר את התוכן הרלוונטי
     if (viewName === "overview") renderOverviewMatrix();
     else if (viewName === "tracks") renderTracksMatrix();
     else if (viewName === "charts") renderCharts();
@@ -479,7 +501,7 @@
     const tableTracks   = document.getElementById("table_tracks_wrapper");
     const statusFilters = document.getElementById("status_filters");
     tableOverview.textContent = "טוען נתונים...";
-    tableTracks.textContent   = "טוען נתונים...";
+    tableTracks.textContent = "טוען נתונים...";
     statusFilters.textContent = "טוען נתונים...";
 
     try {
@@ -496,7 +518,7 @@
     } catch (e) {
       console.error(e);
       tableOverview.textContent = "שגיאה בטעינת הנתונים.";
-      tableTracks.textContent   = "שגיאה בטעינת הנתונים.";
+      tableTracks.textContent = "שגיאה בטעינת הנתונים.";
       statusFilters.textContent = "שגיאה בטעינת הנתונים.";
     }
   }
@@ -519,7 +541,7 @@
     const savingTypes = Array.from(new Set(rows.map(r=>r.saving_type).filter(Boolean))).sort((a,b)=>a.localeCompare(b,"he"));
     const fundTypes   = Array.from(new Set(rows.map(r=>r.fund_type).filter(Boolean))).sort((a,b)=>a.localeCompare(b,"he"));
     const tracks      = Array.from(new Set(rows.map(r=>r.track_name).filter(Boolean))).sort((a,b)=>a.localeCompare(b,"he"));
-    const liquidities = Array.from(new Set(rows.map(r=>r.liquidity).filter(Boolean))).sort((a,b)=>a.localeCompare(b,"he"));
+    const liquidities = Array.from(new Set(rows.map(r=>r.liquidity).filter(Boolean))).sort((a,b)=>a.localeCompare(b,"he")); // חדש
     const categories  = Array.from(new Set(rows.map(r=>r.category).filter(Boolean))).sort((a,b)=>a.localeCompare(b,"he"));
     const years       = uniqueSortedYears(rows);
 
@@ -527,7 +549,7 @@
     setSelectOptions(document.getElementById(FILTERS.saving_type.id), savingTypes);
     setSelectOptions(document.getElementById(FILTERS.fund_type.id),   fundTypes);
     setSelectOptions(document.getElementById(FILTERS.track.id),       tracks);
-    setSelectOptions(document.getElementById(FILTERS.liquidity.id),   liquidities);
+    setSelectOptions(document.getElementById(FILTERS.liquidity.id),   liquidities);                 // חדש
     setSelectOptions(document.getElementById(FILTERS.category.id),    categories, { includeAll:false });
     setSelectOptions(document.getElementById(FILTERS.year.id),        years,     { includeAll:false });
 
@@ -537,47 +559,6 @@
       if (!sel.multiple) sel.value = "";
       sel.addEventListener("change", onFilterChange);
     });
-
-    // מאזין ייעודי לסחירות כדי לסנכרן אפיקים אוטומטית
-    document.getElementById(FILTERS.liquidity.id).addEventListener("change", ()=>{
-      // קודם מרעננים אופציות לפי שאר הפילטרים
-      refreshFilterOptions();
-      // ואז מסנכרנים את האפיקים המתאימים לפי הסחירות שנבחרה
-      autoSelectCategoriesByLiquidity();
-      // ולבסוף מחילים את הסינון
-      applyFilters();
-    });
-
-    // כפתור "אפס פילטרים"
-    document.getElementById("btn_reset_filters").addEventListener("click", resetAllFilters);
-  }
-
-  // בונה רשימת קטגוריות רלוונטיות לפי ערך הסחירות שנבחר,
-  // בהתחשב בשאר הפילטרים הנוכחיים (מלבד קטגוריה/שנה כדי לפתוח את המרחב)
-  function autoSelectCategoriesByLiquidity() {
-    const liqSel = document.getElementById(FILTERS.liquidity.id);
-    const liqVal = liqSel ? liqSel.value : "";
-    const catEl  = document.getElementById(FILTERS.category.id);
-    if (!catEl) return;
-
-    // אם אין בחירה בסחירות – אל תכפה בחירה באפיקים
-    if (!liqVal) {
-      clearMultiSelect(catEl);
-      return;
-    }
-
-    // בונים פילטרים נוכחיים, ומתעלמים מ'category' כדי לאסוף את כל האופציות
-    const f = getCurrentFilters();
-    const rowsForCats = filterRowsByFilters(f, "category");
-
-    // משאירים רק שורות שתואמות לסחירות שנבחרה
-    const relevant = rowsForCats.filter(r => r.liquidity === liqVal);
-
-    // אוספים קטגוריות מתוך הרלוונטיות
-    const categories = Array.from(new Set(relevant.map(r => r.category).filter(Boolean)));
-
-    // בוחרים ב-multi-select את כולן (מתוך האופציות הקיימות אחרי refreshFilterOptions)
-    setMultiSelectSelected(catEl, categories);
   }
 
   function filterRowsByFilters(filters, ignoreKey=null) {
@@ -638,7 +619,7 @@
       saving_type: getSelectValues(document.getElementById(FILTERS.saving_type.id), false),
       fund_type:   getSelectValues(document.getElementById(FILTERS.fund_type.id),   false),
       track:       getSelectValues(document.getElementById(FILTERS.track.id),       false),
-      liquidity:   getSelectValues(document.getElementById(FILTERS.liquidity.id),   false),
+      liquidity:   getSelectValues(document.getElementById(FILTERS.liquidity.id),   false), // חדש
       category:    getSelectValues(document.getElementById(FILTERS.category.id),    true),
       year:        getSelectValues(document.getElementById(FILTERS.year.id),        true),
     };
@@ -669,6 +650,7 @@
       return true;
     });
 
+    // רענון תצוגות אחרי הסינון
     updateFiltersStatus();
     renderKPIs();
     renderOverviewMatrix();
@@ -684,27 +666,12 @@
     if (f.saving_type) parts.push("סוג חיסכון: " + f.saving_type);
     if (f.fund_type) parts.push("סוג קופה: " + f.fund_type);
     if (f.track) parts.push("מסלול: " + f.track);
-    if (f.liquidity) parts.push("סחירות: " + f.liquidity);
+    if (f.liquidity) parts.push("סחירות: " + f.liquidity);                      // חדש
     if (Array.isArray(f.category) && f.category.length) parts.push("אפיק: " + f.category.join(", "));
     if (Array.isArray(f.year) && f.year.length) parts.push("שנים: " + f.year.join(", "));
     document.getElementById("status_filters").textContent =
       (parts.length ? parts.join(" • ") : "ללא סינון – מוצגות כל הרשומות") +
       ` • רשומות לאחר סינון: ${rowsCount}`;
-  }
-
-  // אפס את כל הפילטרים לערכי ברירת מחדל
-  function resetAllFilters() {
-    // איפוס ערכים
-    Object.values(FILTERS).forEach(({id})=>{
-      const el = document.getElementById(id);
-      if (!el) return;
-      if (el.multiple) clearMultiSelect(el);
-      else el.value = "";
-    });
-    // רענון אופציות לפי מצב ריק
-    refreshFilterOptions();
-    // החלת סינון מחדש
-    applyFilters();
   }
 
   /* ===========================
@@ -744,6 +711,7 @@
     el.innerHTML = yrs.length ? yrs.map(y=>`<span class="year-chip">${y}</span>`).join("") : "—";
   }
 
+  // קיבוץ בסיסי לפי מפתח ישות (Company או Company+Track) ולפי שנה
   function aggregateByEntityYear(rows, entityKeyFn) {
     const by = {};
     rows.forEach(r=>{
@@ -760,10 +728,12 @@
     return by;
   }
 
+  // חישוב weight לתצוגה (לפי כלל האפיק)
   function displayWeight(avgWeightSimple, hasCategoryFilter) {
-    return hasCategoryFilter ? avgWeightSimple : 1.0;
+    return hasCategoryFilter ? avgWeightSimple : 1.0; // בלי אפיק → 100%
   }
 
+  // דירוג DENSE יורד
   function denseRankDesc(rankMap) {
     const entries = Object.entries(rankMap).filter(([,v])=>v!==null && v!==undefined && !isNaN(v));
     const total = entries.length;
@@ -778,6 +748,7 @@
     return out;
   }
 
+  // תשואה מצטברת לכל התקופה (רק אם יש לכל השנים הנראות)
   function cumulativeReturnForEntity(entityYearsData, visibleYears) {
     const ylds = [];
     for (const y of visibleYears) {
@@ -792,7 +763,7 @@
   }
 
   /* ===========================
-     בניית מטריצה
+     בניית מטריצת דירוג/שיעור/תשואה
   ============================ */
   function buildMatrix(rows, { byTracks=false } = {}) {
     const scopeYears = yearsInScope(rows);
@@ -961,6 +932,43 @@
   }
 
   /* ===========================
+     פוטרים (שמורים להרחבה עתידית)
+  ============================ */
+  function renderFooter(containerId) {
+    const el = document.getElementById(containerId);
+    if (!el) return;
+    const rows = state.filtered || [];
+    const n = rows.length;
+
+    let sumW=0, sumC=0;
+    rows.forEach(r=>{ sumW += safeNumber(r.weight)||0; sumC += safeNumber(r.contribution)||0; });
+    const weightedYield = sumW ? (sumC/sumW) : null;
+
+    const categorySelected = (getCurrentFilters().category || []).length > 0;
+    let avgDisplayWeight;
+    if (!n) {
+      avgDisplayWeight = null;
+    } else if (!categorySelected) {
+      avgDisplayWeight = 1.0;
+    } else {
+      avgDisplayWeight = sumW / n;
+    }
+    // ניתן להוסיף כאן תצוגת פוטר בהתאם לצורך
+  }
+
+  /* ===========================
+     רינדור למסכים
+  ============================ */
+  function renderOverviewMatrix() {
+    renderMatrix("table_overview_wrapper", { byTracks:false });
+    renderFooter("overview_footer");
+  }
+  function renderTracksMatrix() {
+    renderMatrix("table_tracks_wrapper", { byTracks:true });
+    renderFooter("tracks_footer");
+  }
+
+  /* ===========================
      גרפים
   ============================ */
   function renderCharts() {
@@ -1082,10 +1090,10 @@
   document.getElementById("btn_reload").addEventListener("click", reloadData);
   initNav();
 
-  // מסך פתיחה
+  // קובע את המסך הראשוני ל-"tracks"
   setView("tracks");
 
-  // טעינת נתונים
+  // ואז טוען נתונים
   reloadData();
 </script>
 
