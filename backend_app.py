@@ -26,11 +26,10 @@ NO_CACHE_HEADERS = {
     "Expires": "0",
 }
 
-
 # ------------------------------------------------------------
 # FastAPI
 # ------------------------------------------------------------
-app = FastAPI(title="מרכיבי תשואה – Dashboard API v2.0")
+app = FastAPI(title="מרכיבי תשואה – Dashboard API v2.1")
 
 app.add_middleware(
     CORSMiddleware,
@@ -39,7 +38,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 🔥 תוסיף כאן
 @app.middleware("http")
 async def no_cache_middleware(request, call_next):
     response = await call_next(request)
@@ -48,10 +46,8 @@ async def no_cache_middleware(request, call_next):
     response.headers["Expires"] = "0"
     return response
 
-
-
 # ------------------------------------------------------------
-# פונקציה שמנקה NaN / INF כדי למנוע תקיעת JSONResponse
+# פונקציות עזר
 # ------------------------------------------------------------
 def clean_nan_inf(value):
     if value is None:
@@ -63,10 +59,20 @@ def clean_nan_inf(value):
             return None
     return value
 
-
 def clean_row(row: dict) -> dict:
     return {k: clean_nan_inf(v) for k, v in row.items()}
 
+def classify_liquidity_from_category(hebrew_category: Optional[str]) -> Optional[str]:
+    """
+    כללי הסחירות:
+    - אם אפיק השקעה הוא אחד מ: נדל"ן / קרנות השקעה / הלוואות ⇒ "לא סחיר"
+    - אחרת ⇒ "סחיר"
+    """
+    if hebrew_category is None:
+        return None
+    cat = str(hebrew_category).strip()
+    illiquid = {"נדל\"ן", "קרנות השקעה", "הלוואות"}
+    return "לא סחיר" if cat in illiquid else "סחיר"
 
 # ------------------------------------------------------------
 # ROOT – מגיש את ה-SPA
@@ -79,7 +85,6 @@ def root():
             detail=f"לא נמצא קובץ SPA: {FRONTEND_FILE}",
         )
     return FileResponse(FRONTEND_FILE, headers=NO_CACHE_HEADERS)
-
 
 # ------------------------------------------------------------
 # /api/data – טוען את הנתונים, מנקה אותם ומחזיר JSON תקין
@@ -103,6 +108,7 @@ def api_data():
     df = pd.read_csv(csv_path, encoding="utf-8-sig")
 
     # העמודות שמצופות בקובץ
+    # שמרנו על תאימות לאחור: "סחירות" אינה חובה; אם חסרה – נחשב אותה מתוך "אפיק השקעה".
     required_cols = [
         "אפיק השקעה",
         "מס מסלול",
@@ -127,6 +133,16 @@ def api_data():
             detail=f"עמודות חסרות בקובץ: {', '.join(missing)}",
         )
 
+    # אם אין עמודת "סחירות" בקובץ – נחשב אותה לפי הכלל
+    if "סחירות" not in df.columns:
+        df["סחירות"] = df["אפיק השקעה"].apply(classify_liquidity_from_category)
+    else:
+        # מנרמלים לכתיב אחיד ("סחיר"/"לא סחיר") למקרה שיש וריאציות
+        df["סחירות"] = df["סחירות"].apply(
+            lambda v: classify_liquidity_from_category(df.loc[df.index[df["סחירות"] == v], "אפיק השקעה"].iloc[0])
+            if v not in ("סחיר", "לא סחיר") else v
+        )
+
     # מיפוי שמות לעברית → אנגלית
     rename_map = {
         "אפיק השקעה": "category",
@@ -143,6 +159,7 @@ def api_data():
         "תרומה": "contribution",
         "משקל": "weight",
         "תשואה": "yield",
+        "סחירות": "liquidity",
     }
 
     df = df.rename(columns=rename_map)
@@ -179,6 +196,7 @@ def api_data():
         "categories": unique_sorted("category"),
         "saving_types": unique_sorted("saving_type"),
         "fund_types": unique_sorted("fund_type"),
+        "liquidity": unique_sorted("liquidity"),  # חדש – ערכי "סחיר"/"לא סחיר"
         "years": years,
         "min_year": years[0] if years else None,
         "max_year": years[-1] if years else None,
@@ -195,11 +213,9 @@ def api_data():
         headers=NO_CACHE_HEADERS,
     )
 
-
 # ------------------------------------------------------------
 # MAIN – הרצה לוקאלית
 # ------------------------------------------------------------
 if __name__ == "__main__":
     import uvicorn
-
     uvicorn.run("backend_app:app", host="127.0.0.1", port=8010, reload=True)
