@@ -115,11 +115,13 @@
     }
     .field { display: flex; flex-direction: column; gap: 3px; min-width: 140px; }
     .field label { font-size: 0.78rem; color: var(--text-muted); }
-    select {
+    select, button.reset {
       background: #050816; border-radius: 10px; border: 1px solid rgba(255,255,255,0.25);
       color: var(--text-main); font-size: 0.8rem; padding: 5px 9px; outline: none; min-height: 30px;
     }
     select:focus { border-color: var(--accent); box-shadow: 0 0 0 1px rgba(93,208,255,0.5); }
+    button.reset { cursor: pointer; }
+    button.reset:hover { border-color: var(--accent); }
 
     /* Panels / cards */
     .panels-row { display: grid; grid-template-columns: 2fr 1.8fr; gap: 10px; margin-top: 8px; margin-bottom: 10px; }
@@ -178,33 +180,6 @@
     tr:nth-child(even) { background: rgba(255,255,255,0.015); }
     tr:hover { background: rgba(83,211,255,0.09); }
 
-    .table-footer {
-      margin-top: 6px;
-      font-size: 0.8rem;
-      color: var(--text-main);
-      background: linear-gradient(90deg, rgba(93,208,255,0.12), rgba(140,120,255,0.12));
-      border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 10px;
-      padding: 8px 10px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 10px;
-    }
-    .table-footer .meta { color: var(--text-muted); font-size: 0.76rem; }
-
-    /* Chart panel */
-    .chart-block { margin-top: 8px; }
-    .chart-title {
-      margin: 6px 0 4px;
-      font-size: 0.9rem;
-      color: var(--text-main);
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-    .chart-container { position: relative; width: 100%; height: 260px; }
-
     .status-text { font-size: 0.75rem; color: var(--text-muted); }
 
     @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
@@ -221,7 +196,6 @@
       .main { padding: 12px; }
       .panels-row { grid-template-columns: 1fr; }
       .kpi-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-      .table-footer { flex-direction: column; align-items: flex-start; }
       .chart-container { height: 240px; }
     }
   </style>
@@ -235,7 +209,7 @@
       <div class="sidebar-logo-icon">⧉</div>
       <div class="sidebar-logo-text">
         <div class="sidebar-logo-title">מרכיבי תשואה</div>
-        <div class="sidebar-logo-sub">Dashboard v3.1 • Matrix</div>
+        <div class="sidebar-logo-sub">Dashboard v3.3 • Matrix</div>
       </div>
     </div>
 
@@ -263,12 +237,13 @@
       <div class="main-title-block">
         <div class="main-title"><span>דשבורד מרכיבי תשואה</span></div>
         <div class="main-subtitle">
-          טבלת מטריצה 1:1 כמו ב-PowerPivot: “כל התקופה” + קבוצות שנים (דירוג אחזקה/דירוג תשואה/שיעור/תשואה).
+          טבלת מטריצה “כל התקופה” + קבוצות שנים (דירוג אחזקה/דירוג תשואה/שיעור/תשואה).
         </div>
       </div>
       <div class="main-header-actions">
         <div class="badge-file" id="badge_file">קובץ: -</div>
         <button class="btn-ghost" type="button" id="btn_reload">↻ רענון נתונים</button>
+        <button class="btn-ghost" type="button" id="btn_reset_filters">🧹 אפס פילטרים</button>
       </div>
     </header>
 
@@ -304,13 +279,11 @@
 
       <div class="field">
         <label>אפיק השקעה</label>
-        <!-- בחירה מרובה -->
         <select id="f_category" multiple></select>
       </div>
 
       <div class="field">
         <label>שנת דיווח</label>
-        <!-- בחירה מרובה -->
         <select id="f_year" multiple></select>
       </div>
     </section>
@@ -339,7 +312,7 @@
         <div class="panel">
           <div class="panel-header">
             <div class="panel-header-title"><span class="icon">📌</span><span>טבלת סיכום לפי מסלול</span></div>
-            <div class="panel-header-sub">אותו מבנה: כל התקופה + 2022/2023/2024 → דירוג אחזקה/דירוג תשואה/שיעור/תשואה</div>
+            <div class="panel-header-sub">כל התקופה + 2022/2023/2024 → דירוג אחזקה/דירוג תשואה/שיעור/תשואה</div>
           </div>
 
           <div class="table-meta">
@@ -373,7 +346,6 @@
         <div class="panel">
           <div class="panel-header">
             <div class="panel-header-title"><span class="icon">📈</span><span>גרפים רבעוניים</span></div>
-            <div class="panel-header-sub">ציר X: שנה+רבעון • ציר Y: אחוזים</div>
           </div>
 
           <div style="margin-bottom:6px; font-size:0.78rem; color:var(--text-muted);">
@@ -408,7 +380,7 @@
     raw: [],
     filtered: [],
     meta: {},
-    currentView: "tracks",   // ברירת מחדל: מסלולים
+    currentView: "tracks",
     chartYield: null,
     chartWeight: null
   };
@@ -418,7 +390,7 @@
     saving_type: { id: "f_saving_type", field: "saving_type",   sort: "locale" },
     fund_type:   { id: "f_fund_type",   field: "fund_type",     sort: "locale" },
     track:       { id: "f_track",       field: "track_name",    sort: "locale" },
-    liquidity:   { id: "f_liquidity",   field: "liquidity",     sort: "locale" },              // ← חדש
+    liquidity:   { id: "f_liquidity",   field: "liquidity",     sort: "locale" },
     category:    { id: "f_category",    field: "category",      sort: "locale",  multi: true },
     year:        { id: "f_year",        field: "year",          sort: "numeric", multi: true }
   };
@@ -442,6 +414,13 @@
       frag.appendChild(opt);
     });
     selectEl.appendChild(frag);
+  }
+  function setMultiSelectSelected(selectEl, values) {
+    const set = new Set((values || []).map(String));
+    Array.from(selectEl.options).forEach(o => o.selected = set.has(String(o.value)));
+  }
+  function clearMultiSelect(selectEl) {
+    Array.from(selectEl.options).forEach(o => o.selected = false);
   }
   function pct(val, digits = 2) {
     if (val === null || val === undefined || isNaN(val)) return "—";
@@ -477,17 +456,14 @@
   function setView(viewName) {
     state.currentView = viewName;
 
-    // מעדכן את ה-sidebar
     document.querySelectorAll(".nav-item").forEach(el =>
       el.classList.toggle("active", el.getAttribute("data-view") === viewName)
     );
 
-    // מעדכן איזה view מופיע על המסך
     document.querySelectorAll(".view").forEach(el =>
       el.classList.toggle("active", el.id.replace("view_", "") === viewName)
     );
 
-    // מרנדר את התוכן הרלוונטי
     if (viewName === "overview") renderOverviewMatrix();
     else if (viewName === "tracks") renderTracksMatrix();
     else if (viewName === "charts") renderCharts();
@@ -501,7 +477,7 @@
     const tableTracks   = document.getElementById("table_tracks_wrapper");
     const statusFilters = document.getElementById("status_filters");
     tableOverview.textContent = "טוען נתונים...";
-    tableTracks.textContent = "טוען נתונים...";
+    tableTracks.textContent   = "טוען נתונים...";
     statusFilters.textContent = "טוען נתונים...";
 
     try {
@@ -518,7 +494,7 @@
     } catch (e) {
       console.error(e);
       tableOverview.textContent = "שגיאה בטעינת הנתונים.";
-      tableTracks.textContent = "שגיאה בטעינת הנתונים.";
+      tableTracks.textContent   = "שגיאה בטעינת הנתונים.";
       statusFilters.textContent = "שגיאה בטעינת הנתונים.";
     }
   }
@@ -541,7 +517,7 @@
     const savingTypes = Array.from(new Set(rows.map(r=>r.saving_type).filter(Boolean))).sort((a,b)=>a.localeCompare(b,"he"));
     const fundTypes   = Array.from(new Set(rows.map(r=>r.fund_type).filter(Boolean))).sort((a,b)=>a.localeCompare(b,"he"));
     const tracks      = Array.from(new Set(rows.map(r=>r.track_name).filter(Boolean))).sort((a,b)=>a.localeCompare(b,"he"));
-    const liquidities = Array.from(new Set(rows.map(r=>r.liquidity).filter(Boolean))).sort((a,b)=>a.localeCompare(b,"he")); // חדש
+    const liquidities = Array.from(new Set(rows.map(r=>r.liquidity).filter(Boolean))).sort((a,b)=>a.localeCompare(b,"he"));
     const categories  = Array.from(new Set(rows.map(r=>r.category).filter(Boolean))).sort((a,b)=>a.localeCompare(b,"he"));
     const years       = uniqueSortedYears(rows);
 
@@ -549,7 +525,7 @@
     setSelectOptions(document.getElementById(FILTERS.saving_type.id), savingTypes);
     setSelectOptions(document.getElementById(FILTERS.fund_type.id),   fundTypes);
     setSelectOptions(document.getElementById(FILTERS.track.id),       tracks);
-    setSelectOptions(document.getElementById(FILTERS.liquidity.id),   liquidities);                 // חדש
+    setSelectOptions(document.getElementById(FILTERS.liquidity.id),   liquidities);
     setSelectOptions(document.getElementById(FILTERS.category.id),    categories, { includeAll:false });
     setSelectOptions(document.getElementById(FILTERS.year.id),        years,     { includeAll:false });
 
@@ -559,6 +535,37 @@
       if (!sel.multiple) sel.value = "";
       sel.addEventListener("change", onFilterChange);
     });
+
+    // סנכרון אפיקים באופן אוטומטי כשסחירות משתנה
+    document.getElementById(FILTERS.liquidity.id).addEventListener("change", ()=>{
+      refreshFilterOptions();
+      autoSelectCategoriesByLiquidity();
+      applyFilters();
+    });
+
+    // כפתור "אפס פילטרים"
+    document.getElementById("btn_reset_filters").addEventListener("click", resetAllFilters);
+  }
+
+  // בונה רשימת קטגוריות רלוונטיות לפי ערך הסחירות שנבחר
+  function autoSelectCategoriesByLiquidity() {
+    const liqSel = document.getElementById(FILTERS.liquidity.id);
+    const liqVal = liqSel ? liqSel.value : "";
+    const catEl  = document.getElementById(FILTERS.category.id);
+    if (!catEl) return;
+
+    if (!liqVal) { // אין בחירה → לא לכפות בחירת אפיקים
+      clearMultiSelect(catEl);
+      return;
+    }
+
+    // אוספים קטגוריות רלוונטיות תחת יתר הפילטרים (מלבד 'category' כדי לפתוח את המרחב)
+    const f = getCurrentFilters();
+    const rowsForCats = filterRowsByFilters(f, "category");
+    const relevant = rowsForCats.filter(r => r.liquidity === liqVal);
+    const categories = Array.from(new Set(relevant.map(r => r.category).filter(Boolean)));
+
+    setMultiSelectSelected(catEl, categories);
   }
 
   function filterRowsByFilters(filters, ignoreKey=null) {
@@ -619,7 +626,7 @@
       saving_type: getSelectValues(document.getElementById(FILTERS.saving_type.id), false),
       fund_type:   getSelectValues(document.getElementById(FILTERS.fund_type.id),   false),
       track:       getSelectValues(document.getElementById(FILTERS.track.id),       false),
-      liquidity:   getSelectValues(document.getElementById(FILTERS.liquidity.id),   false), // חדש
+      liquidity:   getSelectValues(document.getElementById(FILTERS.liquidity.id),   false),
       category:    getSelectValues(document.getElementById(FILTERS.category.id),    true),
       year:        getSelectValues(document.getElementById(FILTERS.year.id),        true),
     };
@@ -650,7 +657,6 @@
       return true;
     });
 
-    // רענון תצוגות אחרי הסינון
     updateFiltersStatus();
     renderKPIs();
     renderOverviewMatrix();
@@ -666,12 +672,24 @@
     if (f.saving_type) parts.push("סוג חיסכון: " + f.saving_type);
     if (f.fund_type) parts.push("סוג קופה: " + f.fund_type);
     if (f.track) parts.push("מסלול: " + f.track);
-    if (f.liquidity) parts.push("סחירות: " + f.liquidity);                      // חדש
+    if (f.liquidity) parts.push("סחירות: " + f.liquidity);
     if (Array.isArray(f.category) && f.category.length) parts.push("אפיק: " + f.category.join(", "));
     if (Array.isArray(f.year) && f.year.length) parts.push("שנים: " + f.year.join(", "));
     document.getElementById("status_filters").textContent =
       (parts.length ? parts.join(" • ") : "ללא סינון – מוצגות כל הרשומות") +
       ` • רשומות לאחר סינון: ${rowsCount}`;
+  }
+
+  // אפס את כל הפילטרים לערכי ברירת מחדל
+  function resetAllFilters() {
+    Object.values(FILTERS).forEach(({id})=>{
+      const el = document.getElementById(id);
+      if (!el) return;
+      if (el.multiple) clearMultiSelect(el);
+      else el.value = "";
+    });
+    refreshFilterOptions();
+    applyFilters();
   }
 
   /* ===========================
@@ -702,7 +720,8 @@
   }
 
   /* ===========================
-     לוגיקת Measures 1:1
+     לוגיקה – חישובי תשואה ושיעור מהדאטה המסונן (בצד לקוח בלבד)
+     הערה: "תשואה" = Σ(תרומה) / Σ(משקל) לפי החיתוך הרלוונטי.
   ============================ */
   function yearsInScope(rows) { return uniqueSortedYears(rows); }
   function renderYearsBadges(containerId, rows) {
@@ -711,7 +730,7 @@
     el.innerHTML = yrs.length ? yrs.map(y=>`<span class="year-chip">${y}</span>`).join("") : "—";
   }
 
-  // קיבוץ בסיסי לפי מפתח ישות (Company או Company+Track) ולפי שנה
+  // קיבוץ לפי ישות ושנה + סכום תרומה/משקל
   function aggregateByEntityYear(rows, entityKeyFn) {
     const by = {};
     rows.forEach(r=>{
@@ -719,18 +738,22 @@
       if (!key) return;
       if (r.year===null || r.year===undefined) return;
       const yr = Number(r.year);
+
+      const w = safeNumber(r.weight) || 0;
+      const c = safeNumber(r.contribution) || 0;
+
       by[key] = by[key] || {};
       by[key][yr] = by[key][yr] || { wSum:0, cSum:0, n:0 };
-      by[key][yr].wSum += safeNumber(r.weight)||0;
-      by[key][yr].cSum += safeNumber(r.contribution)||0;
+      by[key][yr].wSum += w;
+      by[key][yr].cSum += c;
       by[key][yr].n += 1;
     });
     return by;
   }
 
-  // חישוב weight לתצוגה (לפי כלל האפיק)
+  // משקל לתצוגה: אם אין אפיק נבחר → 100%, אחרת ממוצע פשוט
   function displayWeight(avgWeightSimple, hasCategoryFilter) {
-    return hasCategoryFilter ? avgWeightSimple : 1.0; // בלי אפיק → 100%
+    return hasCategoryFilter ? avgWeightSimple : 1.0;
   }
 
   // דירוג DENSE יורד
@@ -748,22 +771,10 @@
     return out;
   }
 
-  // תשואה מצטברת לכל התקופה (רק אם יש לכל השנים הנראות)
-  function cumulativeReturnForEntity(entityYearsData, visibleYears) {
-    const ylds = [];
-    for (const y of visibleYears) {
-      const cell = entityYearsData[y];
-      if (!cell || cell.yield===null || isNaN(cell.yield)) return null;
-      ylds.push(cell.yield);
-    }
-    if (ylds.length===1) return ylds[0];
-    let prod = 1;
-    ylds.forEach(v=> prod *= (1+v));
-    return prod - 1;
-  }
-
   /* ===========================
-     בניית מטריצת דירוג/שיעור/תשואה
+     בניית מטריצה
+     "תשואה" לכל תקופה = Σ(תרומה) / Σ(משקל) על פני כל השנים הנראות.
+     "תשואה" שנתית בטורים הימניים = cSum(y)/wSum(y).
   ============================ */
   function buildMatrix(rows, { byTracks=false } = {}) {
     const scopeYears = yearsInScope(rows);
@@ -785,35 +796,53 @@
       const yearsData = {};
       let wDispSum=0, wDispN=0;
 
+      // צבירה לכל התקופה לצורך תשואה כוללת ΣC/ΣW
+      let totalWSum = 0, totalCSum = 0;
+
       for (const y of scopeYears) {
         const c = yearsMap[y];
-        if (!c) { yearsData[y] = { yield:null, wDisp:null }; continue; }
+        if (!c) {
+          yearsData[y] = { yield:null, wDisp:null };
+          continue;
+        }
+        // תשואה שנתית לפי C/W
         const yieldY = c.wSum ? (c.cSum / c.wSum) : null;
+
+        // משקל לתצוגה
         const avgWeightSimple = c.n ? (c.wSum / c.n) : null;
         const wDisp = (avgWeightSimple===null) ? null : displayWeight(avgWeightSimple, hasCategory);
+
         yearsData[y] = { yield: yieldY, wDisp };
+
         if (wDisp!==null) { wDispSum += wDisp; wDispN += 1; }
+        totalWSum += c.wSum;
+        totalCSum += c.cSum;
       }
 
-      const yieldCum = cumulativeReturnForEntity(yearsData, scopeYears);
+      // תשואת "כל התקופה" מחושבת בצד לקוח: ΣC / ΣW (לא מהבקאנד ולא מכפלה!)
+      const yieldAll = totalWSum ? (totalCSum / totalWSum) : null;
       const wDispAvg = wDispN ? (wDispSum / wDispN) : (hasCategory ? null : 1.0);
-      perEntity[key] = { years: yearsData, allPeriod: { yieldCum, wDispAvg } };
+
+      perEntity[key] = { years: yearsData, allPeriod: { yieldAll, wDispAvg } };
     }
 
+    // דירוגים
     const rankAllWeight = {};
     const rankAllYield  = {};
     const rankPerYearWeight = {};
     const rankPerYearYield  = {};
 
+    // דירוג "כל התקופה"
     const mapAllWeight = {};
     const mapAllYield  = {};
     for (const [k,obj] of Object.entries(perEntity)) {
       mapAllWeight[k] = obj.allPeriod.wDispAvg;
-      mapAllYield[k]  = obj.allPeriod.yieldCum;
+      mapAllYield[k]  = obj.allPeriod.yieldAll;
     }
     Object.assign(rankAllWeight, denseRankDesc(mapAllWeight));
     Object.assign(rankAllYield,  denseRankDesc(mapAllYield));
 
+    // דירוג לכל שנה
     for (const y of scopeYears) {
       const mW = {};
       const mY = {};
@@ -864,7 +893,7 @@
     tr += `<td>${rwAll}</td>`;
     tr += `<td>${ryAll}</td>`;
     tr += `<td>${(allP.wDispAvg!==null && !isNaN(allP.wDispAvg)) ? (allP.wDispAvg*100).toFixed(2)+"%" : ""}</td>`;
-    tr += `<td>${(allP.yieldCum!==null && !isNaN(allP.yieldCum)) ? (allP.yieldCum*100).toFixed(2)+"%" : ""}</td>`;
+    tr += `<td>${(allP.yieldAll!==null && !isNaN(allP.yieldAll)) ? (allP.yieldAll*100).toFixed(2)+"%" : ""}</td>`;
 
     years.order.forEach(y=>{
       const cell = years.map[y];
@@ -932,44 +961,8 @@
   }
 
   /* ===========================
-     פוטרים (שמורים להרחבה עתידית)
-  ============================ */
-  function renderFooter(containerId) {
-    const el = document.getElementById(containerId);
-    if (!el) return;
-    const rows = state.filtered || [];
-    const n = rows.length;
-
-    let sumW=0, sumC=0;
-    rows.forEach(r=>{ sumW += safeNumber(r.weight)||0; sumC += safeNumber(r.contribution)||0; });
-    const weightedYield = sumW ? (sumC/sumW) : null;
-
-    const categorySelected = (getCurrentFilters().category || []).length > 0;
-    let avgDisplayWeight;
-    if (!n) {
-      avgDisplayWeight = null;
-    } else if (!categorySelected) {
-      avgDisplayWeight = 1.0;
-    } else {
-      avgDisplayWeight = sumW / n;
-    }
-    // ניתן להוסיף כאן תצוגת פוטר בהתאם לצורך
-  }
-
-  /* ===========================
-     רינדור למסכים
-  ============================ */
-  function renderOverviewMatrix() {
-    renderMatrix("table_overview_wrapper", { byTracks:false });
-    renderFooter("overview_footer");
-  }
-  function renderTracksMatrix() {
-    renderMatrix("table_tracks_wrapper", { byTracks:true });
-    renderFooter("tracks_footer");
-  }
-
-  /* ===========================
      גרפים
+     (תשואה חושבה גם כאן בצד לקוח: ΣC/ΣW לכל סדרת-זמן)
   ============================ */
   function renderCharts() {
     const rows = state.filtered || [];
@@ -1032,6 +1025,7 @@
       ...Object.keys(seriesWeightSum)
     ])).sort((a,b)=>a.localeCompare(b,"he"));
 
+    // תשואה רבעונית מחושבת מהדאטה המסונן: ΣC/ΣW
     const datasetsYield = seriesKeys.map((name,idx)=>{
       const color = palette[idx%palette.length];
       const data = timeKeys.map(k=>{
@@ -1042,6 +1036,7 @@
       return { label:name, data, type:"bar", backgroundColor:color+"cc", borderColor:color, borderWidth:1, order:1, skipNull:true };
     }).filter(ds=>ds.data.some(v=>v!==null && !isNaN(v)));
 
+    // אחזקה לתצוגה
     const datasetsWeight = seriesKeys.map((name,idx)=>{
       const color = palette[idx%palette.length];
       const data = timeKeys.map(k=>{
@@ -1090,10 +1085,10 @@
   document.getElementById("btn_reload").addEventListener("click", reloadData);
   initNav();
 
-  // קובע את המסך הראשוני ל-"tracks"
+  // מסך פתיחה
   setView("tracks");
 
-  // ואז טוען נתונים
+  // טעינת נתונים
   reloadData();
 </script>
 
