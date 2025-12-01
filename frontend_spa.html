@@ -105,6 +105,8 @@
     }
     .btn-ghost:hover { background: rgba(18,25,60,0.95); box-shadow: 0 4px 12px rgba(0,0,0,0.4); transform: translateY(-1px); }
 
+    .status-text { font-size: 0.8rem; color: var(--text-muted); }
+
     /* Filters bar */
     .filters-bar {
       background: radial-gradient(circle at left, rgba(93,208,255,0.15), rgba(10,15,45,0.98));
@@ -119,6 +121,34 @@
       color: var(--text-main); font-size: 0.8rem; padding: 5px 9px; outline: none; min-height: 30px;
     }
     select:focus { border-color: var(--accent); box-shadow: 0 0 0 1px rgba(93,208,255,0.5); }
+
+    /* MATRIX TABLE */
+    .matrix-wrapper { margin-top: 10px; }
+    .matrix-scroll {
+      margin-top: 6px;
+      max-height: 260px;
+      overflow: auto;
+    }
+    .matrix-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.78rem;
+      text-align: center;
+    }
+    .matrix-table th,
+    .matrix-table td {
+      border: 1px solid var(--border-subtle);
+      padding: 4px 6px;
+      white-space: nowrap;
+    }
+    .matrix-table thead th {
+      background: radial-gradient(circle at top, rgba(93,208,255,0.18), rgba(10,12,30,0.96));
+    }
+    .matrix-row-header {
+      text-align: right;
+      font-weight: 600;
+      background: rgba(255,255,255,0.02);
+    }
 
     /* KPI panels */
     .panels-row { display: grid; grid-template-columns: 2fr 1.8fr; gap: 10px; margin-top: 8px; margin-bottom: 10px; }
@@ -212,7 +242,7 @@
       <div class="main-title-block">
         <div class="main-title">דשבורד מרכיבי תשואה</div>
         <div class="main-subtitle">
-          גרפים בלבד – טבלת המטריצה הוסרה
+          גרפים + טבלת מטריצה לפי מסלול / שנה / רבעון
         </div>
       </div>
       <div class="main-header-actions">
@@ -259,6 +289,24 @@
         <select id="f_year" multiple></select>
       </div>
 
+    </section>
+
+    <!-- MATRIX TABLE -->
+    <section class="matrix-wrapper">
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-header-title">
+            <span class="icon">🧮</span>
+            <span>מטריצת שיעור מסך התיק לפי מסלול / שנה / רבעון</span>
+          </div>
+        </div>
+        <div id="matrix_empty" class="status-text" style="margin-top:4px; display:none;">
+          אין נתונים להצגה עבור המסננים הנוכחיים.
+        </div>
+        <div class="matrix-scroll">
+          <table id="matrix_table" class="matrix-table"></table>
+        </div>
+      </div>
     </section>
 
     <!-- KPIs -->
@@ -523,6 +571,7 @@ function applyFilters() {
 
   updateFiltersStatus();
   renderKPIs();
+  renderMatrixTable();
   renderCharts();
 }
 
@@ -571,6 +620,110 @@ function renderKPIs() {
       <div class="kpi-badge">סה״כ רשומות: ${rows.length}</div>
     </div>
   `;
+}
+
+/* ————————————————————————
+   MATRIX TABLE (מסלול / שנה / רבעון)
+———————————————————————— */
+function renderMatrixTable() {
+  const table = document.getElementById("matrix_table");
+  const emptyEl = document.getElementById("matrix_empty");
+  if (!table || !emptyEl) return;
+
+  const rows = state.filtered.filter(r => r.track_name && r.year && r.quarter);
+
+  if (!rows.length) {
+    table.innerHTML = "";
+    emptyEl.style.display = "block";
+    return;
+  }
+  emptyEl.style.display = "none";
+
+  // בונים מיפוי שנה -> רשימת רבעונים
+  const yearMap = new Map();
+  rows.forEach(r => {
+    const y = Number(r.year);
+    const q = Number(r.quarter);
+    if (!y || !q) return;
+    if (!yearMap.has(y)) yearMap.set(y, new Set());
+    yearMap.get(y).add(q);
+  });
+
+  const years = Array.from(yearMap.keys()).sort((a,b)=>a-b);
+  years.forEach(y => {
+    const qs = Array.from(yearMap.get(y)).sort((a,b)=>a-b);
+    yearMap.set(y, qs);
+  });
+
+  // שורות = מסלולים
+  const tracks = Array.from(new Set(rows.map(r => r.track_name))).sort(
+    (a,b)=>String(a).localeCompare(String(b),"he")
+  );
+
+  // אגרגציה של "שיעור מסך התיק" (weight) לכל מסלול/שנה/רבעון
+  const agg = {};
+  rows.forEach(r => {
+    const track = r.track_name;
+    const y = Number(r.year);
+    const q = Number(r.quarter);
+    const w = safeNumber(r.weight) || 0;
+
+    if (!agg[track]) agg[track] = {};
+    if (!agg[track][y]) agg[track][y] = {};
+    if (!agg[track][y][q]) agg[track][y][q] = 0;
+    agg[track][y][q] += w;
+  });
+
+  let html = "<thead>";
+
+  // שורת כותרת ראשונה – שנים
+  html += '<tr><th rowspan="3">מסלול</th>';
+  years.forEach(y => {
+    const qs = yearMap.get(y) || [];
+    html += `<th colspan="${qs.length}">${y}</th>`;
+  });
+  html += "</tr>";
+
+  // שורת כותרת שנייה – רבעונים
+  html += "<tr>";
+  years.forEach(y => {
+    const qs = yearMap.get(y) || [];
+    qs.forEach(q => {
+      html += `<th>רבעון ${q}</th>`;
+    });
+  });
+  html += "</tr>";
+
+  // שורת כותרת שלישית – שם המדד לכל תא
+  html += "<tr>";
+  years.forEach(y => {
+    const qs = yearMap.get(y) || [];
+    qs.forEach(() => {
+      html += "<th>שיעור מסך התיק (%)</th>";
+    });
+  });
+  html += "</tr>";
+
+  html += "</thead><tbody>";
+
+  // שורות נתונים
+  tracks.forEach(track => {
+    html += `<tr><td class="matrix-row-header">${track}</td>`;
+    years.forEach(y => {
+      const qs = yearMap.get(y) || [];
+      qs.forEach(q => {
+        const val = (agg[track] && agg[track][y] && agg[track][y][q]) ? agg[track][y][q] : null;
+        const display = (val !== null && val !== undefined && Math.abs(val) > 1e-6)
+          ? val.toFixed(2)
+          : "-";
+        html += `<td>${display}</td>`;
+      });
+    });
+    html += "</tr>";
+  });
+
+  html += "</tbody>";
+  table.innerHTML = html;
 }
 
 /* ————————————————————————
