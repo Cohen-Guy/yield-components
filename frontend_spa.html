@@ -234,7 +234,7 @@
     <div class="sidebar-logo">
       <div class="sidebar-logo-icon">⧉</div>
       <div class="sidebar-logo-text">
-        <div class="sidebar-logo-title">מרכיבי תשואה</div>
+        <div class="sidebar-logo-title">मरכיבי תשואה</div>
         <div class="sidebar-logo-sub">Dashboard v3.2 • Matrix</div>
       </div>
     </div>
@@ -491,7 +491,7 @@
   }
 
   /* ===========================
-     טעינת נתונים
+     טעינת נתונים (עם נירמול שמות עמודות)
   ============================ */
   async function reloadData() {
     const tableOverview = document.getElementById("table_overview_wrapper");
@@ -505,7 +505,25 @@
       const res = await fetch("/api/data");
       if (!res.ok) throw new Error("שגיאה בטעינת /api/data: " + res.status);
       const data = await res.json();
-      state.raw = data.rows || [];
+
+      // נירמול שמות שדות מה-API/CSV לעברית/אנגלית → שמות קבועים
+      const rows = (data.rows || []).map(r => ({
+        company_short: r.company_short ?? r.company ?? r["חברה מקוצר"] ?? r["שם חברה"] ?? "לא ידוע",
+        track_name:    r.track_name    ?? r["שם מסלול אחיד"] ?? r["שם מסלול"] ?? "",
+        category:      r.category      ?? r["אפיק השקעה"]    ?? "",
+        liquidity:     r.liquidity     ?? r["סחירות"]         ?? "",
+        saving_type:   r.saving_type   ?? r["סוג חיסכון"]     ?? "",
+        fund_type:     r.fund_type     ?? r["סוג קופה"]       ?? "",
+        year:          (r.year ?? r["שנה"]) != null ? String(r.year ?? r["שנה"]) : null,
+        quarter:       Number(r.quarter ?? r["רבעון"]),
+        // שדות החישוב
+        weight:        Number(r.weight ?? r["משקל"] ?? r["שיעור(%)"] ?? r["שיעור"] ?? r["שיעור מסך הנכסים"]),
+        contribution:  Number(r.contribution ?? r["תרומה"]),
+        yield:         Number(r.yield ?? r["תשואה"]) // לא חובה; נחשב מחדש בטבלאות
+      }));
+
+      // סינון רשומות חסרות שדות הכרחיים לתצוגה
+      state.raw = rows.filter(r => r.company_short && r.track_name && r.category);
       state.meta = data.meta || {};
       document.getElementById("badge_file").textContent = "קובץ: " + (state.meta.file || "-");
       updateSidebarMeta();
