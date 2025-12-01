@@ -254,7 +254,7 @@
     <!-- FILTERS -->
     <section class="filters-bar">
 
-      <!-- שים לב: הוסר פילטר "חברה" לפי בקשתך -->
+      <!-- פילטר "חברה" הוסר -->
 
       <div class="field">
         <label>סוג חיסכון</label>
@@ -294,7 +294,7 @@
         <div class="panel-header">
           <div class="panel-header-title">
             <span class="icon">🧮</span>
-            <span>מטריצת שיעור מסך התיק ותרומה לפי מסלול / שנה / רבעון</span>
+            <span>מטריצת שיעור מסך התיק, תרומה ותשואה לפי מסלול / שנה / רבעון</span>
           </div>
         </div>
         <div id="matrix_empty" class="status-text" style="margin-top:4px; display:none;">
@@ -622,7 +622,7 @@ function renderKPIs() {
 }
 
 /* ————————————————————————
-   MATRIX TABLE (מסלול / שנה / רבעון + תרומה)
+   MATRIX TABLE (מסלול / שנה / רבעון + תרומה + תשואה)
 ———————————————————————— */
 function renderMatrixTable() {
   const table = document.getElementById("matrix_table");
@@ -678,30 +678,30 @@ function renderMatrixTable() {
 
   let html = "<thead>";
 
-  // שורת כותרת ראשונה – שנים (כל שנה: 2 עמודות לכל רבעון – משקל ותרומה)
+  // שורת כותרת ראשונה – שנים (כל שנה: 3 עמודות לכל רבעון – משקל, תרומה, תשואה)
   html += '<tr><th rowspan="3">מסלול</th>';
   years.forEach(y => {
     const qs = yearMap.get(y) || [];
-    html += `<th colspan="${qs.length * 2}">${y}</th>`;
+    html += `<th colspan="${qs.length * 3}">${y}</th>`;
   });
   html += "</tr>";
 
-  // שורת כותרת שנייה – רבעונים (כל רבעון colspan=2)
+  // שורת כותרת שנייה – רבעונים (כל רבעון colspan=3)
   html += "<tr>";
   years.forEach(y => {
     const qs = yearMap.get(y) || [];
     qs.forEach(q => {
-      html += `<th colspan="2">רבעון ${q}</th>`;
+      html += `<th colspan="3">רבעון ${q}</th>`;
     });
   });
   html += "</tr>";
 
-  // שורת כותרת שלישית – משקל + תרומה
+  // שורת כותרת שלישית – משקל + תרומה + תשואה
   html += "<tr>";
   years.forEach(y => {
     const qs = yearMap.get(y) || [];
     qs.forEach(() => {
-      html += "<th>שיעור מסך התיק (%)</th><th>תרומה (%)</th>";
+      html += "<th>שיעור מסך התיק (%)</th><th>תרומה (%)</th><th>תשואה (%)</th>";
     });
   });
   html += "</tr>";
@@ -718,15 +718,25 @@ function renderMatrixTable() {
 
         let wDisplay = "-";
         let cDisplay = "-";
+        let yDisplay = "-";
 
-        if (cell && Math.abs(cell.w) > 1e-6) {
-          wDisplay = (cell.w * 100).toFixed(2) + "%";
-        }
-        if (cell && Math.abs(cell.c) > 1e-6) {
-          cDisplay = (cell.c * 100).toFixed(2) + "%";
+        if (cell) {
+          if (Math.abs(cell.w) > 1e-6) {
+            wDisplay = (cell.w * 100).toFixed(2) + "%";
+          }
+          if (Math.abs(cell.c) > 1e-9) {
+            cDisplay = (cell.c * 100).toFixed(2) + "%";
+          } else {
+            cDisplay = (0).toFixed(2) + "%";
+          }
+
+          if (Math.abs(cell.w) > 1e-9) {
+            const yVal = cell.c / cell.w;  // תשואה = תרומה / משקל
+            yDisplay = (yVal * 100).toFixed(2) + "%";
+          }
         }
 
-        html += `<td>${wDisplay}</td><td>${cDisplay}</td>`;
+        html += `<td>${wDisplay}</td><td>${cDisplay}</td><td>${yDisplay}</td>`;
       });
     });
     html += "</tr>";
