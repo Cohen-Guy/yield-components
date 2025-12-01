@@ -5,7 +5,6 @@
   <title>דשבורד מרכיבי תשואה</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
 
-  <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <style>
@@ -121,80 +120,43 @@
     }
     select:focus { border-color: var(--accent); box-shadow: 0 0 0 1px rgba(93,208,255,0.5); }
 
-    /* Panels / cards */
+    /* KPI panels */
     .panels-row { display: grid; grid-template-columns: 2fr 1.8fr; gap: 10px; margin-top: 8px; margin-bottom: 10px; }
     .panel {
       background: linear-gradient(135deg, rgba(14,18,40,0.98), rgba(10,12,30,0.98));
       border-radius: 14px; padding: 10px 12px; border: 1px solid var(--border-subtle);
-      box-shadow: 0 14px 32px rgba(0,0,0,0.5); display: flex; flex-direction: column; gap: 6px; min-height: 220px;
+      box-shadow: 0 14px 32px rgba(0,0,0,0.5); display: flex; flex-direction: column; gap: 6px; min-height: 200px;
     }
-    .panel-header { display: flex; align-items: center; justify-content: space-between; font-size: 0.9rem; margin-bottom: 2px; }
+    .panel-header { display: flex; align-items: center; justify-content: space-between; font-size: 0.9rem; }
     .panel-header-title { display: flex; align-items: center; gap: 6px; }
     .panel-header-title span.icon { font-size: 1.1rem; }
-    .panel-header-sub { font-size: 0.75rem; color: var(--text-muted); }
 
-    .kpi-row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-top: 4px; }
+    .kpi-row {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 8px;
+      margin-top: 4px;
+    }
     .kpi-card {
       background: radial-gradient(circle at top, rgba(93,208,255,0.2), rgba(10,15,40,0.95));
-      border-radius: 12px; padding: 7px 9px; border: 1px solid rgba(93,208,255,0.4);
-      display: flex; flex-direction: column; gap: 2px; font-size: 0.8rem;
+      border-radius: 12px;
+      padding: 7px 9px;
+      border: 1px solid rgba(93,208,255,0.4);
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      font-size: 0.8rem;
     }
     .kpi-label { color: var(--text-muted); font-size: 0.75rem; }
     .kpi-value { font-size: 1rem; font-weight: 600; }
     .kpi-badge { font-size: 0.7rem; color: var(--accent); }
 
+    /* Views */
     .views-wrapper { margin-top: 4px; display: flex; flex-direction: column; gap: 10px; }
     .view { display: none; }
-    .view.active { display: block; animation: fadeIn 0.22s ease-out; }
-
-    /* Matrix Table */
-    .table-meta {
-      margin: 6px 0 6px;
-      font-size: 0.78rem;
-      color: var(--text-muted);
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
-    .years-badges { display: inline-flex; gap: 6px; flex-wrap: wrap; }
-    .year-chip {
-      padding: 2px 8px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.18);
-      background: rgba(0,0,0,0.25); color: var(--text-main); font-size: 0.75rem;
-    }
-
-    .table-wrapper {
-      flex: 1; overflow: auto; border-radius: 10px;
-      border: 1px solid rgba(255,255,255,0.06);
-      background: radial-gradient(circle at top left, rgba(93,208,255,0.12), rgba(5,7,20,0.96));
-    }
-    table { width: max-content; min-width: 100%; border-collapse: collapse; font-size: 0.78rem; }
-    th, td { padding: 6px 6px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.05); white-space: nowrap; }
-    th {
-      background: linear-gradient(90deg, rgba(83,211,255,0.25), rgba(140,120,255,0.22));
-      font-weight: 600; position: sticky; top: 0; z-index: 2;
-    }
-    .th-group { position: sticky; top: 0; z-index: 3; font-weight: 700; }
-    tr:nth-child(even) { background: rgba(255,255,255,0.015); }
-    tr:hover { background: rgba(83,211,255,0.09); }
-
-    .table-footer {
-      margin-top: 6px;
-      font-size: 0.8rem;
-      color: var(--text-main);
-      background: linear-gradient(90deg, rgba(93,208,255,0.12), rgba(140,120,255,0.12));
-      border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 10px;
-      padding: 8px 10px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 10px;
-    }
-    .table-footer .meta { color: var(--text-muted); font-size: 0.76rem; }
+    .view.active { display: block; }
 
     /* Chart panel */
-    .chart-block { margin-top: 8px; }
     .chart-title {
       margin: 6px 0 4px;
       font-size: 0.9rem;
@@ -205,45 +167,31 @@
     }
     .chart-container { position: relative; width: 100%; height: 260px; }
 
-    .status-text { font-size: 0.75rem; color: var(--text-muted); }
-
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
-
-    @media (max-width: 1040px) {
-      .app-shell { grid-template-columns: 64px 1fr; }
-      .sidebar-logo-text { display: none; }
-      .sidebar-nav span.label { display: none; }
-      .nav-item { justify-content: center; }
-    }
     @media (max-width: 840px) {
       .app-shell { grid-template-columns: 1fr; }
       .sidebar { display: none; }
       .main { padding: 12px; }
       .panels-row { grid-template-columns: 1fr; }
       .kpi-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-      .table-footer { flex-direction: column; align-items: flex-start; }
-      .chart-container { height: 240px; }
     }
   </style>
 </head>
 
 <body>
 <div class="app-shell">
+
   <!-- SIDEBAR -->
   <aside class="sidebar">
     <div class="sidebar-logo">
       <div class="sidebar-logo-icon">⧉</div>
       <div class="sidebar-logo-text">
         <div class="sidebar-logo-title">מרכיבי תשואה</div>
-        <div class="sidebar-logo-sub">Dashboard v3.1 • Matrix</div>
+        <div class="sidebar-logo-sub">Dashboard v3.1</div>
       </div>
     </div>
 
     <div class="sidebar-nav">
-      <div class="nav-item active" data-view="tracks">
-        <span class="icon">📋</span><span class="label">מסלולים וחברות</span>
-      </div>
-      <div class="nav-item" data-view="charts">
+      <div class="nav-item active" data-view="charts">
         <span class="icon">📈</span><span class="label">גרפים</span>
       </div>
     </div>
@@ -258,12 +206,13 @@
 
   <!-- MAIN -->
   <main class="main">
+
     <!-- HEADER -->
     <header class="main-header">
       <div class="main-title-block">
-        <div class="main-title"><span>דשבורד מרכיבי תשואה</span></div>
+        <div class="main-title">דשבורד מרכיבי תשואה</div>
         <div class="main-subtitle">
-          טבלת מטריצה 1:1 כמו ב-PowerPivot: “כל התקופה” + קבוצות שנים (דירוג אחזקה/דירוג תשואה/שיעור/תשואה).
+          גרפים בלבד – טבלת המטריצה הוסרה
         </div>
       </div>
       <div class="main-header-actions">
@@ -274,13 +223,12 @@
 
     <!-- FILTERS -->
     <section class="filters-bar">
-      <!-- חברה (נשאר ראשון) -->
+
       <div class="field">
         <label>חברה</label>
         <select id="f_company"></select>
       </div>
 
-      <!-- סדר מבוקש: סוג חיסכון → סוג קופה → מסלול → סחירות → אפיק השקעה → שנה -->
       <div class="field">
         <label>סוג חיסכון</label>
         <select id="f_saving_type"></select>
@@ -296,7 +244,6 @@
         <select id="f_track"></select>
       </div>
 
-      <!-- חדש: סחירות -->
       <div class="field">
         <label>סחירות</label>
         <select id="f_liquidity"></select>
@@ -304,15 +251,14 @@
 
       <div class="field">
         <label>אפיק השקעה</label>
-        <!-- בחירה מרובה -->
         <select id="f_category" multiple></select>
       </div>
 
       <div class="field">
         <label>שנת דיווח</label>
-        <!-- בחירה מרובה -->
         <select id="f_year" multiple></select>
       </div>
+
     </section>
 
     <!-- KPIs -->
@@ -332,52 +278,14 @@
       </div>
     </section>
 
-    <!-- VIEWS -->
+    <!-- CHARTS VIEW -->
     <section class="views-wrapper">
-      <!-- View 1: Overview -->
-      <section class="view" id="view_overview">
-        <div class="panel">
-          <div class="panel-header">
-            <div class="panel-header-title"><span class="icon">📌</span><span>טבלת סיכום לפי מסלול</span></div>
-            <div class="panel-header-sub">אותו מבנה: כל התקופה + 2022/2023/2024 → דירוג אחזקה/דירוג תשואה/שיעור/תשואה</div>
-          </div>
+      <section class="view active" id="view_charts">
 
-          <div class="table-meta">
-            <span>שנים בתצוגה:</span>
-            <div class="years-badges" id="overview_years">—</div>
-          </div>
-
-          <div class="table-wrapper" id="table_overview_wrapper">טוען...</div>
-        </div>
-      </section>
-
-      <!-- View 2: Tracks -->
-      <section class="view active" id="view_tracks">
-        <div class="panel">
-          <div class="panel-header">
-            <div class="panel-header-title"><span class="icon">📋</span><span>טבלת סיכום לפי מסלול</span></div>
-            <div class="panel-header-sub">אותה היררכיה בדיוק, מפורקת למסלולים</div>
-          </div>
-
-          <div class="table-meta">
-            <span>שנים בתצוגה:</span>
-            <div class="years-badges" id="tracks_years">—</div>
-          </div>
-
-          <div class="table-wrapper" id="table_tracks_wrapper">טוען...</div>
-        </div>
-      </section>
-
-      <!-- View 3: Charts -->
-      <section class="view" id="view_charts">
         <div class="panel">
           <div class="panel-header">
             <div class="panel-header-title"><span class="icon">📈</span><span>גרפים רבעוניים</span></div>
             <div class="panel-header-sub">ציר X: שנה+רבעון • ציר Y: אחוזים</div>
-          </div>
-
-          <div style="margin-bottom:6px; font-size:0.78rem; color:var(--text-muted);">
-            טיפ: צמצם פילטרים (חברה/מסלול/אפיק) כדי שהגרפים יהיו קריאים יותר.
           </div>
 
           <div class="chart-block">
@@ -394,6 +302,7 @@
             </div>
           </div>
         </div>
+
       </section>
     </section>
 
@@ -401,700 +310,405 @@
 </div>
 
 <script>
-  /* ===========================
-     מצב גלובלי
-  ============================ */
-  const state = {
-    raw: [],
-    filtered: [],
-    meta: {},
-    currentView: "tracks",   // ברירת מחדל: מסלולים
-    chartYield: null,
-    chartWeight: null
+/* ————————————————————————
+   STATE
+———————————————————————— */
+const state = {
+  raw: [],
+  filtered: [],
+  meta: {},
+  chartYield: null,
+  chartWeight: null,
+};
+
+const FILTERS = {
+  company:     { id: "f_company",     field: "company_short", sort: "locale" },
+  saving_type: { id: "f_saving_type", field: "saving_type",   sort: "locale" },
+  fund_type:   { id: "f_fund_type",   field: "fund_type",     sort: "locale" },
+  track:       { id: "f_track",       field: "track_name",    sort: "locale" },
+  liquidity:   { id: "f_liquidity",   field: "liquidity",     sort: "locale" },
+  category:    { id: "f_category",    field: "category",      sort: "locale",  multi: true },
+  year:        { id: "f_year",        field: "year",          sort: "numeric", multi: true }
+};
+
+/* ————————————————————————
+   UTILITIES
+———————————————————————— */
+function safeNumber(v) {
+  const x = Number(v);
+  return isNaN(x) ? null : x;
+}
+
+function setSelectOptions(selectEl, values, { includeAll = true, allLabel = "הכול" } = {}) {
+  const frag = document.createDocumentFragment();
+  selectEl.innerHTML = "";
+  if (includeAll) {
+    const o = document.createElement("option");
+    o.value = "";
+    o.textContent = allLabel;
+    frag.appendChild(o);
+  }
+  values.forEach(v => {
+    const o = document.createElement("option");
+    o.value = String(v);
+    o.textContent = String(v);
+    frag.appendChild(o);
+  });
+  selectEl.appendChild(frag);
+}
+
+function uniqueSortedYears(rows) {
+  return Array.from(
+    new Set(rows.map(r => r.year).filter(v => Number(v) >= 2022))
+  ).sort((a,b)=>a-b);
+}
+
+function getSelectValues(sel, multi=false) {
+  if (!multi) return sel.value || "";
+  return Array.from(sel.selectedOptions).map(o=>o.value).filter(v=>v!=="");
+}
+
+/* ————————————————————————
+   NAV
+———————————————————————— */
+document.querySelectorAll(".nav-item").forEach(item => {
+  item.addEventListener("click", () => {
+    document.querySelectorAll(".nav-item").forEach(n=>n.classList.remove("active"));
+    item.classList.add("active");
+
+    document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
+    const name = item.dataset.view;
+    document.getElementById("view_"+name).classList.add("active");
+
+    if (name === "charts") renderCharts();
+  });
+});
+
+/* ————————————————————————
+   LOAD DATA
+———————————————————————— */
+async function reloadData() {
+  document.getElementById("status_filters").textContent = "טוען נתונים...";
+  try {
+    const res = await fetch("/api/data");
+    const json = await res.json();
+    state.raw = json.rows || [];
+    state.meta = json.meta || {};
+    document.getElementById("badge_file").textContent = "קובץ: " + (state.meta.file || "-");
+    updateSidebarMeta();
+    buildFilters();
+    refreshFilterOptions();
+    applyFilters();
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+function updateSidebarMeta() {
+  const m = state.meta || {};
+  document.getElementById("sidebar_meta").innerHTML = `
+    <span><span>חברות:</span><span>${(m.companies||[]).length}</span></span>
+    <span><span>מסלולים:</span><span>${(m.tracks||[]).length}</span></span>
+    <span><span>שנים:</span><span>${(m.years||[]).join(", ")||"-"}</span></span>
+    <span><span>סה״כ רשומות:</span><span>${m.total_rows || "-"}</span></span>
+  `;
+}
+
+/* ————————————————————————
+   FILTERS
+———————————————————————— */
+function buildFilters() {
+  const rows = state.raw;
+  const companies   = Array.from(new Set(rows.map(r=>r.company_short).filter(Boolean))).sort((a,b)=>a.localeCompare(b,"he"));
+  const savingTypes = Array.from(new Set(rows.map(r=>r.saving_type).filter(Boolean))).sort((a,b)=>a.localeCompare(b,"he"));
+  const fundTypes   = Array.from(new Set(rows.map(r=>r.fund_type).filter(Boolean))).sort((a,b)=>a.localeCompare(b,"he"));
+  const tracks      = Array.from(new Set(rows.map(r=>r.track_name).filter(Boolean))).sort((a,b)=>a.localeCompare(b,"he"));
+  const liquidities = Array.from(new Set(rows.map(r=>r.liquidity).filter(Boolean))).sort((a,b)=>a.localeCompare(b,"he"));
+  const categories  = Array.from(new Set(rows.map(r=>r.category).filter(Boolean))).sort((a,b)=>a.localeCompare(b,"he"));
+  const years       = uniqueSortedYears(rows);
+
+  setSelectOptions(document.getElementById(FILTERS.company.id),     companies);
+  setSelectOptions(document.getElementById(FILTERS.saving_type.id), savingTypes);
+  setSelectOptions(document.getElementById(FILTERS.fund_type.id),   fundTypes);
+  setSelectOptions(document.getElementById(FILTERS.track.id),       tracks);
+  setSelectOptions(document.getElementById(FILTERS.liquidity.id),   liquidities);
+  setSelectOptions(document.getElementById(FILTERS.category.id),    categories, { includeAll:false });
+  setSelectOptions(document.getElementById(FILTERS.year.id),        years,      { includeAll:false });
+
+  Object.values(FILTERS).forEach(({id})=>{
+    const el = document.getElementById(id);
+    el.addEventListener("change", onFilterChange);
+  });
+}
+
+function getCurrentFilters() {
+  return {
+    company:     getSelectValues(document.getElementById(FILTERS.company.id)),
+    saving_type: getSelectValues(document.getElementById(FILTERS.saving_type.id)),
+    fund_type:   getSelectValues(document.getElementById(FILTERS.fund_type.id)),
+    track:       getSelectValues(document.getElementById(FILTERS.track.id)),
+    liquidity:   getSelectValues(document.getElementById(FILTERS.liquidity.id)),
+    category:    getSelectValues(document.getElementById(FILTERS.category.id), true),
+    year:        getSelectValues(document.getElementById(FILTERS.year.id), true),
   };
+}
 
-  const FILTERS = {
-    company:     { id: "f_company",     field: "company_short", sort: "locale" },
-    saving_type: { id: "f_saving_type", field: "saving_type",   sort: "locale" },
-    fund_type:   { id: "f_fund_type",   field: "fund_type",     sort: "locale" },
-    track:       { id: "f_track",       field: "track_name",    sort: "locale" },
-    liquidity:   { id: "f_liquidity",   field: "liquidity",     sort: "locale" },              // ← חדש
-    category:    { id: "f_category",    field: "category",      sort: "locale",  multi: true },
-    year:        { id: "f_year",        field: "year",          sort: "numeric", multi: true }
-  };
+function onFilterChange() {
+  refreshFilterOptions();
+  applyFilters();
+}
 
-  /* ===========================
-     Utilities
-  ============================ */
-  function setSelectOptions(selectEl, values, { includeAll = true, allLabel = "הכול" } = {}) {
-    const frag = document.createDocumentFragment();
-    selectEl.innerHTML = "";
-    if (includeAll) {
-      const optAll = document.createElement("option");
-      optAll.value = "";
-      optAll.textContent = allLabel;
-      frag.appendChild(optAll);
-    }
-    values.forEach(v => {
-      const opt = document.createElement("option");
-      opt.value = String(v);
-      opt.textContent = String(v);
-      frag.appendChild(opt);
-    });
-    selectEl.appendChild(frag);
-  }
-  function pct(val, digits = 2) {
-    if (val === null || val === undefined || isNaN(val)) return "—";
-    return (val * 100).toFixed(digits) + "%";
-  }
-  function safeNumber(v) { const x = Number(v); return isNaN(x) ? null : x; }
-  function uniqueSortedYears(rows) {
-    return Array.from(new Set(
-      rows
-        .map(r => r.year)
-        .filter(v => v !== null && v !== undefined && Number(v) >= 2022)
-    )).sort((a, b) => a - b);
-  }
+function refreshFilterOptions() {
+  const filters = getCurrentFilters();
+  const rows = state.raw;
 
-  // קריאת ערכים מסלקט (בודד / מרובה)
-  function getSelectValues(selectEl, multi = false) {
-    if (!multi) {
-      return selectEl.value || "";
-    }
-    return Array.from(selectEl.selectedOptions)
-      .map(o => o.value)
-      .filter(v => v !== "");
-  }
+  Object.entries(FILTERS).forEach(([key,meta])=>{
+    const sel = document.getElementById(meta.id);
+    const isMulti = !!meta.multi;
+    const prev = isMulti
+      ? Array.from(sel.selectedOptions).map(o=>o.value)
+      : [sel.value];
 
-  /* ===========================
-     ניווט
-  ============================ */
-  function initNav() {
-    document.querySelectorAll(".nav-item").forEach(item => {
-      item.addEventListener("click", () => setView(item.getAttribute("data-view")));
-    });
-  }
-  function setView(viewName) {
-    state.currentView = viewName;
+    const rowsForKey = rows.filter(r=>{
+      if (key!=="company"     && filters.company     && r.company_short !== filters.company) return false;
+      if (key!=="saving_type" && filters.saving_type && r.saving_type   !== filters.saving_type) return false;
+      if (key!=="fund_type"   && filters.fund_type   && r.fund_type     !== filters.fund_type)   return false;
+      if (key!=="track"       && filters.track       && r.track_name    !== filters.track)       return false;
+      if (key!=="liquidity"   && filters.liquidity   && r.liquidity     !== filters.liquidity)   return false;
 
-    // מעדכן את ה-sidebar
-    document.querySelectorAll(".nav-item").forEach(el =>
-      el.classList.toggle("active", el.getAttribute("data-view") === viewName)
-    );
-
-    // מעדכן איזה view מופיע על המסך
-    document.querySelectorAll(".view").forEach(el =>
-      el.classList.toggle("active", el.id.replace("view_", "") === viewName)
-    );
-
-    // מרנדר את התוכן הרלוונטי
-    if (viewName === "overview") renderOverviewMatrix();
-    else if (viewName === "tracks") renderTracksMatrix();
-    else if (viewName === "charts") renderCharts();
-  }
-
-  /* ===========================
-     טעינת נתונים
-  ============================ */
-  async function reloadData() {
-    const tableOverview = document.getElementById("table_overview_wrapper");
-    const tableTracks   = document.getElementById("table_tracks_wrapper");
-    const statusFilters = document.getElementById("status_filters");
-    tableOverview.textContent = "טוען נתונים...";
-    tableTracks.textContent = "טוען נתונים...";
-    statusFilters.textContent = "טוען נתונים...";
-
-    try {
-      const res = await fetch("/api/data");
-      if (!res.ok) throw new Error("שגיאה בטעינת /api/data: " + res.status);
-      const data = await res.json();
-      state.raw = data.rows || [];
-      state.meta = data.meta || {};
-      document.getElementById("badge_file").textContent = "קובץ: " + (state.meta.file || "-");
-      updateSidebarMeta();
-      buildFilters();
-      refreshFilterOptions();
-      applyFilters();
-    } catch (e) {
-      console.error(e);
-      tableOverview.textContent = "שגיאה בטעינת הנתונים.";
-      tableTracks.textContent = "שגיאה בטעינת הנתונים.";
-      statusFilters.textContent = "שגיאה בטעינת הנתונים.";
-    }
-  }
-  function updateSidebarMeta() {
-    const m = state.meta || {};
-    document.getElementById("sidebar_meta").innerHTML = `
-      <span><span>חברות:</span><span>${(m.companies || []).length}</span></span>
-      <span><span>מסלולים:</span><span>${(m.tracks || []).length}</span></span>
-      <span><span>שנים:</span><span>${(m.years || []).join(" ,") || "-"}</span></span>
-      <span><span>סה״כ רשומות:</span><span>${m.total_rows || "-"}</span></span>
-    `;
-  }
-
-  /* ===========================
-     פילטרים
-  ============================ */
-  function buildFilters() {
-    const rows = state.raw || [];
-    const companies   = Array.from(new Set(rows.map(r=>r.company_short).filter(Boolean))).sort((a,b)=>a.localeCompare(b,"he"));
-    const savingTypes = Array.from(new Set(rows.map(r=>r.saving_type).filter(Boolean))).sort((a,b)=>a.localeCompare(b,"he"));
-    const fundTypes   = Array.from(new Set(rows.map(r=>r.fund_type).filter(Boolean))).sort((a,b)=>a.localeCompare(b,"he"));
-    const tracks      = Array.from(new Set(rows.map(r=>r.track_name).filter(Boolean))).sort((a,b)=>a.localeCompare(b,"he"));
-    const liquidities = Array.from(new Set(rows.map(r=>r.liquidity).filter(Boolean))).sort((a,b)=>a.localeCompare(b,"he")); // חדש
-    const categories  = Array.from(new Set(rows.map(r=>r.category).filter(Boolean))).sort((a,b)=>a.localeCompare(b,"he"));
-    const years       = uniqueSortedYears(rows);
-
-    setSelectOptions(document.getElementById(FILTERS.company.id),     companies);
-    setSelectOptions(document.getElementById(FILTERS.saving_type.id), savingTypes);
-    setSelectOptions(document.getElementById(FILTERS.fund_type.id),   fundTypes);
-    setSelectOptions(document.getElementById(FILTERS.track.id),       tracks);
-    setSelectOptions(document.getElementById(FILTERS.liquidity.id),   liquidities);                 // חדש
-    setSelectOptions(document.getElementById(FILTERS.category.id),    categories, { includeAll:false });
-    setSelectOptions(document.getElementById(FILTERS.year.id),        years,     { includeAll:false });
-
-    Object.values(FILTERS).forEach(({id})=>{
-      const sel = document.getElementById(id);
-      if (!sel) return;
-      if (!sel.multiple) sel.value = "";
-      sel.addEventListener("change", onFilterChange);
-    });
-  }
-
-  function filterRowsByFilters(filters, ignoreKey=null) {
-    const rows = state.raw || [];
-    return rows.filter(r=>{
-      if (ignoreKey!=="company"     && filters.company     && r.company_short !== filters.company) return false;
-      if (ignoreKey!=="saving_type" && filters.saving_type && r.saving_type   !== filters.saving_type) return false;
-      if (ignoreKey!=="fund_type"   && filters.fund_type   && r.fund_type     !== filters.fund_type)   return false;
-      if (ignoreKey!=="track"       && filters.track       && r.track_name    !== filters.track)       return false;
-      if (ignoreKey!=="liquidity"   && filters.liquidity   && r.liquidity     !== filters.liquidity)   return false;
-
-      if (ignoreKey!=="category" && Array.isArray(filters.category) && filters.category.length &&
+      if (key!=="category" && Array.isArray(filters.category) && filters.category.length &&
           !filters.category.includes(r.category)) return false;
 
-      if (ignoreKey!=="year" && Array.isArray(filters.year) && filters.year.length &&
+      if (key!=="year" && Array.isArray(filters.year) && filters.year.length &&
           !filters.year.includes(String(r.year))) return false;
 
       return true;
     });
-  }
 
-  function refreshFilterOptions() {
-    const filters = getCurrentFilters();
-    Object.entries(FILTERS).forEach(([key, meta])=>{
-      const sel = document.getElementById(meta.id);
-      if (!sel) return;
-      const isMulti = !!meta.multi;
+    let vals = Array.from(new Set(rowsForKey.map(r=>r[meta.field]).filter(Boolean)));
+    if (meta.sort==="numeric") vals.sort((a,b)=>a-b);
+    else vals.sort((a,b)=>String(a).localeCompare(String(b),"he"));
 
-      const prevValues = isMulti
-        ? Array.from(sel.selectedOptions).map(o=>o.value)
-        : [sel.value];
+    setSelectOptions(sel, vals, { includeAll:!isMulti });
 
-      const rowsForKey = filterRowsByFilters(filters, key);
-      let values = Array.from(new Set(
-        rowsForKey.map(r=>r[meta.field]).filter(v=>v!==null && v!==undefined && v!=="")
-      ));
-      if (meta.sort==="numeric") values.sort((a,b)=>Number(a)-Number(b));
-      else values.sort((a,b)=>String(a).localeCompare(String(b),"he"));
-
-      setSelectOptions(sel, values, { includeAll: !isMulti });
-
-      if (isMulti) {
-        const valuesStr = values.map(String);
-        Array.from(sel.options).forEach(o => {
-          o.selected = prevValues.map(String).includes(String(o.value)) &&
-                      valuesStr.includes(String(o.value));
-        });
-      } else {
-        const pv = prevValues[0] || "";
-        sel.value = values.map(String).includes(String(pv)) ? String(pv) : "";
-      }
-    });
-  }
-
-  function getCurrentFilters() {
-    return {
-      company:     getSelectValues(document.getElementById(FILTERS.company.id),     false),
-      saving_type: getSelectValues(document.getElementById(FILTERS.saving_type.id), false),
-      fund_type:   getSelectValues(document.getElementById(FILTERS.fund_type.id),   false),
-      track:       getSelectValues(document.getElementById(FILTERS.track.id),       false),
-      liquidity:   getSelectValues(document.getElementById(FILTERS.liquidity.id),   false), // חדש
-      category:    getSelectValues(document.getElementById(FILTERS.category.id),    true),
-      year:        getSelectValues(document.getElementById(FILTERS.year.id),        true),
-    };
-  }
-
-  function onFilterChange() { refreshFilterOptions(); applyFilters(); }
-
-  function applyFilters() {
-    const f = getCurrentFilters();
-
-    // מסנן מראש רשומות משנים לפני 2022
-    const rows = (state.raw || []).filter(r => r.year == null || Number(r.year) >= 2022);
-
-    // מסנן לפי הפילטרים שנבחרו
-    state.filtered = rows.filter(r => {
-      if (f.company && r.company_short !== f.company) return false;
-      if (f.saving_type && r.saving_type !== f.saving_type) return false;
-      if (f.fund_type && r.fund_type !== f.fund_type) return false;
-      if (f.track && r.track_name !== f.track) return false;
-      if (f.liquidity && r.liquidity !== f.liquidity) return false;
-
-      if (Array.isArray(f.category) && f.category.length &&
-          !f.category.includes(r.category)) return false;
-
-      if (Array.isArray(f.year) && f.year.length &&
-          !f.year.includes(String(r.year))) return false;
-
-      return true;
-    });
-
-    // רענון תצוגות אחרי הסינון
-    updateFiltersStatus();
-    renderKPIs();
-    renderOverviewMatrix();
-    renderTracksMatrix();
-    renderCharts();
-  }
-
-  function updateFiltersStatus() {
-    const f = getCurrentFilters();
-    const rowsCount = (state.filtered || []).length;
-    const parts = [];
-    if (f.company) parts.push("חברה: " + f.company);
-    if (f.saving_type) parts.push("סוג חיסכון: " + f.saving_type);
-    if (f.fund_type) parts.push("סוג קופה: " + f.fund_type);
-    if (f.track) parts.push("מסלול: " + f.track);
-    if (f.liquidity) parts.push("סחירות: " + f.liquidity);                      // חדש
-    if (Array.isArray(f.category) && f.category.length) parts.push("אפיק: " + f.category.join(", "));
-    if (Array.isArray(f.year) && f.year.length) parts.push("שנים: " + f.year.join(", "));
-    document.getElementById("status_filters").textContent =
-      (parts.length ? parts.join(" • ") : "ללא סינון – מוצגות כל הרשומות") +
-      ` • רשומות לאחר סינון: ${rowsCount}`;
-  }
-
-  /* ===========================
-     KPI
-  ============================ */
-  function renderKPIs() {
-    const rows = state.filtered || [];
-    const kpiRow = document.getElementById("kpi_row");
-    if (!rows.length) {
-      kpiRow.innerHTML = `<div class="kpi-card"><div class="kpi-label">אין נתונים</div><div class="kpi-value">0</div></div>`;
-      return;
-    }
-    const companies = new Set(rows.map(r=>r.company_short));
-    const tracks    = new Set(rows.map(r=>r.track_name));
-
-    kpiRow.innerHTML = `
-      <div class="kpi-card">
-        <div class="kpi-label">חברות בפילטר</div>
-        <div class="kpi-value">${companies.size}</div>
-        <div class="kpi-badge">מתוך ${state.meta.companies ? state.meta.companies.length : "-"}</div>
-      </div>
-      <div class="kpi-card">
-        <div class="kpi-label">מסלולים בפילטר</div>
-        <div class="kpi-value">${tracks.size}</div>
-        <div class="kpi-badge">סה"כ רשומות: ${(state.filtered || []).length}</div>
-      </div>
-    `;
-  }
-
-  /* ===========================
-     לוגיקת Measures 1:1
-  ============================ */
-  function yearsInScope(rows) { return uniqueSortedYears(rows); }
-  function renderYearsBadges(containerId, rows) {
-    const el = document.getElementById(containerId);
-    const yrs = yearsInScope(rows);
-    el.innerHTML = yrs.length ? yrs.map(y=>`<span class="year-chip">${y}</span>`).join("") : "—";
-  }
-
-  // קיבוץ בסיסי לפי מפתח ישות (Company או Company+Track) ולפי שנה
-  function aggregateByEntityYear(rows, entityKeyFn) {
-    const by = {};
-    rows.forEach(r=>{
-      const key = entityKeyFn(r);
-      if (!key) return;
-      if (r.year===null || r.year===undefined) return;
-      const yr = Number(r.year);
-      by[key] = by[key] || {};
-      by[key][yr] = by[key][yr] || { wSum:0, cSum:0, n:0 };
-      by[key][yr].wSum += safeNumber(r.weight)||0;
-      by[key][yr].cSum += safeNumber(r.contribution)||0;
-      by[key][yr].n += 1;
-    });
-    return by;
-  }
-
-  // חישוב weight לתצוגה (לפי כלל האפיק)
-  function displayWeight(avgWeightSimple, hasCategoryFilter) {
-    return hasCategoryFilter ? avgWeightSimple : 1.0; // בלי אפיק → 100%
-  }
-
-  // דירוג DENSE יורד
-  function denseRankDesc(rankMap) {
-    const entries = Object.entries(rankMap).filter(([,v])=>v!==null && v!==undefined && !isNaN(v));
-    const total = entries.length;
-    if (!total) return {};
-    entries.sort((a,b)=> b[1] - a[1]);
-    const out = {};
-    let rank = 0, lastVal = null;
-    entries.forEach(([k,v])=>{
-      if (lastVal===null || v < lastVal - 1e-12) { rank = rank + 1; lastVal = v; }
-      out[k] = `${rank}/${total}`;
-    });
-    return out;
-  }
-
-  // תשואה מצטברת לכל התקופה (רק אם יש לכל השנים הנראות)
-  function cumulativeReturnForEntity(entityYearsData, visibleYears) {
-    const ylds = [];
-    for (const y of visibleYears) {
-      const cell = entityYearsData[y];
-      if (!cell || cell.yield===null || isNaN(cell.yield)) return null;
-      ylds.push(cell.yield);
-    }
-    if (ylds.length===1) return ylds[0];
-    let prod = 1;
-    ylds.forEach(v=> prod *= (1+v));
-    return prod - 1;
-  }
-
-  /* ===========================
-     בניית מטריצת דירוג/שיעור/תשואה
-  ============================ */
-  function buildMatrix(rows, { byTracks=false } = {}) {
-    const scopeYears = yearsInScope(rows);
-    const hasCategory = (getCurrentFilters().category || []).length > 0;
-
-    const entityKeyFn = byTracks
-      ? (r)=> (r.company_short||r.company||"לא ידוע") + "||" + (r.track_name || (r.track_id ? "מסלול "+r.track_id : ""))
-      : (r)=> (r.company_short||r.company||"לא ידוע");
-
-    const entityLabel = (k)=> {
-      const [comp,track] = k.split("||");
-      return byTracks ? { company:comp, track:(track||"") } : { company:comp };
-    };
-
-    const aggs = aggregateByEntityYear(rows, entityKeyFn);
-
-    const perEntity = {};
-    for (const [key, yearsMap] of Object.entries(aggs)) {
-      const yearsData = {};
-      let wDispSum=0, wDispN=0;
-
-      for (const y of scopeYears) {
-        const c = yearsMap[y];
-        if (!c) { yearsData[y] = { yield:null, wDisp:null }; continue; }
-        const yieldY = c.wSum ? (c.cSum / c.wSum) : null;
-        const avgWeightSimple = c.n ? (c.wSum / c.n) : null;
-        const wDisp = (avgWeightSimple===null) ? null : displayWeight(avgWeightSimple, hasCategory);
-        yearsData[y] = { yield: yieldY, wDisp };
-        if (wDisp!==null) { wDispSum += wDisp; wDispN += 1; }
-      }
-
-      const yieldCum = cumulativeReturnForEntity(yearsData, scopeYears);
-      const wDispAvg = wDispN ? (wDispSum / wDispN) : (hasCategory ? null : 1.0);
-      perEntity[key] = { years: yearsData, allPeriod: { yieldCum, wDispAvg } };
-    }
-
-    const rankAllWeight = {};
-    const rankAllYield  = {};
-    const rankPerYearWeight = {};
-    const rankPerYearYield  = {};
-
-    const mapAllWeight = {};
-    const mapAllYield  = {};
-    for (const [k,obj] of Object.entries(perEntity)) {
-      mapAllWeight[k] = obj.allPeriod.wDispAvg;
-      mapAllYield[k]  = obj.allPeriod.yieldCum;
-    }
-    Object.assign(rankAllWeight, denseRankDesc(mapAllWeight));
-    Object.assign(rankAllYield,  denseRankDesc(mapAllYield));
-
-    for (const y of scopeYears) {
-      const mW = {};
-      const mY = {};
-      for (const [k,obj] of Object.entries(perEntity)) {
-        mW[k] = obj.years[y].wDisp;
-        mY[k] = obj.years[y].yield;
-      }
-      rankPerYearWeight[y] = denseRankDesc(mW);
-      rankPerYearYield[y]  = denseRankDesc(mY);
-    }
-
-    return { scopeYears, perEntity, rankAllWeight, rankAllYield, rankPerYearWeight, rankPerYearYield, entityLabel };
-  }
-
-  function renderMatrixHeader({ includeTrack=false, scopeYears }) {
-    const colsStatic = includeTrack ? 2 : 1;
-    let thead = `<thead>`;
-
-    thead += `<tr class="th-group">`;
-    thead += `<th colspan="${colsStatic}">ישות</th>`;
-    thead += `<th colspan="4">כל התקופה</th>`;
-    scopeYears.forEach(y => { thead += `<th colspan="4">${y}</th>`; });
-    thead += `</tr>`;
-
-    thead += `<tr>`;
-    thead += `<th>חברה</th>`;
-    if (includeTrack) thead += `<th>מסלול</th>`;
-    thead += `<th>דירוג אחזקה</th><th>דירוג תשואה</th><th>שיעור (%)</th><th>תשואה (%)</th>`;
-    scopeYears.forEach(()=> {
-      thead += `<th>דירוג אחזקה</th><th>דירוג תשואה</th><th>שיעור (%)</th><th>תשואה (%)</th>`;
-    });
-    thead += `</tr>`;
-
-    thead += `</thead>`;
-    return thead;
-  }
-
-  function renderMatrixRow(key, data, rankings, includeTrack) {
-    const { label, years, allP } = data;
-    const { rankAllWeight, rankAllYield, rankPerYearWeight, rankPerYearYield } = rankings;
-
-    let tr = `<tr>`;
-    tr += `<td>${label.company}</td>`;
-    if (includeTrack) tr += `<td>${label.track||""}</td>`;
-
-    const rwAll = rankAllWeight[key] || "";
-    const ryAll = rankAllYield[key]  || "";
-    tr += `<td>${rwAll}</td>`;
-    tr += `<td>${ryAll}</td>`;
-    tr += `<td>${(allP.wDispAvg!==null && !isNaN(allP.wDispAvg)) ? (allP.wDispAvg*100).toFixed(2)+"%" : ""}</td>`;
-    tr += `<td>${(allP.yieldCum!==null && !isNaN(allP.yieldCum)) ? (allP.yieldCum*100).toFixed(2)+"%" : ""}</td>`;
-
-    years.order.forEach(y=>{
-      const cell = years.map[y];
-      const rW = rankPerYearWeight[y] && rankPerYearWeight[y][key] ? rankPerYearWeight[y][key] : "";
-      const rY = rankPerYearYield[y]  && rankPerYearYield[y][key]  ? rankPerYearYield[y][key]  : "";
-      const w = (cell && cell.wDisp!==null && !isNaN(cell.wDisp)) ? (cell.wDisp*100).toFixed(2)+"%" : "";
-      const v = (cell && cell.yield!==null && !isNaN(cell.yield)) ? (cell.yield*100).toFixed(2)+"%" : "";
-      tr += `<td>${rW}</td><td>${rY}</td><td>${w}</td><td>${v}</td>`;
-    });
-    tr += `</tr>`;
-    return tr;
-  }
-
-  function renderMatrix(wrapperId, { byTracks=false } = {}) {
-    const wrapper = document.getElementById(wrapperId);
-    const rows = state.filtered || [];
-    const yrs = yearsInScope(rows);
-    const yearsBadgeId = (wrapperId==="table_overview_wrapper") ? "overview_years" : "tracks_years";
-    renderYearsBadges(yearsBadgeId, rows);
-
-    if (!rows.length || !yrs.length) {
-      wrapper.innerHTML = "<div style='padding:8px;font-size:0.8rem;'>אין רשומות לתצוגה לאחר הסינון.</div>";
-      return;
-    }
-
-    const {
-      scopeYears,
-      perEntity,
-      rankAllWeight,
-      rankAllYield,
-      rankPerYearWeight,
-      rankPerYearYield,
-      entityLabel
-    } = buildMatrix(rows, { byTracks });
-
-    const keys = Object.keys(perEntity).sort((a,b)=>{
-      const la = entityLabel(a), lb = entityLabel(b);
-      const c = la.company.localeCompare(lb.company,"he");
-      if (c!==0) return c;
-      if (byTracks) return (la.track||"").localeCompare(lb.track||"","he");
-      return 0;
-    });
-
-    let html = `<table>`;
-    html += renderMatrixHeader({ includeTrack: byTracks, scopeYears });
-    html += `<tbody>`;
-    keys.forEach(k=>{
-      const ent = perEntity[k];
-      const yearsObj = { order: scopeYears, map: ent.years };
-      const data = {
-        label: entityLabel(k),
-        years: yearsObj,
-        allP: ent.allPeriod
-      };
-      const rankings = {
-        rankAllWeight,
-        rankAllYield,
-        rankPerYearWeight,
-        rankPerYearYield
-      };
-      html += renderMatrixRow(k, data, rankings, byTracks);
-    });
-    html += `</tbody></table>`;
-    wrapper.innerHTML = html;
-  }
-
-  /* ===========================
-     פוטרים (שמורים להרחבה עתידית)
-  ============================ */
-  function renderFooter(containerId) {
-    const el = document.getElementById(containerId);
-    if (!el) return;
-    const rows = state.filtered || [];
-    const n = rows.length;
-
-    let sumW=0, sumC=0;
-    rows.forEach(r=>{ sumW += safeNumber(r.weight)||0; sumC += safeNumber(r.contribution)||0; });
-    const weightedYield = sumW ? (sumC/sumW) : null;
-
-    const categorySelected = (getCurrentFilters().category || []).length > 0;
-    let avgDisplayWeight;
-    if (!n) {
-      avgDisplayWeight = null;
-    } else if (!categorySelected) {
-      avgDisplayWeight = 1.0;
+    if (isMulti) {
+      Array.from(sel.options).forEach(o=>{
+        o.selected = prev.includes(o.value);
+      });
     } else {
-      avgDisplayWeight = sumW / n;
+      sel.value = prev.includes(sel.value) ? sel.value : "";
     }
-    // ניתן להוסיף כאן תצוגת פוטר בהתאם לצורך
+  });
+}
+
+function applyFilters() {
+  const f = getCurrentFilters();
+  const rows = state.raw.filter(r=>Number(r.year)>=2022);
+
+  state.filtered = rows.filter(r=>{
+    if (f.company && r.company_short !== f.company) return false;
+    if (f.saving_type && r.saving_type !== f.saving_type) return false;
+    if (f.fund_type && r.fund_type !== f.fund_type) return false;
+    if (f.track && r.track_name !== f.track) return false;
+    if (f.liquidity && r.liquidity !== f.liquidity) return false;
+
+    if (Array.isArray(f.category) && f.category.length &&
+        !f.category.includes(r.category)) return false;
+
+    if (Array.isArray(f.year) && f.year.length &&
+        !f.year.includes(String(r.year))) return false;
+
+    return true;
+  });
+
+  updateFiltersStatus();
+  renderKPIs();
+  renderCharts();
+}
+
+function updateFiltersStatus() {
+  const f = getCurrentFilters();
+  const cnt = state.filtered.length;
+
+  const parts = [];
+  if (f.company) parts.push("חברה: "+f.company);
+  if (f.saving_type) parts.push("סוג חיסכון: "+f.saving_type);
+  if (f.fund_type) parts.push("סוג קופה: "+f.fund_type);
+  if (f.track) parts.push("מסלול: "+f.track);
+  if (f.liquidity) parts.push("סחירות: "+f.liquidity);
+  if (f.category.length) parts.push("אפיק: "+f.category.join(", "));
+  if (f.year.length) parts.push("שנים: "+f.year.join(", "));
+
+  document.getElementById("status_filters").textContent =
+    (parts.length ? parts.join(" • ") : "ללא סינון") +
+    ` • רשומות לאחר סינון: ${cnt}`;
+}
+
+/* ————————————————————————
+   KPI
+———————————————————————— */
+function renderKPIs() {
+  const rows = state.filtered;
+  const kpi = document.getElementById("kpi_row");
+
+  if (!rows.length) {
+    kpi.innerHTML = `<div class="kpi-card"><div class="kpi-label">אין נתונים</div><div class="kpi-value">0</div></div>`;
+    return;
   }
 
-  /* ===========================
-     רינדור למסכים
-  ============================ */
-  function renderOverviewMatrix() {
-    renderMatrix("table_overview_wrapper", { byTracks:false });
-    renderFooter("overview_footer");
-  }
-  function renderTracksMatrix() {
-    renderMatrix("table_tracks_wrapper", { byTracks:true });
-    renderFooter("tracks_footer");
-  }
+  const companies = new Set(rows.map(r=>r.company_short));
+  const tracks    = new Set(rows.map(r=>r.track_name));
 
-  /* ===========================
-     גרפים
-  ============================ */
-  function renderCharts() {
-    const rows = state.filtered || [];
-    if (state.chartYield)  { state.chartYield.destroy();  state.chartYield  = null; }
-    if (state.chartWeight) { state.chartWeight.destroy(); state.chartWeight = null; }
-    const ctxYield  = document.getElementById("chart_yield").getContext("2d");
-    const ctxWeight = document.getElementById("chart_weight").getContext("2d");
-    if (!rows.length) return;
+  kpi.innerHTML = `
+    <div class="kpi-card">
+      <div class="kpi-label">חברות בפילטר</div>
+      <div class="kpi-value">${companies.size}</div>
+      <div class="kpi-badge">מתוך ${(state.meta.companies||[]).length}</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">מסלולים בפילטר</div>
+      <div class="kpi-value">${tracks.size}</div>
+      <div class="kpi-badge">סה״כ רשומות: ${rows.length}</div>
+    </div>
+  `;
+}
 
-    const timeSet = new Set();
-    rows.forEach(r=>{
-      if (r.year==null || r.quarter==null) return;
-      timeSet.add(r.year+"|"+r.quarter);
+/* ————————————————————————
+   CHARTS
+———————————————————————— */
+function renderCharts() {
+  const rows = state.filtered;
+
+  if (state.chartYield)  { state.chartYield.destroy();  state.chartYield=null; }
+  if (state.chartWeight) { state.chartWeight.destroy(); state.chartWeight=null; }
+
+  if (!rows.length) return;
+
+  const timeSet = new Set();
+  rows.forEach(r=>{
+    if (r.year && r.quarter) timeSet.add(r.year+"|"+r.quarter);
+  });
+
+  const timeKeys = Array.from(timeSet).sort((a,b)=>{
+    const [ya,qa]=a.split("|").map(Number);
+    const [yb,qb]=b.split("|").map(Number);
+    return ya===yb ? qa-qb : ya-yb;
+  });
+
+  const labels = timeKeys.map(k=>{
+    const [y,q]=k.split("|");
+    return y+" Q"+q;
+  });
+
+  const seriesKey = (r)=>{
+    const c = r.company_short || "לא ידוע";
+    const t = r.track_name || "";
+    return t ? `${c} – ${t}` : c;
+  };
+
+  const seriesYield = {};
+  const seriesWeightSum = {};
+  const seriesWeightN = {};
+  const categorySelected = getCurrentFilters().category.length>0;
+
+  rows.forEach(r=>{
+    if (!r.year || !r.quarter) return;
+    const tk = `${r.year}|${r.quarter}`;
+    const sk = seriesKey(r);
+    const w = safeNumber(r.weight)||0;
+    const c = safeNumber(r.contribution)||0;
+
+    if (!seriesYield[sk]) seriesYield[sk]={};
+    if (!seriesYield[sk][tk]) seriesYield[sk][tk]={w:0,c:0};
+    seriesYield[sk][tk].w += w;
+    seriesYield[sk][tk].c += c;
+
+    if (!seriesWeightSum[sk]) seriesWeightSum[sk]={};
+    if (!seriesWeightSum[sk][tk]) {
+      seriesWeightSum[sk][tk]=0;
+      if (!seriesWeightN[sk]) seriesWeightN[sk]={};
+      seriesWeightN[sk][tk]=0;
+    }
+    seriesWeightSum[sk][tk]+=w;
+    seriesWeightN[sk][tk]+=1;
+  });
+
+  const palette = [
+    "#53d3ff","#ffb74d","#81c784","#ba68c8","#ff8a65",
+    "#4db6ac","#ce93d8","#f06292","#ffd54f","#7986cb",
+    "#90caf9","#a5d6a7","#ffe082","#ffab91","#b39ddb"
+  ];
+  const keys = Object.keys(seriesYield).sort((a,b)=>a.localeCompare(b,"he"));
+
+  const datasetsYield = keys.map((name,i)=>{
+    const color=palette[i%palette.length];
+    const data=timeKeys.map(k=>{
+      const cell=seriesYield[name][k];
+      if (!cell||!cell.w) return null;
+      return (cell.c/cell.w)*100;
     });
-    const timeKeys = Array.from(timeSet).sort((a,b)=>{
-      const [ya,qa] = a.split("|").map(Number);
-      const [yb,qb] = b.split("|").map(Number);
-      if (ya!==yb) return ya-yb;
-      return qa-qb;
-    });
-    if (!timeKeys.length) return;
-    const labels = timeKeys.map(k=>{ const [yy,qq]=k.split("|"); return yy+" Q"+qq; });
-
-    const seriesKey = (r)=>{
-      const comp = r.company_short || r.company || "לא ידוע";
-      const track = r.track_name || (r.track_id ? "מסלול "+r.track_id : "");
-      return track ? `${comp} – ${track}` : comp;
+    return {
+      label:name,
+      data,
+      type:"bar",
+      backgroundColor:color+"cc",
+      borderColor:color,
+      borderWidth:1,
+      skipNull:true
     };
+  });
 
-    const seriesYield = {};
-    const categorySelected = (getCurrentFilters().category || []).length > 0;
-    const seriesWeightSum = {};
-    const seriesWeightN   = {};
-
-    rows.forEach(r=>{
-      if (r.year==null || r.quarter==null) return;
-      const tk = r.year+"|"+r.quarter;
-      const sk = seriesKey(r);
-      const w = safeNumber(r.weight)||0;
-      const c = safeNumber(r.contribution)||0;
-
-      if (!seriesYield[sk]) seriesYield[sk] = {};
-      if (!seriesYield[sk][tk]) seriesYield[sk][tk] = {w:0,c:0};
-      seriesYield[sk][tk].w += w;
-      seriesYield[sk][tk].c += c;
-
-      if (!seriesWeightSum[sk]) seriesWeightSum[sk] = {};
-      if (!seriesWeightSum[sk][tk]) { seriesWeightSum[sk][tk] = 0; seriesWeightN[sk] = seriesWeightN[sk] || {}; seriesWeightN[sk][tk]=0; }
-      seriesWeightSum[sk][tk] += w;
-      seriesWeightN[sk][tk]   += 1;
+  const datasetsWeight = keys.map((name,i)=>{
+    const color=palette[i%palette.length];
+    const data=timeKeys.map(k=>{
+      if (!categorySelected) {
+        const has = (seriesYield[name][k] && seriesYield[name][k].w>0);
+        return has ? 100 : null;
+      }
+      const sum=seriesWeightSum[name][k];
+      const n=seriesWeightN[name][k];
+      if (!n) return null;
+      return (sum/n)*100;
     });
+    return {
+      label:name,
+      data,
+      type:"bar",
+      backgroundColor:color+"cc",
+      borderColor:color,
+      borderWidth:1,
+      skipNull:true
+    };
+  });
 
-    const palette = [
-      "#53d3ff","#ffb74d","#81c784","#ba68c8","#ff8a65",
-      "#4db6ac","#ce93d8","#f06292","#ffd54f","#7986cb",
-      "#90caf9","#a5d6a7","#ffe082","#ffab91","#b39ddb"
-    ];
-    const seriesKeys = Array.from(new Set([
-      ...Object.keys(seriesYield),
-      ...Object.keys(seriesWeightSum)
-    ])).sort((a,b)=>a.localeCompare(b,"he"));
+  const ctxYield=document.getElementById("chart_yield").getContext("2d");
+  const ctxWeight=document.getElementById("chart_weight").getContext("2d");
 
-    const datasetsYield = seriesKeys.map((name,idx)=>{
-      const color = palette[idx%palette.length];
-      const data = timeKeys.map(k=>{
-        const cell = seriesYield[name] && seriesYield[name][k];
-        if (!cell || !cell.w) return null;
-        return (cell.c / cell.w) * 100;
-      });
-      return { label:name, data, type:"bar", backgroundColor:color+"cc", borderColor:color, borderWidth:1, order:1, skipNull:true };
-    }).filter(ds=>ds.data.some(v=>v!==null && !isNaN(v)));
-
-    const datasetsWeight = seriesKeys.map((name,idx)=>{
-      const color = palette[idx%palette.length];
-      const data = timeKeys.map(k=>{
-        if (!categorySelected) {
-          const hasData = (seriesYield[name] && seriesYield[name][k] && (seriesYield[name][k].w>0 || seriesYield[name][k].c!==undefined))
-                       || (seriesWeightN[name] && seriesWeightN[name][k]>0);
-          return hasData ? 100 : null;
-        }
-        const sum = seriesWeightSum[name] && seriesWeightSum[name][k];
-        const n   = seriesWeightN[name]   && seriesWeightN[name][k];
-        if (!n) return null;
-        return (sum / n) * 100;
-      });
-      return { label:name, data, type:"bar", backgroundColor:color+"cc", borderColor:color, borderWidth:1, order:1, skipNull:true };
-    }).filter(ds=>ds.data.some(v=>v!==null && !isNaN(v)));
-
-    const commonOptions = (yTitle) => ({
-      responsive:true, maintainAspectRatio:false,
-      interaction:{ mode:"index", intersect:false },
-      plugins:{
-        legend:{ position:"bottom", labels:{ color:"#e9eefb", boxWidth:10, font:{ size:10 } } },
-        tooltip:{ callbacks:{ label:(ctx)=> {
-          const v = ctx.parsed.y;
-          if (v==null || isNaN(v)) return ctx.dataset.label||"";
-          return `${ctx.dataset.label}: ${Number(v).toFixed(2)}%`;
-        }}}
-      },
-      scales:{
-        x:{ ticks:{ color:"#a6b2c9", maxRotation:0 }, grid:{ color:"rgba(255,255,255,0.06)" } },
-        y:{ ticks:{ color:"#a6b2c9", callback:(val)=> Number(val).toFixed(1)+"%" }, grid:{ color:"rgba(255,255,255,0.04)" }, title:{ display:true, text:yTitle, color:"#e9eefb" } }
-      },
-      elements:{ bar:{ borderRadius:4, barPercentage:0.9, categoryPercentage:0.7 } }
-    });
-
-    if (datasetsYield.length) {
-      state.chartYield = new Chart(ctxYield, { type:"bar", data:{ labels, datasets:datasetsYield }, options: commonOptions("תשואה רבעונית (%)") });
+  const opt=(title)=>({
+    responsive:true,
+    maintainAspectRatio:false,
+    interaction:{ mode:"index", intersect:false },
+    plugins:{
+      legend:{ position:"bottom", labels:{ color:"#e9eefb", font:{size:11} } },
+      tooltip:{ callbacks:{ label:(c)=>`${c.dataset.label}: ${c.parsed.y?.toFixed(2)||0}%` } }
+    },
+    scales:{
+      x:{ ticks:{color:"#a6b2c9"}, grid:{color:"rgba(255,255,255,0.06)"} },
+      y:{ ticks:{color:"#a6b2c9", callback:v=>v.toFixed(1)+"%"}, grid:{color:"rgba(255,255,255,0.04)"}, title:{display:true,text:title,color:"#e9eefb"} }
     }
-    if (datasetsWeight.length) {
-      state.chartWeight = new Chart(ctxWeight, { type:"bar", data:{ labels, datasets:datasetsWeight }, options: commonOptions("אחזקה רבעונית ממוצעת לתצוגה (%)") });
-    }
-  }
+  });
 
-  /* ===========================
-     אתחול
-  ============================ */
-  document.getElementById("btn_reload").addEventListener("click", reloadData);
-  initNav();
+  state.chartYield=new Chart(ctxYield,{type:"bar",data:{labels,datasets:datasetsYield},options:opt("תשואה רבעונית (%)")});
+  state.chartWeight=new Chart(ctxWeight,{type:"bar",data:{labels,datasets:datasetsWeight},options:opt("אחזקה רבעונית ממוצעת (%)")});
+}
 
-  // קובע את המסך הראשוני ל-"tracks"
-  setView("tracks");
+/* ————————————————————————
+   INIT
+———————————————————————— */
+document.getElementById("btn_reload").addEventListener("click", reloadData);
 
-  // ואז טוען נתונים
-  reloadData();
+reloadData();
+renderCharts();
 </script>
 
 </body>
