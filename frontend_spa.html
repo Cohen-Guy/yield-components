@@ -158,7 +158,7 @@
     .matrix-scroll {
       margin-top: 6px;
       max-height: 260px;
-      overflow: auto; /* גם אנכי וגם אופקי */
+      overflow: auto;
     }
     .matrix-table {
       border-collapse: collapse;
@@ -233,7 +233,7 @@
       <div class="sidebar-logo-icon">⧉</div>
       <div class="sidebar-logo-text">
         <div class="sidebar-logo-title">מרכיבי תשואה</div>
-        <div class="sidebar-logo-sub">Dashboard v3.7</div>
+        <div class="sidebar-logo-sub">Dashboard v3.8</div>
       </div>
     </div>
 
@@ -267,6 +267,23 @@
         <button class="btn-ghost" type="button" id="btn_reload">↻ רענון נתונים</button>
       </div>
     </header>
+
+    <!-- KPI ABOVE FILTERS (מועבר לפני הפילטרים) -->
+    <section class="panels-row">
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-header-title"><span class="icon">📊</span><span>מדדי מפתח – סיכום</span></div>
+        </div>
+        <div class="kpi-row" id="kpi_row"></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-header-title"><span class="icon">ℹ️</span><span>סטטוס פילטרים</span></div>
+        </div>
+        <div class="status-text" id="status_filters">טוען נתונים...</div>
+      </div>
+    </section>
 
     <!-- FILTERS -->
     <section class="filters-bar">
@@ -309,23 +326,6 @@
         <select id="f_year" multiple></select>
       </div>
 
-    </section>
-
-    <!-- KPI ABOVE TABLE -->
-    <section class="panels-row">
-      <div class="panel">
-        <div class="panel-header">
-          <div class="panel-header-title"><span class="icon">📊</span><span>מדדי מפתח – סיכום</span></div>
-        </div>
-        <div class="kpi-row" id="kpi_row"></div>
-      </div>
-
-      <div class="panel">
-        <div class="panel-header">
-          <div class="panel-header-title"><span class="icon">ℹ️</span><span>סטטוס פילטרים</span></div>
-        </div>
-        <div class="status-text" id="status_filters">טוען נתונים...</div>
-      </div>
     </section>
 
     <!-- MATRIX TABLE -->
@@ -704,7 +704,7 @@ function renderKPIs() {
 
 /* ————————————————————————
    MATRIX TABLE
-   ⬇⬇⬇ שינוי מרכזי: עמודות שנים/רבעונים מוצגות בסדר יורד (ימין→שמאל) ⬇⬇⬇
+   (עמודות שנים/רבעונים בסדר יורד מימין לשמאל)
 ———————————————————————— */
 function renderMatrixTable() {
   const table = document.getElementById("matrix_table");
@@ -733,7 +733,7 @@ function renderMatrixTable() {
     if (q) yearMap.get(y).add(q);
   });
 
-  // *** כאן השינוי: מיון שנים ורבעונים בסדר יורד ***
+  // שנים ורבעונים בסדר יורד
   const years = Array.from(yearMap.keys()).sort((a,b)=>b-a);
   years.forEach(y => {
     yearMap.set(y, Array.from(yearMap.get(y)).sort((a,b)=>b-a));
@@ -759,13 +759,11 @@ function renderMatrixTable() {
   if (mode === "quarter") {
     titleEl.textContent = "מטריצת שיעור מסך התיק, תרומה (Δ), תשואה ודירוגים – לפי רבעון";
     html += '<tr><th rowspan="3">מסלול</th>';
-    // שנים כקבוצות – בסדר יורד
     years.forEach(y => {
       const qs=yearMap.get(y)||[];
       html += `<th colspan="${qs.length*5}">${y}</th>`;
     });
     html += "</tr><tr>";
-    // רבעונים בתוך כל שנה – בסדר יורד
     years.forEach(y => (yearMap.get(y)||[]).forEach(q=> html += `<th colspan="5">רבעון ${q}</th>`));
     html += "</tr><tr>";
     years.forEach(y => (yearMap.get(y)||[]).forEach(()=> {
@@ -831,7 +829,7 @@ function renderMatrixTable() {
   } else {
     titleEl.textContent = "מטריצת שיעור מסך התיק, תרומה (שנתי), תשואה ודירוגים – לפי שנים";
     html += '<tr><th rowspan="2">מסלול</th>';
-    years.forEach(y=> html += `<th colspan="5">${y}</th>`); // שנים בסדר יורד
+    years.forEach(y=> html += `<th colspan="5">${y}</th>`);
     html += "</tr><tr>";
     years.forEach(()=> html += "<th>שיעור מסך התיק (%)</th><th>תרומה (%)</th><th>תשואה (%)</th><th>דירוג תשואה</th><th>דירוג מסך התיק</th>");
     html += "</tr></thead><tbody>";
@@ -1111,7 +1109,8 @@ function renderCharts() {
     },
     scales:{
       x:{ ticks:{color:"#a6b2c9"}, grid:{color:"rgba(255,255,255,0.06)"} },
-      y:{ ticks:{color:"#a6b2c9", callback:v=>v.toFixed(1)+"%"}, grid:{color:"rgba(255,255,255,0.04)"}, title:{display:true,text:title,color:"#e9eefb"} }
+      y:{ ticks:{color:"#a6b2c9", callback:v=>v.toFixed(1)+"%"}, grid:{color:"rgba(255,255,255,0.04)"},
+          title:{display:true,text:title,color:"#e9eefb"} }
     }
   });
 
