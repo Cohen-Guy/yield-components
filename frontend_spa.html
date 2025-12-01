@@ -231,9 +231,9 @@
       align-items: center;
       gap: 6px;
     }
-
     .chart-container { position: relative; width: 100%; height: 260px; }
-    .chart-container.narrow-center { max-width: 1100px; margin-inline: auto; }
+    /* יישור הגרף התחתון לימין הדף (RTL): דוחף את הקונטיינר ימינה */
+    .chart-container.narrow-right { max-width: 1100px; margin-left: auto; margin-right: 0; }
 
     .chart-filters-row {
       margin-top: 6px;
@@ -261,7 +261,7 @@
     <div class="sidebar-logo">
       <div class="sidebar-logo-icon">⧉</div>
       <div class="sidebar-logo-text">
-        <div class="sidebar-logo-title">मरכיבי תשואה</div>
+        <div class="sidebar-logo-title">מרכיבי תשואה</div>
         <div class="sidebar-logo-sub">Dashboard v4.1.0</div>
       </div>
     </div>
@@ -432,7 +432,8 @@
 
           <div class="chart-block">
             <div class="chart-title" id="liq_chart_title">אחזקה לפי מסלול וסחירות (%)</div>
-            <div class="chart-container narrow-center">
+            <!-- יישור לימין -->
+            <div class="chart-container narrow-right">
               <canvas id="chart_liquidity"></canvas>
             </div>
           </div>
@@ -471,7 +472,7 @@ const FILTERS = {
   year:        { id: "f_year",        field: "year",          sort: "numeric", multi: true }
 };
 
-/* שדות הטבלה: הוסר "תרומה (Δ) (%)" לחלוטין */
+/* שדות הטבלה: בלי "תרומה" כלל */
 const TABLE_FIELDS = [
   { key: "weight",     label: "שיעור מסך התיק (%)" },
   { key: "yield",      label: "תשואה (%)" },
@@ -795,7 +796,6 @@ function bestQuarterForYear(agg, track, year) {
 function computeTrackSummary(agg, track, yearsDesc, yearMap, mode) {
   let product = 1.0;
   let anyYield = false;
-  let wSum = 0, wCount = 0;
 
   if (mode === "quarter") {
     yearsDesc.forEach(y=>{
@@ -806,7 +806,6 @@ function computeTrackSummary(agg, track, yearsDesc, yearMap, mode) {
         if (w && Math.abs(w)>1e-12) {
           product *= (1 + c / w);
           anyYield = true;
-          wSum += w; wCount += 1;
         }
       });
     });
@@ -820,21 +819,18 @@ function computeTrackSummary(agg, track, yearsDesc, yearMap, mode) {
       if (w && Math.abs(w)>1e-12) {
         product *= (1 + c / w);
         anyYield = true;
-        wSum += w; wCount += 1;
       }
     });
   }
 
   const cumReturn = anyYield ? (product - 1) : null;
-  const avgWeight = wCount ? (wSum / wCount) : null;
 
   return {
-    cumReturnPct: cumReturn==null ? "-" : (cumReturn*100).toFixed(2)+"%",
-    avgWeightPct: avgWeight==null ? "-" : (avgWeight*100).toFixed(2)+"%"
+    cumReturnPct: cumReturn==null ? "-" : (cumReturn*100).toFixed(2)+"%"
   };
 }
 
-/* RENDER MATRIX TABLE – without "תרומה (Δ) (%)" */
+/* RENDER MATRIX TABLE – סיכום: רק "תשואה מצטברת" */
 function renderMatrixTable() {
   const table = document.getElementById("matrix_table");
   const emptyEl = document.getElementById("matrix_empty");
@@ -932,7 +928,6 @@ function renderMatrixTable() {
     tr1.innerHTML = `
       <th rowspan="3">מסלול</th>
       <th rowspan="3">תשואה מצטברת</th>
-      <th rowspan="3">משקל ממוצע לכל התקופה</th>
     `;
     years.forEach(y=>{
       const qs = activeQuartersByYear.get(y) || [];
@@ -997,7 +992,6 @@ function renderMatrixTable() {
       tr.innerHTML = `
         <td class="matrix-row-header">${t}</td>
         <td class="num">${summary.cumReturnPct}</td>
-        <td class="num">${summary.avgWeightPct}</td>
       `;
 
       years.forEach(y=>{
@@ -1038,7 +1032,6 @@ function renderMatrixTable() {
     tr1.innerHTML = `
       <th rowspan="2">מסלול</th>
       <th rowspan="2">תשואה מצטברת</th>
-      <th rowspan="2">משקל ממוצע לכל התקופה</th>
     `;
     years.forEach(y=>{
       const th = document.createElement("th");
@@ -1086,7 +1079,6 @@ function renderMatrixTable() {
       tr.innerHTML = `
         <td class="matrix-row-header">${t}</td>
         <td class="num">${summary.cumReturnPct}</td>
-        <td class="num">${summary.avgWeightPct}</td>
       `;
 
       years.forEach(y=>{
@@ -1367,11 +1359,7 @@ function renderLiquidityChart() {
       tooltip:{ callbacks:{ label:(c)=>`${c.dataset.label}: ${c.parsed.y?.toFixed(2)||0}%` } }
     },
     elements: {
-      bar: {
-        maxBarThickness: 28,
-        barPercentage: 0.85,
-        categoryPercentage: 0.6
-      }
+      bar: { maxBarThickness: 28, barPercentage: 0.85, categoryPercentage: 0.6 }
     },
     scales:{
       x:{ ticks:{color:"#a6b2c9"}, grid:{color:"rgba(255,255,255,0.06)"}, title:{display:true,text:"מסלול",color:"#e9eefb"} },
