@@ -164,7 +164,7 @@
       border-collapse: collapse;
       font-size: 0.78rem;
       text-align: center;
-      width: max-content;          /* ברירת מחדל: לפי התוכן */
+      width: max-content;
     }
     .matrix-table.table-wide { min-width: 100%; width: max-content; }
     .matrix-table.table-fit  { min-width: auto;  width: max-content; }
@@ -233,7 +233,7 @@
       <div class="sidebar-logo-icon">⧉</div>
       <div class="sidebar-logo-text">
         <div class="sidebar-logo-title">מרכיבי תשואה</div>
-        <div class="sidebar-logo-sub">Dashboard v3.6</div>
+        <div class="sidebar-logo-sub">Dashboard v3.7</div>
       </div>
     </div>
 
@@ -311,7 +311,7 @@
 
     </section>
 
-    <!-- ⬆⬆⬆ KPI SECTION MOVED ABOVE THE TABLE AS REQUESTED ⬆⬆⬆ -->
+    <!-- KPI ABOVE TABLE -->
     <section class="panels-row">
       <div class="panel">
         <div class="panel-header">
@@ -625,7 +625,7 @@ function applyFilters() {
   const f = getCurrentFilters();
   const rows = state.raw.filter(r=>Number(r.year)>=2022);
 
-  // נתונים כלליים לטבלה ושני הגרפים העליונים (כולל סינון סחירות וקטגוריה)
+  // נתונים כלליים לטבלה ושני הגרפים העליונים
   state.filtered = rows.filter(r=>{
     if (f.saving_type && r.saving_type !== f.saving_type) return false;
     if (f.fund_type   && r.fund_type   !== f.fund_type)   return false;
@@ -703,7 +703,8 @@ function renderKPIs() {
 }
 
 /* ————————————————————————
-   MATRIX TABLE (כולל הדירוגים והלוגיקות הקיימות)
+   MATRIX TABLE
+   ⬇⬇⬇ שינוי מרכזי: עמודות שנים/רבעונים מוצגות בסדר יורד (ימין→שמאל) ⬇⬇⬇
 ———————————————————————— */
 function renderMatrixTable() {
   const table = document.getElementById("matrix_table");
@@ -722,7 +723,7 @@ function renderMatrixTable() {
   }
   emptyEl.style.display = "none";
 
-  // שנים ורבעונים
+  // מיפוי שנים←רבעונים
   const yearMap = new Map();
   rows.forEach(r => {
     const y = Number(r.year);
@@ -731,10 +732,15 @@ function renderMatrixTable() {
     if (!yearMap.has(y)) yearMap.set(y, new Set());
     if (q) yearMap.get(y).add(q);
   });
-  const years = Array.from(yearMap.keys()).sort((a,b)=>a-b);
-  years.forEach(y => yearMap.set(y, Array.from(yearMap.get(y)).sort((a,b)=>a-b)));
 
-  const tracks = Array.from(new Set(rows.map(r => r.track_name))).sort((a,b)=>String(a).localeCompare(String(b),"he"));
+  // *** כאן השינוי: מיון שנים ורבעונים בסדר יורד ***
+  const years = Array.from(yearMap.keys()).sort((a,b)=>b-a);
+  years.forEach(y => {
+    yearMap.set(y, Array.from(yearMap.get(y)).sort((a,b)=>b-a));
+  });
+
+  const tracks = Array.from(new Set(rows.map(r => r.track_name)))
+    .sort((a,b)=>String(a).localeCompare(String(b),"he"));
 
   // אגרגציה
   const agg = {};
@@ -753,14 +759,21 @@ function renderMatrixTable() {
   if (mode === "quarter") {
     titleEl.textContent = "מטריצת שיעור מסך התיק, תרומה (Δ), תשואה ודירוגים – לפי רבעון";
     html += '<tr><th rowspan="3">מסלול</th>';
-    years.forEach(y => { const qs=yearMap.get(y)||[]; html += `<th colspan="${qs.length*5}">${y}</th>`; });
+    // שנים כקבוצות – בסדר יורד
+    years.forEach(y => {
+      const qs=yearMap.get(y)||[];
+      html += `<th colspan="${qs.length*5}">${y}</th>`;
+    });
     html += "</tr><tr>";
+    // רבעונים בתוך כל שנה – בסדר יורד
     years.forEach(y => (yearMap.get(y)||[]).forEach(q=> html += `<th colspan="5">רבעון ${q}</th>`));
     html += "</tr><tr>";
-    years.forEach(y => (yearMap.get(y)||[]).forEach(()=> html += "<th>שיעור מסך התיק (%)</th><th>תרומה (Δ) (%)</th><th>תשואה (%)</th><th>דירוג תשואה</th><th>דירוג מסך התיק</th>"));
+    years.forEach(y => (yearMap.get(y)||[]).forEach(()=> {
+      html += "<th>שיעור מסך התיק (%)</th><th>תרומה (Δ) (%)</th><th>תשואה (%)</th><th>דירוג תשואה</th><th>דירוג מסך התיק</th>";
+    }));
     html += "</tr></thead><tbody>";
 
-    // דירוגים
+    // דירוגים לפי רבעון
     const rankReturnMap={}; const rankWeightMap={};
     years.forEach(y=>{
       rankReturnMap[y]={}; rankWeightMap[y]={};
@@ -818,7 +831,7 @@ function renderMatrixTable() {
   } else {
     titleEl.textContent = "מטריצת שיעור מסך התיק, תרומה (שנתי), תשואה ודירוגים – לפי שנים";
     html += '<tr><th rowspan="2">מסלול</th>';
-    years.forEach(y=> html += `<th colspan="5">${y}</th>`);
+    years.forEach(y=> html += `<th colspan="5">${y}</th>`); // שנים בסדר יורד
     html += "</tr><tr>";
     years.forEach(()=> html += "<th>שיעור מסך התיק (%)</th><th>תרומה (%)</th><th>תשואה (%)</th><th>דירוג תשואה</th><th>דירוג מסך התיק</th>");
     html += "</tr></thead><tbody>";
@@ -877,7 +890,6 @@ function rowsForLiquidityBase() {
     if (f.saving_type && r.saving_type !== f.saving_type) return false;
     if (f.fund_type   && r.fund_type   !== f.fund_type)   return false;
     if (f.track       && r.track_name  !== f.track)       return false;
-    // בכוונה לא מסננים לפי liquidity ולא לפי category בגרף זה
     if (Array.isArray(f.year) && f.year.length && !f.year.includes(String(r.year))) return false;
     return true;
   });
@@ -978,7 +990,6 @@ function renderCharts() {
 
   const f = getCurrentFilters();
 
-  // -------- הכנה ללייבלים של ציר הזמן --------
   const timeSet = new Set();
   rows.forEach(r=>{
     if (r.year && r.quarter) timeSet.add(r.year+"|"+r.quarter);
@@ -1001,12 +1012,10 @@ function renderCharts() {
     return t ? `${c} – ${t}` : c;
   };
 
-  // -------- אגרגציה לשני הגרפים העליונים --------
   const seriesYield = {};
   const seriesWeightSum = {};
   const seriesWeightN = {};
 
-  // Allowed categories logic for the weight chart:
   let allowedCategories = null;
   if (Array.isArray(f.category) && f.category.length) {
     allowedCategories = new Set(f.category);
@@ -1024,7 +1033,6 @@ function renderCharts() {
     const tk = `${r.year}|${r.quarter}`;
     const sk = seriesKey(r);
 
-    // Yield chart (sum all)
     const wAll = nz(r.weight);
     const cAll = nz(r.contribution);
 
@@ -1033,7 +1041,6 @@ function renderCharts() {
     seriesYield[sk][tk].w += wAll;
     seriesYield[sk][tk].c += cAll;
 
-    // Weight chart (only allowed categories if set)
     const useThisRowForWeight = (allowedCategories===null) ? true : allowedCategories.has(r.category);
     if (useThisRowForWeight) {
       if (!seriesWeightSum[sk]) seriesWeightSum[sk]={};
@@ -1054,7 +1061,6 @@ function renderCharts() {
   ];
   const keys = Object.keys(seriesYield).sort((a,b)=>a.localeCompare(b,"he"));
 
-  // ——— גרף תשואה רבעונית (%) ———
   const datasetsYield = keys.map((name,i)=>{
     const color=palette[i%palette.length];
     const data=timeKeys.map(k=>{
@@ -1073,7 +1079,6 @@ function renderCharts() {
     };
   });
 
-  // ——— גרף אחזקה רבעונית ממוצעת לתצוגה (%) ———
   const datasetsWeight = keys.map((name,i)=>{
     const color=palette[i%palette.length];
     const data=timeKeys.map(k=>{
@@ -1122,11 +1127,11 @@ function renderCharts() {
     options:opt("אחזקה רבעונית ממוצעת לתצוגה (%)")
   });
 
-  renderLiquidityChart(); // הגרף התחתון
+  renderLiquidityChart();
 }
 
 /* ————————————————————————
-   LIQUIDITY CHART – TRACK VS LIQUID / ILLIQUID (IGNORE CATEGORY & LIQUIDITY FILTERS)
+   LIQUIDITY CHART – TRACK VS LIQUID / ILLIQUID
 ———————————————————————— */
 function renderLiquidityChart() {
   const canvas = document.getElementById("chart_liquidity");
