@@ -418,38 +418,38 @@
             <div class="panel-header-sub">שני הגרפים העליונים רבעוניים • ציר Y באחוזים</div>
           </div>
 
-          <div class="chart-block">
-            <div class="chart-title">תשואה רבעונית (%)</div>
-            <div class="chart-container">
-              <canvas id="chart_yield"></canvas>
-            </div>
-          </div>
-
-          <div class="chart-block">
-            <div class="chart-title">אחזקה רבעונית ממוצעת לתצוגה (%)</div>
-            <div class="chart-container">
-              <canvas id="chart_weight"></canvas>
-            </div>
-          </div>
-
-          <div class="chart-filters-row">
-            <div class="field">
-              <label>שנה (גרף אחזקה לפי מסלול וסחירות)</label>
-              <select id="liq_year_filter"></select>
-            </div>
-            <div class="field" id="liq_q_field">
-              <label>רבעון</label>
-              <select id="liq_quarter_filter"></select>
-            </div>
-          </div>
-
-          <div class="chart-block">
-            <div class="chart-title" id="liq_chart_title">אחזקה לפי מסלול וסחירות (%)</div>
-            <div class="chart-container narrow-right">
-              <canvas id="chart_liquidity"></canvas>
-            </div>
+        <div class="chart-block">
+          <div class="chart-title">תשואה רבעונית (%)</div>
+          <div class="chart-container">
+            <canvas id="chart_yield"></canvas>
           </div>
         </div>
+
+        <div class="chart-block">
+          <div class="chart-title">אחזקה רבעונית ממוצעת לתצוגה (%)</div>
+          <div class="chart-container">
+            <canvas id="chart_weight"></canvas>
+          </div>
+        </div>
+
+        <div class="chart-filters-row">
+          <div class="field">
+            <label>שנה (גרף אחזקה לפי מסלול וסחירות)</label>
+            <select id="liq_year_filter"></select>
+          </div>
+          <div class="field" id="liq_q_field">
+            <label>רבעון</label>
+            <select id="liq_quarter_filter"></select>
+          </div>
+        </div>
+
+        <div class="chart-block">
+          <div class="chart-title" id="liq_chart_title">אחזקה לפי מסלול וסחירות (%)</div>
+          <div class="chart-container narrow-right">
+            <canvas id="chart_liquidity"></canvas>
+          </div>
+        </div>
+      </div>
 
       </section>
     </section>
@@ -620,10 +620,10 @@ async function reloadData() {
     state.meta = json.meta || {};
     document.getElementById("badge_file").textContent = "קובץ: " + (state.meta.file || "-");
     updateSidebarMeta();
-    buildFilters();
+    buildFilters();            // מגדיר ברירות מחדל רק בטעינה הראשונה
     buildGlobalTimeline();
     hookTimelineEvents();
-    refreshFilterOptions();
+    refreshFilterOptions();    // מכבד את הבחירה הנוכחית, לא מחזיר ברירות מחדל
     applyFilters();
   } catch (err) { console.error(err); }
 }
@@ -654,13 +654,18 @@ function buildFilters() {
   setSelectOptions(document.getElementById("f_category"),    categories, { includeAll:false });
   setSelectOptions(document.getElementById("f_year"),        years,      { includeAll:false });
 
-  /* DEFAULTS */
-  const defaultSaving = "השתלמות";
-  const defaultTrack  = "כללי";
+  /* DEFAULTS (רק בכניסה לאתר) */
+  const defaultSaving   = "השתלמות";
+  const defaultFundType = "כללי";   // לפי הבקשה: סוג קופה "כללי"
+  const defaultTrack    = "כללי";   // אם תרצה להשאיר גם מסלול "כללי"
+
   const selSaving = document.getElementById("f_saving_type");
+  const selFund   = document.getElementById("f_fund_type");
   const selTrack  = document.getElementById("f_track");
-  if ([...selSaving.options].some(o=>o.value===defaultSaving)) selSaving.value = defaultSaving;
-  if ([...selTrack.options].some(o=>o.value===defaultTrack))   selTrack.value  = defaultTrack;
+
+  if ([...selSaving.options].some(o=>o.value===defaultSaving))   selSaving.value = defaultSaving;
+  if ([...selFund.options].some(o=>o.value===defaultFundType))   selFund.value   = defaultFundType;
+  if ([...selTrack.options].some(o=>o.value===defaultTrack))     selTrack.value  = defaultTrack;
 
   /* Columns selector (includes summary toggles) */
   const colsSel = document.getElementById("f_cols");
@@ -725,15 +730,12 @@ function refreshFilterOptions() {
 
     setSelectOptions(sel, vals, { includeAll:!isMulti });
 
-    // Keep defaults if present; else keep previous
+    // ✅ שמור את הבחירה הקודמת אם עדיין זמינה; אחרת עבור ל"כלום"/הכול. לא מחזירים ברירות־מחדל פה.
     if (isMulti) {
-      Array.from(sel.options).forEach(o=> o.selected = prev.includes(o.value));
+      Array.from(sel.options).forEach(o => { o.selected = prev.includes(o.value); });
     } else {
-      const desired = (meta.id==="f_saving_type" ? "השתלמות" :
-                       meta.id==="f_track" ? "כללי" :
-                       prev.find(v => v !== "" && vals.includes(v)) || "");
-      if (desired && vals.includes(desired)) sel.value = desired;
-      else sel.value = prev.find(v => v !== "" && vals.includes(v)) || "";
+      const keep = prev.find(v => v !== "" && vals.includes(v));
+      sel.value = keep ?? "";
     }
   });
 }
@@ -1122,12 +1124,11 @@ function renderMatrixTable() {
     // build model for sorting
     const model = trackNames.map(t=>{
       const includeCum = selectedSummaryKeys().includes("sum_cum_return");
-      const cumStr = includeCum ? computeTrackSummaryCum({}, t, years, activeQuartersByYear, "quarter") : "-"; // agg not needed for cumStr here because compute will re-derive if passed properly; leaving "-" keeps layout ok.
+      const cumStr = includeCum ? computeTrackSummaryCum({}, t, years, activeQuartersByYear, "quarter") : "-";
       const values = {};
       years.forEach(y=>{
         (activeQuartersByYear.get(y)||[]).forEach(q=>{
-          const cell= ( (r)=>{ return r; } )( ( { w: ( (state)=> state ) } ) ); // placeholder to keep structure; actual values below
-          const cellAgg = (state)=>agg?.[t]?.[y]?.[q]||null;
+          const cellAgg = ()=>agg?.[t]?.[y]?.[q]||null;
           const c = cellAgg();
           const w = (c && Math.abs(c.w)>1e-9)? (c.w*100) : null;
           const yv = (c && Math.abs(c.w)>1e-9)? ((c.c/c.w)*100) : null;
@@ -1345,7 +1346,6 @@ function toggleLiquidityQuarterVisibility() {
 
 /* === NEW: Helpers to align charts order with table sort === */
 function bestQuarterForSeries(seriesObj, year){
-  // seriesObj is like seriesYield[name] where keys are "YYYY|Q"
   for (const q of [4,3,2,1]) {
     const key = `${year}|${q}`;
     if (seriesObj && seriesObj[key]) return key;
@@ -1357,12 +1357,10 @@ function orderedKeysByCurrentSort(keys, seriesYield, seriesWeight){
   if (!s || s.type!=='cell') return keys.slice();
   if (s.fieldKey!=='yield' && s.fieldKey!=='weight') return keys.slice();
 
-  // build sort value by the selected period
   const dir = s.dir || 'desc';
   const withVal = keys.map(name=>{
     let periodKey = null;
     if (s.quarter==null){
-      // year mode: choose best available quarter for that series in that year (Q4..Q1)
       periodKey = bestQuarterForSeries(seriesYield[name] || seriesWeight[name], s.year);
     } else {
       periodKey = `${s.year}|${s.quarter}`;
@@ -1463,7 +1461,7 @@ function renderCharts() {
   const palette = ["#53d3ff","#ffb74d","#81c784","#ba68c8","#ff8a65","#4db6ac","#ce93d8","#f06292","#ffd54f","#7986cb","#90caf9","#a5d6a7","#ffe082","#ffab91","#b39ddb"];
   let keys = Object.keys(seriesYield);
 
-  /* === NEW: order datasets according to current table sort (if applicable) === */
+  /* order datasets according to current table sort (if applicable) */
   keys = orderedKeysByCurrentSort(keys, seriesYield, seriesWeight);
 
   const datasetsYield = keys.map((name,i)=>{
@@ -1555,24 +1553,19 @@ function renderLiquidityChart() {
 
   if (!rows.length) return;
 
-  // collect tracks
   const trackSet = new Set();
   rows.forEach(r => { if (r.track_name) trackSet.add(r.track_name); });
   let tracks = Array.from(trackSet);
 
-  // === NEW: align tracks order with table sort if applicable ===
   const s = state.sort;
   if (s && s.type==='cell' && (s.fieldKey==='weight' || s.fieldKey==='yield')) {
     const dir = s.dir || 'desc';
-    // compute value per track for the selected period of the sort:
     const scoreByTrack = new Map();
     const yTarget = s.year;
     const qTarget = s.quarter==null ? null : Number(s.quarter);
     tracks.forEach(t=>{
-      // filter rows for this track and relevant period
       let relevant = [];
       if (qTarget==null){
-        // choose best available quarter for that year (Q4..Q1)
         for (const q of [4,3,2,1]) {
           const subset = rows.filter(r=>r.track_name===t && Number(r.year)===Number(yTarget) && Number(r.quarter)===q);
           if (subset.length){ relevant = subset; break; }
@@ -1586,7 +1579,6 @@ function renderLiquidityChart() {
           const w = relevant.reduce((acc,r)=>acc + nz(r.weight), 0);
           val = w*100;
         } else if (s.fieldKey==='yield'){
-          // need contribution/weight across the track within period
           const w = relevant.reduce((acc,r)=>acc + nz(r.weight), 0);
           const c = relevant.reduce((acc,r)=>acc + nz(r.contribution), 0);
           if (Math.abs(w)>1e-12) val = (c/w)*100;
@@ -1599,8 +1591,7 @@ function renderLiquidityChart() {
     tracks.sort((a,b)=>String(a).localeCompare(String(b),"he"));
   }
 
-  // aggregate per track into liquid/illiquid
-  const dataLiquid = []; const dataIlliquid = [];
+  let dataLiquid = []; let dataIlliquid = [];
   tracks.forEach(track=>{
     let wLiquid = 0, wIlliquid = 0;
     rows.forEach(r=>{
