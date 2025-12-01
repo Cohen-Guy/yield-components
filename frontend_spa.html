@@ -232,7 +232,7 @@
       gap: 6px;
     }
     .chart-container { position: relative; width: 100%; height: 260px; }
-    /* יישור הגרף התחתון לימין הדף (RTL): דוחף את הקונטיינר ימינה */
+    /* Align bottom chart to right */
     .chart-container.narrow-right { max-width: 1100px; margin-left: auto; margin-right: 0; }
 
     .chart-filters-row {
@@ -432,7 +432,6 @@
 
           <div class="chart-block">
             <div class="chart-title" id="liq_chart_title">אחזקה לפי מסלול וסחירות (%)</div>
-            <!-- יישור לימין -->
             <div class="chart-container narrow-right">
               <canvas id="chart_liquidity"></canvas>
             </div>
@@ -508,7 +507,6 @@ function setSelectOptions(selectEl, values, { includeAll = true, allLabel = "ה�
   });
   selectEl.appendChild(frag);
 }
-
 function uniqueSortedYears(rows) {
   return Array.from(new Set(rows.map(r => r.year).filter(v => Number(v) >= 2022)))
     .sort((a,b)=>a-b);
@@ -634,6 +632,16 @@ function buildFilters() {
   setSelectOptions(document.getElementById("f_category"),    categories, { includeAll:false });
   setSelectOptions(document.getElementById("f_year"),        years,      { includeAll:false });
 
+  /* ==== DEFAULTS: saving_type="השתלמות", track="כללי" ==== */
+  const defaultSaving = "השתלמות";
+  const defaultTrack  = "כללי";
+  const selSaving = document.getElementById("f_saving_type");
+  const selTrack  = document.getElementById("f_track");
+
+  if ([...selSaving.options].some(o=>o.value===defaultSaving)) selSaving.value = defaultSaving;
+  if ([...selTrack.options].some(o=>o.value===defaultTrack))   selTrack.value  = defaultTrack;
+  /* ======================================================= */
+
   const colsSel = document.getElementById("f_cols");
   const colOptions = TABLE_FIELDS.map(f => ({ value: f.key, text: f.label }));
   setSelectOptions(colsSel, colOptions, { includeAll:false });
@@ -692,8 +700,17 @@ function refreshFilterOptions() {
     else vals.sort((a,b)=>String(a).localeCompare(String(b),"he"));
 
     setSelectOptions(sel, vals, { includeAll:!isMulti });
-    if (isMulti) Array.from(sel.options).forEach(o=> o.selected = prev.includes(o.value));
-    else sel.value = prev.find(v => v !== "" && vals.includes(v)) || "";
+
+    // Restore previous selection if still valid; otherwise keep the requested defaults
+    if (isMulti) {
+      Array.from(sel.options).forEach(o=> o.selected = prev.includes(o.value));
+    } else {
+      const desired = (meta.id==="f_saving_type" ? "השתלמות" :
+                       meta.id==="f_track" ? "כללי" :
+                       prev.find(v => v !== "" && vals.includes(v)) || "");
+      if (desired && vals.includes(desired)) sel.value = desired;
+      else sel.value = prev.find(v => v !== "" && vals.includes(v)) || "";
+    }
   });
 }
 
