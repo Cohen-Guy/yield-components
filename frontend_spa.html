@@ -275,7 +275,7 @@
       <div class="sidebar-logo-icon">⧉</div>
       <div class="sidebar-logo-text">
         <div class="sidebar-logo-title">מרכיבי תשואה</div>
-        <div class="sidebar-logo-sub">Dashboard v4.5.0</div>
+        <div class="sidebar-logo-sub">Dashboard v4.6.0</div>
       </div>
     </div>
 
@@ -419,7 +419,7 @@
           </div>
 
           <div class="chart-block">
-            <div class="chart-title">תשואה רבעונית (%)</div>
+            <div class="chart-title">תשואה רבעונית (מפורקת) (%)</div>
             <div class="chart-container">
               <canvas id="chart_yield"></canvas>
             </div>
@@ -814,7 +814,61 @@ function renderKPIs() {
   `;
 }
 
-/* TABLE helpers */
+/* ————————————————————————
+   RETURNS LOGIC (NEW)
+   We receive cumulative return proxy per period: R_q ≈ contribution/weight.
+   We convert to true per-quarter returns:
+   r1 = R1
+   r2 = (1+R2)/(1+R1) - 1
+   r3 = (1+R3)/(1+R2) - 1
+   r4 = (1+R4)/(1+R3) - 1
+   Annual return per year = Π(1+r_q) - 1
+———————————————————————— */
+
+/* Build aggregated map by track/year/quarter (sum weights & contributions) */
+function buildAgg(rows){
+  const agg = {};
+  rows.forEach(r => {
+    const t=r.track_name, y=Number(r.year), q=Number(r.quarter)||null;
+    const w=nz(r.weight), c=nz(r.contribution);
+    if (!t || !y || !q) return;
+    if (!agg[t]) agg[t]={};
+    if (!agg[t][y]) agg[t][y]={};
+    if (!agg[t][y][q]) agg[t][y][q]={w:0,c:0};
+    agg[t][y][q].w += w; agg[t][y][q].c += c;
+  });
+  return agg;
+}
+
+/* From agg with cumulative R=c/w per period, compute per-quarter r and annual */
+function derivePeriodAndAnnual(agg){
+  const period = {};   // period[track][year][q] = r_q (number)
+  const annual = {};   // annual[track][year]     = R_year (number)
+  Object.keys(agg).forEach(t=>{
+    period[t]={}; annual[t]={};
+    Object.keys(agg[t]).map(Number).sort((a,b)=>a-b).forEach(y=>{
+      const qs = Object.keys(agg[t][y]).map(Number).filter(Boolean).sort((a,b)=>a-b);
+      let prevR = null;
+      let prod = 1.0;
+      period[t][y]={};
+      qs.forEach(q=>{
+        const cell = agg[t][y][q];
+        const Rq = (cell && Math.abs(cell.w)>1e-12) ? (cell.c/cell.w) : null;
+        let rq = null;
+        if (Rq==null) rq=null;
+        else if (prevR==null) rq = Rq; // r1 = R1
+        else rq = (1+Rq)/(1+prevR) - 1;
+        period[t][y][q] = rq;
+        if (rq!=null) prod *= (1+rq);
+        prevR = Rq;
+      });
+      annual[t][y] = (prod===1.0) ? null : (prod - 1);
+    });
+  });
+  return { period, annual };
+}
+
+/* Helpers for table width */
 function selectedTableFields() {
   const f = getCurrentFilters();
   const keys = (f.table_cols||[]).filter(k => TABLE_FIELDS.some(x=>x.key===k));
@@ -841,38 +895,27 @@ function bestQuarterForYear(agg, track, year) {
   return null;
 }
 
-/* summary */
-function computeTrackSummaryCum(agg, track, yearsDesc, yearMap, mode) {
+/* summary (updated to use period/annual) */
+function computeTrackSummaryCum_fromPeriod(periodMap, annualMap, track, yearsDesc, yearMap, mode) {
   let product = 1.0;
-  let anyYield = false;
+  let touched = false;
 
   if (mode === "quarter") {
     yearsDesc.forEach(y=>{
-      (yearMap.get(y)||[]).forEach(q=>{
-        const cell = agg?.[track]?.[y]?.[q];
-        if (!cell) return;
-        const w = cell.w, c = cell.c;
-        if (w && Math.abs(w)>1e-12) {
-          product *= (1 + c / w);
-          anyYield = true;
-        }
+      (yearMap.get(y)||[]).slice().reverse().forEach(qDesc=>{
+        // yearMap holds quarters DESC (later), but we just multiply irrespective of order
+        const rq = periodMap?.[track]?.[y]?.[qDesc];
+        if (rq!=null) { product *= (1+rq); touched = true; }
       });
     });
   } else {
     yearsDesc.forEach(y=>{
-      const bq = bestQuarterForYear(agg, track, y);
-      if (!bq) return;
-      const cell = agg?.[track]?.[y]?.[bq];
-      if (!cell) return;
-      const w = cell.w, c = cell.c;
-      if (w && Math.abs(w)>1e-12) {
-        product *= (1 + c / w);
-        anyYield = true;
-      }
+      const Ry = annualMap?.[track]?.[y];
+      if (Ry!=null) { product *= (1+Ry); touched = true; }
     });
   }
 
-  const cumReturn = anyYield ? (product - 1) : null;
+  const cumReturn = touched ? (product - 1) : null;
   return cumReturn==null ? "-" : (cumReturn*100).toFixed(2)+"%";
 }
 
@@ -932,7 +975,7 @@ function renderMatrixTable() {
   }
   noFieldsEl.style.display = "none";
 
-  // Build years/tracks and aggregate
+  // Build years/tracks and aggregate (cumulative), then derive period and annual
   const yearMap = new Map();
   rows.forEach(r => {
     const y = Number(r.year);
@@ -942,22 +985,13 @@ function renderMatrixTable() {
     if (q) yearMap.get(y).add(q);
   });
   const yearsAll = Array.from(yearMap.keys()).sort((a,b)=>b-a);
-  yearsAll.forEach(y => yearMap.set(y, Array.from(yearMap.get(y)).sort((a,b)=>b-a)));
+  yearsAll.forEach(y => yearMap.set(y, Array.from(yearMap.get(y)).sort((a,b)=>b-a))); // store DESC for header
 
   const trackNames = Array.from(new Set(rows.map(r => r.track_name)))
     .sort((a,b)=>String(a).localeCompare(String(b),"he"));
 
-  const agg = {};
-  rows.forEach(r => {
-    const t=r.track_name, y=Number(r.year), q=Number(r.quarter)||null;
-    const w=nz(r.weight), c=nz(r.contribution);
-    if (!agg[t]) agg[t]={};
-    if (!agg[t][y]) agg[t][y]={};
-    if (q) {
-      if (!agg[t][y][q]) agg[t][y][q]={w:0,c:0};
-      agg[t][y][q].w += w; agg[t][y][q].c += c;
-    }
-  });
+  const agg = buildAgg(rows);
+  const { period:periodR, annual:annualR } = derivePeriodAndAnnual(agg);
 
   let years = [];
   const activeQuartersByYear = new Map();
@@ -965,17 +999,14 @@ function renderMatrixTable() {
     years = yearsAll.filter(y=>{
       const qs = yearMap.get(y)||[];
       const activeQs = qs.filter(q=>{
-        return trackNames.some(t => isActiveCell(agg?.[t]?.[y]?.[q]));
+        return trackNames.some(t => periodR?.[t]?.[y]?.[q]!=null);
       });
       if (activeQs.length) activeQuartersByYear.set(y, activeQs);
       return activeQs.length>0;
     });
   } else {
     years = yearsAll.filter(y=>{
-      return trackNames.some(t=>{
-        const bq = bestQuarterForYear(agg, t, y);
-        return isActiveCell(bq ? agg?.[t]?.[y]?.[bq] : null);
-      });
+      return trackNames.some(t=> annualR?.[t]?.[y]!=null );
     });
   }
 
@@ -985,16 +1016,7 @@ function renderMatrixTable() {
     return;
   }
 
-  const menoraTracks = new Set();
-  trackNames.forEach(t => {
-    const hasMenora = rows.some(r => r.track_name === t && String(r.company_short || "").includes("מנורה"));
-    if (hasMenora) menoraTracks.add(t);
-  });
-
-  const thead = document.createElement("thead");
-  const tbody = document.createElement("tbody");
-
-  // ranking pre-compute
+  // pre-compute ranks
   function buildRankMapsQuarter(){
     const rankReturnMap={}; const rankWeightMap={};
     years.forEach(y=>{
@@ -1002,13 +1024,10 @@ function renderMatrixTable() {
       (activeQuartersByYear.get(y)||[]).forEach(q=>{
         const arrR=[], arrW=[];
         trackNames.forEach(t=>{
-          const cell=agg[t]?.[y]?.[q];
-          if (!isActiveCell(cell)) return;
-          if (Math.abs(cell.w)>1e-9){
-            const yv=cell.c/cell.w;
-            if (yv && Math.abs(yv)>1e-9) arrR.push({t,val:yv});
-            arrW.push({t,val:cell.w});
-          }
+          const cell = agg?.[t]?.[y]?.[q];
+          const rq = periodR?.[t]?.[y]?.[q];
+          if (rq!=null) arrR.push({t,val:rq});
+          if (cell && Math.abs(cell.w)>1e-12) arrW.push({t,val:cell.w});
         });
         arrR.sort((a,b)=>b.val-a.val);
         arrW.sort((a,b)=>b.val-a.val);
@@ -1024,13 +1043,10 @@ function renderMatrixTable() {
     years.forEach(y=>{
       const arrR=[], arrW=[];
       trackNames.forEach(t=>{
+        const Ry = annualR?.[t]?.[y];
         const bq=bestQuarterForYear(agg,t,y); const cell=bq? agg[t]?.[y]?.[bq]:null;
-        if (!isActiveCell(cell)) return;
-        if (Math.abs(cell.w)>1e-9){
-          const yv=cell.c/cell.w;
-          if (yv && Math.abs(yv)>1e-9) arrR.push({t,val:yv});
-          arrW.push({t,val:cell.w});
-        }
+        if (Ry!=null) arrR.push({t,val:Ry});
+        if (cell && Math.abs(cell.w)>1e-12) arrW.push({t,val:cell.w});
       });
       arrR.sort((a,b)=>b.val-a.val);
       arrW.sort((a,b)=>b.val-a.val);
@@ -1078,6 +1094,9 @@ function renderMatrixTable() {
     return td;
   }
 
+  const thead = document.createElement("thead");
+  const tbody = document.createElement("tbody");
+
   if (mode === "quarter") {
     titleEl.textContent = "מטריצת שיעור מסך התיק, תשואה, דירוגים וסיכום – לפי רבעון";
 
@@ -1096,7 +1115,7 @@ function renderMatrixTable() {
     const tr2 = document.createElement("tr");
     years.forEach(y=>{
       (activeQuartersByYear.get(y)||[]).forEach(q=>{
-        tr2.appendChild(thWith({text:`‌رבעון ${q}`, attrs:{colspan: selectedTableFields().length}}));
+        tr2.appendChild(thWith({text:`רבעון ${q}`, attrs:{colspan: selectedTableFields().length}}));
       });
     });
     thead.appendChild(tr2);
@@ -1117,58 +1136,50 @@ function renderMatrixTable() {
     makeSortable(thTrack, { type:'track' });
     if (thCum) makeSortable(thCum, { type:'cum' });
 
-    // ranks
     const {rankReturnMap,rankWeightMap} = buildRankMapsQuarter();
 
-    // build model for sorting
+    // model for sorting
     const model = trackNames.map(t=>{
-      const includeCum = selectedSummaryKeys().includes("sum_cum_return");
-      // FIX: מעבירים את agg וה־activeQuartersByYear כך שהחישוב יתבסס על נתוני הרבעונים בפועל
-      const cumStr = includeCum ? computeTrackSummaryCum(agg, t, years, activeQuartersByYear, "quarter") : "-";
+      const cumStr = includeCum ? computeTrackSummaryCum_fromPeriod(periodR, annualR, t, years, activeQuartersByYear, "quarter") : "-";
       const values = {};
       years.forEach(y=>{
         (activeQuartersByYear.get(y)||[]).forEach(q=>{
-          const cellAgg = ()=>agg?.[t]?.[y]?.[q]||null;
-          const c = cellAgg();
-          const w = (c && Math.abs(c.w)>1e-9)? (c.w*100) : null;
-          const yv = (c && Math.abs(c.w)>1e-9)? ((c.c/c.w)*100) : null;
+          const cell = agg?.[t]?.[y]?.[q] || null;
+          const w = (cell && Math.abs(cell.w)>1e-9)? (cell.w*100) : null;
+          const rq = periodR?.[t]?.[y]?.[q];
+          const yv = (rq!=null) ? (rq*100) : null;
           const rRet = rankReturnMap[y]?.[q]?.[t] ? rankReturnMap[y][q][t].rank : null;
           const rWei = rankWeightMap[y]?.[q]?.[t] ? rankWeightMap[y][q][t].rank : null;
-          values[`${y}|${q}|weight`] = w;
-          values[`${y}|${q}|yield`]  = yv;
-          values[`${y}|${q}|rank_yield`]  = rRet;
-          values[`${y}|${q}|rank_weight`] = rWei;
+          values[`w|${y}|${q}`] = w;
+          values[`y|${y}|${q}`] = yv;
+          values[`ry|${y}|${q}`] = rRet;
+          values[`rw|${y}|${q}`] = rWei;
         });
       });
       return { track:t, cumStr, values };
     });
 
-    // apply current sort
     if (state.sort){
       const s = state.sort;
       if (s.type==='track'){
         model.sort((a,b)=>compareValues(a.track,b.track,s.dir));
-      } else if (s.type==='cum' && selectedSummaryKeys().includes("sum_cum_return")){
-        model.sort((a,b)=>{
-          const av = parsePercentText(a.cumStr);
-          const bv = parsePercentText(b.cumStr);
-          return compareValues(av,bv,s.dir);
-        });
+      } else if (s.type==='cum' && includeCum){
+        model.sort((a,b)=>compareValues(parsePercentText(a.cumStr), parsePercentText(b.cumStr), s.dir));
       } else if (s.type==='cell'){
-        const key = `${s.year}|${s.quarter}|${s.fieldKey}`;
+        const key = (s.fieldKey==='weight' ? `w|${s.year}|${s.quarter}` :
+                    s.fieldKey==='yield' ? `y|${s.year}|${s.quarter}` :
+                    s.fieldKey==='rank_yield' ? `ry|${s.year}|${s.quarter}` :
+                    `rw|${s.year}|${s.quarter}`);
         model.sort((a,b)=>compareValues(a.values[key], b.values[key], s.dir));
       }
     }
 
-    // render rows
     model.forEach(({track:t, cumStr})=>{
       const tr = document.createElement("tr");
       if (rows.some(r=>r.track_name===t && String(r.company_short||"").includes("מנורה"))) tr.className = "row-menora";
       tr.appendChild(tdWith({html:`${t}`, cls:"matrix-row-header"}));
 
-      if (selectedSummaryKeys().includes("sum_cum_return")) {
-        tr.appendChild(tdWith({html:`<span class="num">${cumStr}</span>`}));
-      }
+      if (includeCum) tr.appendChild(tdWith({html:`<span class="num">${cumStr}</span>`}));
 
       years.forEach(y=>{
         (activeQuartersByYear.get(y)||[]).forEach(q=>{
@@ -1176,16 +1187,12 @@ function renderMatrixTable() {
 
           const wDisp = (cell && Math.abs(cell.w)>1e-9) ? (cell.w*100).toFixed(2)+"%" : "-";
           let yDisp="-", rRet="", rWei="";
-          if (cell && Math.abs(cell.w)>1e-9){
-            const yv=cell.c/cell.w;
-            if (yv && Math.abs(yv)>1e-9) {
-              yDisp=(yv*100).toFixed(2)+"%";
-              const infoR=rankReturnMap[y]?.[q]?.[t];
-              if (infoR && infoR.total>0) rRet=`${infoR.rank}/${infoR.total}`;
-            }
-            const infoW=rankWeightMap[y]?.[q]?.[t];
-            if (infoW && infoW.total>0) rWei=`${infoW.rank}/${infoW.total}`;
-          }
+          const rq = periodR?.[t]?.[y]?.[q];
+          if (rq!=null) yDisp = (rq*100).toFixed(2)+"%";
+          const infoR=rankReturnMap[y]?.[q]?.[t];
+          const infoW=rankWeightMap[y]?.[q]?.[t];
+          if (infoR && infoR.total>0) rRet=`${infoR.rank}/${infoR.total}`;
+          if (infoW && infoW.total>0) rWei=`${infoW.rank}/${infoW.total}`;
 
           selectedTableFields().forEach(fld=>{
             if (fld.key==="weight")            tr.appendChild(tdWith({html:`<span class="num">${wDisp}</span>`}));
@@ -1205,7 +1212,7 @@ function renderMatrixTable() {
     const tr1 = document.createElement("tr");
     const thTrack = thWith({text:"מסלול", attrs:{rowspan:2}});
     tr1.appendChild(thTrack);
-    const thCum = selectedSummaryKeys().includes("sum_cum_return") ? thWith({text:"תשואה מצטברת", attrs:{rowspan:2}}) : null;
+    const thCum = includeCum ? thWith({text:"תשואה מצטברת", attrs:{rowspan:2}}) : null;
     if (thCum) tr1.appendChild(thCum);
     years.forEach(y=>{
       tr1.appendChild(thWith({text:String(y), attrs:{colspan: selectedTableFields().length}}));
@@ -1231,13 +1238,10 @@ function renderMatrixTable() {
       years.forEach(y=>{
         const arrR=[], arrW=[];
         trackNames.forEach(t=>{
+          const Ry = annualR?.[t]?.[y];
           const bq=bestQuarterForYear(agg,t,y); const cell=bq? agg[t]?.[y]?.[bq]:null;
-          if (!isActiveCell(cell)) return;
-          if (Math.abs(cell.w)>1e-9){
-            const yv=cell.c/cell.w;
-            if (yv && Math.abs(yv)>1e-9) arrR.push({t,val:yv});
-            arrW.push({t,val:cell.w});
-          }
+          if (Ry!=null) arrR.push({t,val:Ry});
+          if (cell && Math.abs(cell.w)>1e-12) arrW.push({t,val:cell.w});
         });
         arrR.sort((a,b)=>b.val-a.val);
         arrW.sort((a,b)=>b.val-a.val);
@@ -1248,58 +1252,52 @@ function renderMatrixTable() {
       return {rankReturnYear:rY,rankWeightYear:wY};
     })();
 
-    // build model for sorting
     const model = trackNames.map(t=>{
-      const includeCum = selectedSummaryKeys().includes("sum_cum_return");
-      const cumStr = includeCum ? computeTrackSummaryCum(agg, t, years, null, "year") : "-";
+      const cumStr = includeCum ? computeTrackSummaryCum_fromPeriod(periodR, annualR, t, years, null, "year") : "-";
       const values = {};
       years.forEach(y=>{
         const bq=bestQuarterForYear(agg,t,y); const cell=bq? agg[t]?.[y]?.[bq]:null;
         const w = (cell && Math.abs(cell.w)>1e-9)? (cell.w*100) : null;
-        const yv = (cell && Math.abs(cell.w)>1e-9)? ((cell.c/cell.w)*100) : null;
+        const Ry = annualR?.[t]?.[y];
+        const yv = (Ry!=null)? (Ry*100) : null;
         const rRet = rankReturnYear[y]?.[t] ? rankReturnYear[y][t].rank : null;
         const rWei = rankWeightYear[y]?.[t] ? rankWeightYear[y][t].rank : null;
-        values[`${y}|year|weight`] = w;
-        values[`${y}|year|yield`]  = yv;
-        values[`${y}|year|rank_yield`]  = rRet;
-        values[`${y}|year|rank_weight`] = rWei;
+        values[`w|${y}`] = w;
+        values[`y|${y}`] = yv;
+        values[`ry|${y}`] = rRet;
+        values[`rw|${y}`] = rWei;
       });
       return { track:t, cumStr, values };
     });
 
-    // apply sort
     if (state.sort){
       const s = state.sort;
       if (s.type==='track'){
         model.sort((a,b)=>compareValues(a.track,b.track,s.dir));
-      } else if (s.type==='cum' && selectedSummaryKeys().includes("sum_cum_return")){
-        model.sort((a,b)=>{
-          const av = parsePercentText(a.cumStr);
-          const bv = parsePercentText(b.cumStr);
-          return compareValues(av,bv,s.dir);
-        });
+      } else if (s.type==='cum' && includeCum){
+        model.sort((a,b)=>compareValues(parsePercentText(a.cumStr), parsePercentText(b.cumStr), s.dir));
       } else if (s.type==='cell'){
-        const key = `${s.year}|year|${s.fieldKey}`;
+        const key = (s.fieldKey==='weight' ? `w|${s.year}` :
+                    s.fieldKey==='yield' ? `y|${s.year}` :
+                    s.fieldKey==='rank_yield' ? `ry|${s.year}` :
+                    `rw|${s.year}`);
         model.sort((a,b)=>compareValues(a.values[key], b.values[key], s.dir));
       }
     }
 
-    // render rows
     model.forEach(({track:t, cumStr})=>{
       const tr = document.createElement("tr");
       if (rows.some(r=>r.track_name===t && String(r.company_short||"").includes("מנורה"))) tr.className = "row-menora";
       tr.appendChild(tdWith({html:`${t}`, cls:"matrix-row-header"}));
-      if (selectedSummaryKeys().includes("sum_cum_return")) tr.appendChild(tdWith({html:`<span class="num">${cumStr}</span>`}));
+      if (includeCum) tr.appendChild(tdWith({html:`<span class="num">${cumStr}</span>`}));
 
       years.forEach(y=>{
         const bq=bestQuarterForYear(agg,t,y); const cell=bq? agg[t]?.[y]?.[bq]:null;
 
         const wDisp = (cell && Math.abs(cell.w)>1e-9)? (cell.w*100).toFixed(2)+"%" : "-";
-        let yDisp="-";
-        if (cell && Math.abs(cell.w)>1e-9){
-          const yv=cell.c/cell.w;
-          if (yv && Math.abs(yv)>1e-9) yDisp=(yv*100).toFixed(2)+"%";
-        }
+        const Ry = annualR?.[t]?.[y];
+        const yDisp = (Ry!=null)? (Ry*100).toFixed(2)+"%" : "-";
+
         const RR=rankReturnYear[y]?.[t]; const RW=rankWeightYear[y]?.[t];
         const rRet = RR? `${RR.rank}/${RR.total}` : "";
         const rWei = RW? `${RW.rank}/${RW.total}` : "";
@@ -1344,15 +1342,15 @@ function toggleLiquidityQuarterVisibility() {
   else { qField.style.display = ""; title.textContent = "אחזקה לפי מסלול וסחירות (%)"; }
 }
 
-/* === NEW: Helpers to align charts order with table sort === */
+/* For charts ordering by current sort – now fed by PERIOD returns map */
 function bestQuarterForSeries(seriesObj, year){
   for (const q of [4,3,2,1]) {
     const key = `${year}|${q}`;
-    if (seriesObj && seriesObj[key]) return key;
+    if (seriesObj && (seriesObj[key]!=null)) return key;
   }
   return null;
 }
-function orderedKeysByCurrentSort(keys, seriesYield, seriesWeight){
+function orderedKeysByCurrentSort(keys, rSeries, seriesWeight){
   const s = state.sort;
   if (!s || s.type!=='cell') return keys.slice();
   if (s.fieldKey!=='yield' && s.fieldKey!=='weight') return keys.slice();
@@ -1361,14 +1359,14 @@ function orderedKeysByCurrentSort(keys, seriesYield, seriesWeight){
   const withVal = keys.map(name=>{
     let periodKey = null;
     if (s.quarter==null){
-      periodKey = bestQuarterForSeries(seriesYield[name] || seriesWeight[name], s.year);
+      periodKey = bestQuarterForSeries(rSeries[name], s.year);
     } else {
       periodKey = `${s.year}|${s.quarter}`;
     }
     let val = null;
     if (s.fieldKey==='yield'){
-      const cell = seriesYield[name]?.[periodKey];
-      if (cell && cell.w) val = (cell.c / cell.w) * 100;
+      const rq = rSeries[name]?.[periodKey];
+      if (rq!=null) val = rq*100;
     } else if (s.fieldKey==='weight'){
       const w = seriesWeight[name]?.[periodKey];
       if (w!=null) val = w * 100;
@@ -1378,6 +1376,56 @@ function orderedKeysByCurrentSort(keys, seriesYield, seriesWeight){
 
   withVal.sort((a,b)=>compareValues(a.val, b.val, dir));
   return withVal.map(x=>x.name);
+}
+
+/* Build per-series period returns from cumulative R=c/w */
+function buildSeriesMaps(rows){
+  const seriesKey = (r)=>{
+    const c = r.company_short || "לא ידוע";
+    const t = r.track_name || "";
+    return t ? `${c} – ${t}` : c;
+  };
+  const seriesCum = {};   // cumulative: {name: { "Y|Q": {w,c} }}
+  const seriesW   = {};   // weight only: {name: { "Y|Q": w }}
+  rows.forEach(r=>{
+    if (!r.year || !r.quarter) return;
+    const tk = `${r.year}|${r.quarter}`;
+    const sk = seriesKey(r);
+    const wAll = nz(r.weight);
+    const cAll = nz(r.contribution);
+
+    if (!seriesCum[sk]) seriesCum[sk]={};
+    if (!seriesCum[sk][tk]) seriesCum[sk][tk]={w:0,c:0};
+    seriesCum[sk][tk].w += wAll;
+    seriesCum[sk][tk].c += cAll;
+
+    if (!seriesW[sk]) seriesW[sk]={};
+    if (!seriesW[sk][tk]) seriesW[sk][tk]=0;
+    seriesW[sk][tk] += wAll;
+  });
+
+  // derive per-period r for each series across time ascending
+  const rSeries = {}; // {name:{ "Y|Q": r }}
+  Object.keys(seriesCum).forEach(name=>{
+    const keys = Object.keys(seriesCum[name]).sort((a,b)=>{
+      const [ya,qa]=a.split("|").map(Number); const [yb,qb]=b.split("|").map(Number);
+      return ya===yb? qa-qb : ya-yb;
+    });
+    rSeries[name]={};
+    let prevR = null;
+    keys.forEach(k=>{
+      const cell = seriesCum[name][k];
+      const Rq = (cell && Math.abs(cell.w)>1e-12) ? (cell.c/cell.w) : null;
+      let rq = null;
+      if (Rq==null) rq=null;
+      else if (prevR==null) rq = Rq;
+      else rq = (1+Rq)/(1+prevR) - 1;
+      rSeries[name][k] = rq;
+      prevR = Rq;
+    });
+  });
+
+  return { seriesCum, seriesW, rSeries };
 }
 
 function refreshLiquidityFilters() {
@@ -1411,6 +1459,7 @@ function refreshLiquidityFilters() {
     selQuarter.innerHTML = "";
   }
 }
+
 function renderCharts() {
   const rows = state.filtered;
 
@@ -1421,54 +1470,29 @@ function renderCharts() {
     return;
   }
 
+  // Build series maps
+  const { seriesCum, seriesW, rSeries } = buildSeriesMaps(rows);
+
   const timeSet = new Set();
   rows.forEach(r=>{ if (r.year && r.quarter) timeSet.add(r.year+"|"+r.quarter); });
-
   const timeKeys = Array.from(timeSet).sort((a,b)=>{
     const [ya,qa]=a.split("|").map(Number);
     const [yb,qb]=b.split("|").map(Number);
     return ya===yb ? qa-qb : ya-yb;
   });
-
   const labels = timeKeys.map(k=>{ const [y,q]=k.split("|"); return y+" Q"+q; });
 
-  const seriesKey = (r)=>{
-    const c = r.company_short || "לא ידוע";
-    const t = r.track_name || "";
-    return t ? `${c} – ${t}` : c;
-  };
-
-  const seriesYield = {};
-  const seriesWeight = {};
-
-  rows.forEach(r=>{
-    if (!r.year || !r.quarter) return;
-    const tk = `${r.year}|${r.quarter}`;
-    const sk = seriesKey(r);
-    const wAll = nz(r.weight);
-    const cAll = nz(r.contribution);
-
-    if (!seriesYield[sk]) seriesYield[sk]={};
-    if (!seriesYield[sk][tk]) seriesYield[sk][tk]={w:0,c:0};
-    seriesYield[sk][tk].w += wAll;
-    seriesYield[sk][tk].c += cAll;
-
-    if (!seriesWeight[sk]) seriesWeight[sk]={};
-    if (!seriesWeight[sk][tk]) seriesWeight[sk][tk]=0;
-    seriesWeight[sk][tk] += wAll;
-  });
-
   const palette = ["#53d3ff","#ffb74d","#81c784","#ba68c8","#ff8a65","#4db6ac","#ce93d8","#f06292","#ffd54f","#7986cb","#90caf9","#a5d6a7","#ffe082","#ffab91","#b39ddb"];
-  let keys = Object.keys(seriesYield);
+  let keys = Object.keys(seriesCum);
 
-  keys = orderedKeysByCurrentSort(keys, seriesYield, seriesWeight);
+  // Order datasets by current sort (yield uses rSeries, weight uses seriesW)
+  keys = orderedKeysByCurrentSort(keys, rSeries, seriesW);
 
   const datasetsYield = keys.map((name,i)=>{
     const color=palette[i%palette.length];
     const data=timeKeys.map(k=>{
-      const cell=seriesYield[name][k];
-      if (!cell||!cell.w) return null;
-      return (cell.c/cell.w)*100;
+      const rq = rSeries[name]?.[k];
+      return (rq==null)? null : (rq*100);
     });
     return { label:name, data, type:"bar", backgroundColor:color+"cc", borderColor:color, borderWidth:1, skipNull:true };
   });
@@ -1476,7 +1500,7 @@ function renderCharts() {
   const datasetsWeight = keys.map((name,i)=>{
     const color=palette[i%palette.length];
     const data=timeKeys.map(k=>{
-      const w = seriesWeight[name]?.[k];
+      const w = seriesW[name]?.[k];
       if (w==null) return null;
       return w*100;
     });
@@ -1502,7 +1526,7 @@ function renderCharts() {
     }
   });
 
-  state.chartYield  = new Chart(ctxYield, { type:"bar", data:{labels,datasets:datasetsYield},  options:opt("תשואה רבעונית (%)") });
+  state.chartYield  = new Chart(ctxYield, { type:"bar", data:{labels,datasets:datasetsYield},  options:opt("תשואה רבעונית מפורקת (%)") });
   state.chartWeight = new Chart(ctxWeight,{ type:"bar", data:{labels,datasets:datasetsWeight}, options:opt("אחזקה רבעונית ממוצעת לתצוגה (%)") });
 
   renderLiquidityChart();
@@ -1578,9 +1602,26 @@ function renderLiquidityChart() {
           const w = relevant.reduce((acc,r)=>acc + nz(r.weight), 0);
           val = w*100;
         } else if (s.fieldKey==='yield'){
-          const w = relevant.reduce((acc,r)=>acc + nz(r.weight), 0);
-          const c = relevant.reduce((acc,r)=>acc + nz(r.contribution), 0);
-          if (Math.abs(w)>1e-12) val = (c/w)*100;
+          // estimate period return for that track/period using cumulative proxy per rows (aggregate then decompose)
+          const aggTmp = {};
+          relevant.forEach(r=>{
+            const y=Number(r.year), q=Number(r.quarter);
+            const w=nz(r.weight), c=nz(r.contribution);
+            if (!aggTmp[y]) aggTmp[y]={};
+            if (!aggTmp[y][q]) aggTmp[y][q]={w:0,c:0};
+            aggTmp[y][q].w+=w; aggTmp[y][q].c+=c;
+          });
+          let prevR=null; let rq=null;
+          const qList = Object.keys(aggTmp[Number(yTarget)]||{}).map(Number).sort((a,b)=>a-b);
+          qList.forEach(q=>{
+            const cell=aggTmp[Number(yTarget)][q];
+            const Rq=(cell && Math.abs(cell.w)>1e-12)? (cell.c/cell.w):null;
+            if (Rq!=null){
+              if (prevR==null) rq=Rq; else rq=(1+Rq)/(1+prevR)-1;
+              prevR=Rq;
+            }
+          });
+          if (rq!=null) val = rq*100;
         }
       }
       scoreByTrack.set(t, val);
@@ -1620,7 +1661,7 @@ function renderLiquidityChart() {
       x:{ ticks:{color:"#a6b2c9"}, grid:{color:"rgba(255,255,255,0.06)"}, title:{display:true,text:"מסלול",color:"#e9eefb"} },
       y:{ ticks:{color:"#a6b2c9", callback:v=>v.toFixed(1)+"%"},
           grid:{color:"rgba(255,255,255,0.04)"},
-          title:{display:true,text:"אחזקה מהתיק (%)",color:"#e9eefב"} }
+          title:{display:true,text:"אחזקה מהתיק (%)",color:"#e9eefb"} }
     },
     layout: { padding: { left: 8, right: 8 } }
   };
