@@ -418,38 +418,38 @@
             <div class="panel-header-sub">שני הגרפים העליונים רבעוניים • ציר Y באחוזים</div>
           </div>
 
-        <div class="chart-block">
-          <div class="chart-title">תשואה רבעונית (%)</div>
-          <div class="chart-container">
-            <canvas id="chart_yield"></canvas>
+          <div class="chart-block">
+            <div class="chart-title">תשואה רבעונית (%)</div>
+            <div class="chart-container">
+              <canvas id="chart_yield"></canvas>
+            </div>
           </div>
-        </div>
 
-        <div class="chart-block">
-          <div class="chart-title">אחזקה רבעונית ממוצעת לתצוגה (%)</div>
-          <div class="chart-container">
-            <canvas id="chart_weight"></canvas>
+          <div class="chart-block">
+            <div class="chart-title">אחזקה רבעונית ממוצעת לתצוגה (%)</div>
+            <div class="chart-container">
+              <canvas id="chart_weight"></canvas>
+            </div>
           </div>
-        </div>
 
-        <div class="chart-filters-row">
-          <div class="field">
-            <label>שנה (גרף אחזקה לפי מסלול וסחירות)</label>
-            <select id="liq_year_filter"></select>
+          <div class="chart-filters-row">
+            <div class="field">
+              <label>שנה (גרף אחזקה לפי מסלול וסחירות)</label>
+              <select id="liq_year_filter"></select>
+            </div>
+            <div class="field" id="liq_q_field">
+              <label>רבעון</label>
+              <select id="liq_quarter_filter"></select>
+            </div>
           </div>
-          <div class="field" id="liq_q_field">
-            <label>רבעון</label>
-            <select id="liq_quarter_filter"></select>
-          </div>
-        </div>
 
-        <div class="chart-block">
-          <div class="chart-title" id="liq_chart_title">אחזקה לפי מסלול וסחירות (%)</div>
-          <div class="chart-container narrow-right">
-            <canvas id="chart_liquidity"></canvas>
+          <div class="chart-block">
+            <div class="chart-title" id="liq_chart_title">אחזקה לפי מסלול וסחירות (%)</div>
+            <div class="chart-container narrow-right">
+              <canvas id="chart_liquidity"></canvas>
+            </div>
           </div>
         </div>
-      </div>
 
       </section>
     </section>
@@ -620,10 +620,10 @@ async function reloadData() {
     state.meta = json.meta || {};
     document.getElementById("badge_file").textContent = "קובץ: " + (state.meta.file || "-");
     updateSidebarMeta();
-    buildFilters();            // מגדיר ברירות מחדל רק בטעינה הראשונה
+    buildFilters();
     buildGlobalTimeline();
     hookTimelineEvents();
-    refreshFilterOptions();    // מכבד את הבחירה הנוכחית, לא מחזיר ברירות מחדל
+    refreshFilterOptions();
     applyFilters();
   } catch (err) { console.error(err); }
 }
@@ -654,10 +654,10 @@ function buildFilters() {
   setSelectOptions(document.getElementById("f_category"),    categories, { includeAll:false });
   setSelectOptions(document.getElementById("f_year"),        years,      { includeAll:false });
 
-  /* DEFAULTS (רק בכניסה לאתר) */
+  /* DEFAULTS (טעינה ראשונה) */
   const defaultSaving   = "השתלמות";
-  const defaultFundType = "כללי";   // לפי הבקשה: סוג קופה "כללי"
-  const defaultTrack    = "כללי";   // אם תרצה להשאיר גם מסלול "כללי"
+  const defaultFundType = "כללי";
+  const defaultTrack    = "כללי";
 
   const selSaving = document.getElementById("f_saving_type");
   const selFund   = document.getElementById("f_fund_type");
@@ -667,7 +667,7 @@ function buildFilters() {
   if ([...selFund.options].some(o=>o.value===defaultFundType))   selFund.value   = defaultFundType;
   if ([...selTrack.options].some(o=>o.value===defaultTrack))     selTrack.value  = defaultTrack;
 
-  /* Columns selector (includes summary toggles) */
+  /* Columns selector */
   const colsSel = document.getElementById("f_cols");
   const allOptions = [
     ...SUMMARY_FIELDS.map(f => ({ value: f.key, text: f.label })),
@@ -730,9 +730,8 @@ function refreshFilterOptions() {
 
     setSelectOptions(sel, vals, { includeAll:!isMulti });
 
-    // ✅ שמור את הבחירה הקודמת אם עדיין זמינה; אחרת עבור ל"כלום"/הכול. לא מחזירים ברירות־מחדל פה.
     if (isMulti) {
-      Array.from(sel.options).forEach(o => { o.selected = prev.includes(o.value); });
+      Array.from(sel.options).forEach(o=> o.selected = prev.includes(o.value));
     } else {
       const keep = prev.find(v => v !== "" && vals.includes(v));
       sel.value = keep ?? "";
@@ -886,7 +885,7 @@ function parsePercentText(txt){
 function compareValues(a,b,dir){
   const mul = dir==='asc' ? 1 : -1;
   if (a==null && b==null) return 0;
-  if (a==null) return 1 * mul; // nulls last in asc
+  if (a==null) return 1 * mul;
   if (b==null) return -1 * mul;
   if (typeof a === "number" && typeof b === "number") return (a===b?0:(a<b?-1:1)) * mul;
   return String(a).localeCompare(String(b),"he") * mul;
@@ -1054,8 +1053,8 @@ function renderMatrixTable() {
         state.sort.fieldKey === sortSpec.fieldKey;
       const dir = same ? flipDir(state.sort.dir) : 'desc';
       state.sort = {...sortSpec, dir};
-      renderMatrixTable(); // re-render table
-      renderCharts();      // <-- sync charts order
+      renderMatrixTable();
+      renderCharts();
     });
     const isActive =
       state.sort &&
@@ -1097,7 +1096,7 @@ function renderMatrixTable() {
     const tr2 = document.createElement("tr");
     years.forEach(y=>{
       (activeQuartersByYear.get(y)||[]).forEach(q=>{
-        tr2.appendChild(thWith({text:`רבעון ${q}`, attrs:{colspan: selectedTableFields().length}}));
+        tr2.appendChild(thWith({text:`‌رבעון ${q}`, attrs:{colspan: selectedTableFields().length}}));
       });
     });
     thead.appendChild(tr2);
@@ -1124,7 +1123,8 @@ function renderMatrixTable() {
     // build model for sorting
     const model = trackNames.map(t=>{
       const includeCum = selectedSummaryKeys().includes("sum_cum_return");
-      const cumStr = includeCum ? computeTrackSummaryCum({}, t, years, activeQuartersByYear, "quarter") : "-";
+      // FIX: מעבירים את agg וה־activeQuartersByYear כך שהחישוב יתבסס על נתוני הרבעונים בפועל
+      const cumStr = includeCum ? computeTrackSummaryCum(agg, t, years, activeQuartersByYear, "quarter") : "-";
       const values = {};
       years.forEach(y=>{
         (activeQuartersByYear.get(y)||[]).forEach(q=>{
@@ -1461,7 +1461,6 @@ function renderCharts() {
   const palette = ["#53d3ff","#ffb74d","#81c784","#ba68c8","#ff8a65","#4db6ac","#ce93d8","#f06292","#ffd54f","#7986cb","#90caf9","#a5d6a7","#ffe082","#ffab91","#b39ddb"];
   let keys = Object.keys(seriesYield);
 
-  /* order datasets according to current table sort (if applicable) */
   keys = orderedKeysByCurrentSort(keys, seriesYield, seriesWeight);
 
   const datasetsYield = keys.map((name,i)=>{
@@ -1621,7 +1620,7 @@ function renderLiquidityChart() {
       x:{ ticks:{color:"#a6b2c9"}, grid:{color:"rgba(255,255,255,0.06)"}, title:{display:true,text:"מסלול",color:"#e9eefb"} },
       y:{ ticks:{color:"#a6b2c9", callback:v=>v.toFixed(1)+"%"},
           grid:{color:"rgba(255,255,255,0.04)"},
-          title:{display:true,text:"אחזקה מהתיק (%)",color:"#e9eefb"} }
+          title:{display:true,text:"אחזקה מהתיק (%)",color:"#e9eefב"} }
     },
     layout: { padding: { left: 8, right: 8 } }
   };
