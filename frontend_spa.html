@@ -197,6 +197,14 @@
     }
     .chart-container { position: relative; width: 100%; height: 260px; }
 
+    .chart-filters-row {
+      margin-top: 6px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: flex-end;
+    }
+
     @media (max-width: 840px) {
       .app-shell { grid-template-columns: 1fr; }
       .sidebar { display: none; }
@@ -251,7 +259,7 @@
       </div>
     </header>
 
-    <!-- FILTERS -->
+    <!-- FILTERS (כלליים) -->
     <section class="filters-bar">
 
       <!-- פילטר "חברה" הוסר -->
@@ -330,7 +338,7 @@
         <div class="panel">
           <div class="panel-header">
             <div class="panel-header-title"><span class="icon">📈</span><span>גרפים רבעוניים</span></div>
-            <div class="panel-header-sub">ציר X: שנה+רבעון • ציר Y: אחוזים</div>
+            <div class="panel-header-sub">ציר X (שני הגרפים העליונים): שנה+רבעון • ציר Y: אחוזים</div>
           </div>
 
           <div class="chart-block">
@@ -344,6 +352,18 @@
             <div class="chart-title">אחזקה רבעונית ממוצעת לתצוגה (%)</div>
             <div class="chart-container">
               <canvas id="chart_weight"></canvas>
+            </div>
+          </div>
+
+          <!-- פילטרים פרטיים לגרף האחזקה לפי מסלול וסחירות -->
+          <div class="chart-filters-row">
+            <div class="field">
+              <label>שנה (גרף אחזקה לפי מסלול וסחירות)</label>
+              <select id="liq_year_filter"></select>
+            </div>
+            <div class="field">
+              <label>רבעון</label>
+              <select id="liq_quarter_filter"></select>
             </div>
           </div>
 
@@ -489,6 +509,21 @@ function buildFilters() {
     const el = document.getElementById(id);
     el.addEventListener("change", onFilterChange);
   });
+
+  // מאזינים לפילטרים הפרטיים של גרף האחזקה לפי מסלול+סחירות
+  const ly = document.getElementById("liq_year_filter");
+  const lq = document.getElementById("liq_quarter_filter");
+  if (ly) {
+    ly.addEventListener("change", () => {
+      refreshLiquidityFilters();  // יעדכן רשימת רבעונים לפי השנה החדשה
+      renderLiquidityChart();
+    });
+  }
+  if (lq) {
+    lq.addEventListener("change", () => {
+      renderLiquidityChart();
+    });
+  }
 }
 
 function getCurrentFilters() {
@@ -568,6 +603,9 @@ function applyFilters() {
 
     return true;
   });
+
+  // לעדכן פילטרים פרטיים של גרף האחזקה לפי מסלול+סחירות עם דיפולט לשנה/רבעון אחרונים
+  refreshLiquidityFilters();
 
   updateFiltersStatus();
   renderKPIs();
@@ -747,16 +785,80 @@ function renderMatrixTable() {
 }
 
 /* ————————————————————————
+   LIQUIDITY CHART PRIVATE FILTERS
+———————————————————————— */
+function refreshLiquidityFilters() {
+  const selYear = document.getElementById("liq_year_filter");
+  const selQuarter = document.getElementById("liq_quarter_filter");
+  if (!selYear || !selQuarter) return;
+
+  const rows = state.filtered.filter(r => r.year && r.quarter);
+  if (!rows.length) {
+    selYear.innerHTML = "";
+    selQuarter.innerHTML = "";
+    return;
+  }
+
+  const yearsArr = Array.from(new Set(rows.map(r=>Number(r.year)))).sort((a,b)=>a-b);
+
+  const prevYear = selYear.value;
+  const prevQuarter = selQuarter.value;
+
+  const defaultYear = yearsArr[yearsArr.length - 1];
+
+  // מילוי שנים
+  selYear.innerHTML = "";
+  const fragYear = document.createDocumentFragment();
+  yearsArr.forEach(y=>{
+    const o=document.createElement("option");
+    o.value=String(y);
+    o.textContent=String(y);
+    fragYear.appendChild(o);
+  });
+  selYear.appendChild(fragYear);
+
+  let yearToUse = defaultYear;
+  if (prevYear && yearsArr.includes(Number(prevYear))) {
+    yearToUse = Number(prevYear);
+  }
+  selYear.value = String(yearToUse);
+
+  // רבעונים עבור השנה שנבחרה
+  const quartersArr = Array.from(new Set(
+    rows.filter(r=>Number(r.year)===yearToUse).map(r=>Number(r.quarter))
+  )).sort((a,b)=>a-b);
+
+  selQuarter.innerHTML = "";
+  const fragQ = document.createDocumentFragment();
+  quartersArr.forEach(q=>{
+    const o=document.createElement("option");
+    o.value=String(q);
+    o.textContent=String(q);
+    fragQ.appendChild(o);
+  });
+  selQuarter.appendChild(fragQ);
+
+  const defaultQuarter = quartersArr[quartersArr.length - 1];
+  let quarterToUse = defaultQuarter;
+  if (prevQuarter && quartersArr.includes(Number(prevQuarter))) {
+    quarterToUse = Number(prevQuarter);
+  }
+  selQuarter.value = String(quarterToUse);
+}
+
+/* ————————————————————————
    CHARTS
 ———————————————————————— */
 function renderCharts() {
   const rows = state.filtered;
 
-  if (state.chartYield)      { state.chartYield.destroy();      state.chartYield=null; }
-  if (state.chartWeight)     { state.chartWeight.destroy();     state.chartWeight=null; }
-  if (state.chartLiquidity)  { state.chartLiquidity.destroy();  state.chartLiquidity=null; }
-
-  if (!rows.length) return;
+  if (state.chartYield)  { state.chartYield.destroy();  state.chartYield=null; }
+  if (state.chartWeight) { state.chartWeight.destroy(); state.chartWeight=null; }
+  // את גרף הסחירות אנחנו מנהלים בפונקציה ייעודית, כאן רק ננקה אם אין נתונים
+  if (!rows.length) {
+    if (state.chartLiquidity) { state.chartLiquidity.destroy(); state.chartLiquidity = null; }
+    return;
+  }
 
   const timeSet = new Set();
   rows.forEach(r=>{
@@ -808,21 +910,6 @@ function renderCharts() {
     seriesWeightN[sk][tk]+=1;
   });
 
-  // אוסף לסדרת האחזקה לפי מסלול וסחירות
-  const seriesLiquidity = {};
-  rows.forEach(r=>{
-    if (!r.year || !r.quarter) return;
-    const tk = `${r.year}|${r.quarter}`;
-    const trackName = r.track_name || "ללא מסלול";
-    const liq = r.liquidity || "לא ידוע";
-    const key = `${trackName} – ${liq}`;
-    const w = safeNumber(r.weight) || 0;
-
-    if (!seriesLiquidity[key]) seriesLiquidity[key] = {};
-    if (!seriesLiquidity[key][tk]) seriesLiquidity[key][tk] = 0;
-    seriesLiquidity[key][tk] += w;
-  });
-
   const palette = [
     "#53d3ff","#ffb74d","#81c784","#ba68c8","#ff8a65",
     "#4db6ac","#ce93d8","#f06292","#ffd54f","#7986cb",
@@ -871,29 +958,8 @@ function renderCharts() {
     };
   });
 
-  // גרף אחזקות לפי מסלול וסחירות
-  const keysLiquidity = Object.keys(seriesLiquidity).sort((a,b)=>a.localeCompare(b,"he"));
-  const datasetsLiquidity = keysLiquidity.map((name,i)=>{
-    const color = palette[i%palette.length];
-    const data = timeKeys.map(k=>{
-      const val = seriesLiquidity[name] && seriesLiquidity[name][k];
-      if (!val) return null;
-      return val * 100;
-    });
-    return {
-      label: name,
-      data,
-      type: "bar",
-      backgroundColor: color + "cc",
-      borderColor: color,
-      borderWidth: 1,
-      skipNull: true
-    };
-  });
-
-  const ctxYield     = document.getElementById("chart_yield").getContext("2d");
-  const ctxWeight    = document.getElementById("chart_weight").getContext("2d");
-  const ctxLiquidity = document.getElementById("chart_liquidity").getContext("2d");
+  const ctxYield  = document.getElementById("chart_yield").getContext("2d");
+  const ctxWeight = document.getElementById("chart_weight").getContext("2d");
 
   const opt=(title)=>({
     responsive:true,
@@ -921,10 +987,114 @@ function renderCharts() {
     options:opt("אחזקה רבעונית ממוצעת (%)")
   });
 
+  // לבסוף – הגרף החדש לפי מסלול וסחירות (עם פילטרים פרטיים)
+  renderLiquidityChart();
+}
+
+/* ————————————————————————
+   LIQUIDITY CHART – TRACK VS LIQUID / ILLIQUID
+———————————————————————— */
+function renderLiquidityChart() {
+  const canvas = document.getElementById("chart_liquidity");
+  if (!canvas) return;
+
+  const ctxLiquidity = canvas.getContext("2d");
+
+  if (state.chartLiquidity) {
+    state.chartLiquidity.destroy();
+    state.chartLiquidity = null;
+  }
+
+  const selYear = document.getElementById("liq_year_filter");
+  const selQuarter = document.getElementById("liq_quarter_filter");
+  if (!selYear || !selQuarter || !selYear.value || !selQuarter.value) return;
+
+  const yearSel = selYear.value;
+  const quarterSel = selQuarter.value;
+
+  const rows = state.filtered.filter(r =>
+    String(r.year) === yearSel && String(r.quarter) === quarterSel
+  );
+
+  if (!rows.length) return;
+
+  // X-axis = track_name
+  const trackSet = new Set();
+  rows.forEach(r => { if (r.track_name) trackSet.add(r.track_name); });
+
+  const tracks = Array.from(trackSet).sort(
+    (a,b)=>String(a).localeCompare(String(b),"he")
+  );
+
+  const dataLiquid = [];
+  const dataIlliquid = [];
+
+  tracks.forEach(track=>{
+    let wLiquid = 0;
+    let wIlliquid = 0;
+    rows.forEach(r=>{
+      if (r.track_name !== track) return;
+      const w = safeNumber(r.weight) || 0;
+      // נניח שכל מה שהוא לא "סחיר" נחשב כ"לא סחיר"
+      if (r.liquidity === "סחיר") {
+        wLiquid += w;
+      } else {
+        wIlliquid += w;
+      }
+    });
+    dataLiquid.push(wLiquid * 100);
+    dataIlliquid.push(wIlliquid * 100);
+  });
+
+  const datasetsLiquidity = [
+    {
+      label: "סחיר",
+      data: dataLiquid,
+      type: "bar",
+      backgroundColor: "#53d3ff",
+      borderColor: "#53d3ff",
+      borderWidth: 1
+    },
+    {
+      label: "לא סחיר",
+      data: dataIlliquid,
+      type: "bar",
+      backgroundColor: "#ffb74d",
+      borderColor: "#ffb74d",
+      borderWidth: 1
+    }
+  ];
+
+  const options = {
+    responsive:true,
+    maintainAspectRatio:false,
+    interaction:{ mode:"index", intersect:false },
+    plugins:{
+      legend:{ position:"bottom", labels:{ color:"#e9eefb", font:{size:11} } },
+      tooltip:{
+        callbacks:{
+          label:(c)=>`${c.dataset.label}: ${c.parsed.y?.toFixed(2)||0}%`
+        }
+      }
+    },
+    scales:{
+      x:{ 
+        ticks:{color:"#a6b2c9"}, 
+        grid:{color:"rgba(255,255,255,0.06)"},
+        title:{display:true,text:"מסלול",color:"#e9eefb"}
+      },
+      y:{ 
+        ticks:{color:"#a6b2c9", callback:v=>v.toFixed(1)+"%"}, 
+        grid:{color:"rgba(255,255,255,0.04)"}, 
+        title:{display:true,text:"אחזקה מהתיק (%)",color:"#e9eefb"} 
+      }
+    }
+  };
+
   state.chartLiquidity = new Chart(ctxLiquidity,{
-    type:"bar",
-    data:{labels,datasets:datasetsLiquidity},
-    options:opt("אחזקה לפי מסלול וסחירות (%)")
+    type: "bar",
+    data: { labels: tracks, datasets: datasetsLiquidity },
+    options
   });
 }
 
