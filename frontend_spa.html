@@ -127,13 +127,25 @@
     .matrix-scroll {
       margin-top: 6px;
       max-height: 260px;
-      overflow: auto;
+      overflow: auto; /* גם אנכי וגם אופקי */
     }
     .matrix-table {
-      width: 100%;
       border-collapse: collapse;
       font-size: 0.78rem;
       text-align: center;
+      /* כברירת מחדל לא נמתח */
+      width: max-content;          /* תופס את רוחב התוכן בפועל */
+    }
+    /* מצב רבעוני: הרבה עמודות – נרצה שהטבלה לא תהיה צרה מדי
+       ותוכל גם להתגלגל אופקית אם צריך */
+    .matrix-table.table-wide {
+      min-width: 100%;             /* לא פחות מרוחב הפאנל */
+      width: max-content;          /* אבל עדיין על בסיס התוכן */
+    }
+    /* מצב שנתי: מעט עמודות – שלא תתמתח לרוחב מלא, תשאר קומפקטית */
+    .matrix-table.table-fit {
+      min-width: auto;             /* ביטול המתח המינימלי */
+      width: max-content;          /* קומפקטי לפי תוכן */
     }
     .matrix-table th,
     .matrix-table td {
@@ -143,11 +155,17 @@
     }
     .matrix-table thead th {
       background: radial-gradient(circle at top, rgba(93,208,255,0.18), rgba(10,12,30,0.96));
+      position: sticky;
+      top: 0;
+      z-index: 1;
     }
     .matrix-row-header {
       text-align: right;
       font-weight: 600;
       background: rgba(255,255,255,0.02);
+      position: sticky;
+      right: 0;
+      z-index: 1;
     }
 
     /* KPI panels */
@@ -224,7 +242,7 @@
       <div class="sidebar-logo-icon">⧉</div>
       <div class="sidebar-logo-text">
         <div class="sidebar-logo-title">מרכיבי תשואה</div>
-        <div class="sidebar-logo-sub">Dashboard v3.2</div>
+        <div class="sidebar-logo-sub">Dashboard v3.3</div>
       </div>
     </div>
 
@@ -316,7 +334,7 @@
           אין נתונים להצגה עבור המסננים הנוכחיים.
         </div>
         <div class="matrix-scroll">
-          <table id="matrix_table" class="matrix-table"></table>
+          <table id="matrix_table" class="matrix-table table-wide"></table>
         </div>
       </div>
     </section>
@@ -635,11 +653,31 @@ function applyFilters() {
     return true;
   });
 
-  refreshLiquidityFilters(); // ממלא שנה/רבעון לגרף התחתון לפי מצב עמודות (ורק ללא category)
+  refreshLiquidityFilters();       // עדכון שנה/רבעון לגרף התחתון
   updateFiltersStatus();
   renderKPIs();
-  renderMatrixTable();
-  renderCharts();
+  renderMatrixTable();             // רנדר טבלה
+  renderCharts();                  // רנדר גרפים
+}
+
+/* ————————————————————————
+   MATRIX WIDTH MODE (חדש): מתאים רוחב טבלה למצב עמודות
+———————————————————————— */
+function applyMatrixTableWidthMode() {
+  const table = document.getElementById("matrix_table");
+  if (!table) return;
+  const mode = document.getElementById("col_mode").value || "quarter";
+
+  // איפוס המחלקות
+  table.classList.remove("table-wide","table-fit");
+
+  // ברבעון – בדרך כלל הרבה עמודות → נבטיח min-width:100% + גלילה אופקית
+  // בשנים – מעט עמודות → נשאיר קומפקטי לפי התוכן בלבד
+  if (mode === "quarter") {
+    table.classList.add("table-wide");
+  } else {
+    table.classList.add("table-fit");
+  }
 }
 
 function updateFiltersStatus() {
@@ -704,6 +742,7 @@ function renderMatrixTable() {
   if (!rows.length) {
     table.innerHTML = "";
     emptyEl.style.display = "block";
+    applyMatrixTableWidthMode(); // גם כשאין נתונים
     return;
   }
   emptyEl.style.display = "none";
@@ -740,7 +779,6 @@ function renderMatrixTable() {
 
     if (!agg[track]) agg[track] = {};
     if (!agg[track][y]) agg[track][y] = {};
-    if (!agg[track][y][q||'y']) agg[track][y][q||'y'] = { w: 0, c: 0 }; // ('y' לא באמת בשימוש כאן)
     if (q) {
       if (!agg[track][y][q]) agg[track][y][q] = { w: 0, c: 0 };
       agg[track][y][q].w += w;
@@ -895,7 +933,7 @@ function renderMatrixTable() {
         const bq = bestQuarterForYear(agg, track, y);
         const cell = bq ? agg[track]?.[y]?.[bq] : null;
 
-        // משקל מתוך רבעון 4/3/2/1 (ללא ממוצע)
+        // משקל מתוך רבעון 4/3/2/1 (ללא ממוצע/חיסור)
         let wDisplay = "-";
         if (cell && Math.abs(cell.w)>1e-6) wDisplay = (cell.w*100).toFixed(2)+"%";
 
@@ -924,6 +962,9 @@ function renderMatrixTable() {
     html += "</tbody>";
     table.innerHTML = html;
   }
+
+  // לאחר בניית הטבלה – להתאים את רוחבה לפי מצב העמודות
+  applyMatrixTableWidthMode();
 }
 
 /* ————————————————————————
@@ -1089,7 +1130,7 @@ function renderCharts() {
 
   const palette = [
     "#53d3ff","#ffb74d","#81c784","#ba68c8","#ff8a65",
-    "#4db6ac","#ce93d8","#f06292","#ffd54f","#7986cb",
+    "#4db6ac","#ce93ד8","#f06292","#ffd54f","#7986cb",
     "#90caf9","#a5d6a7","#ffe082","#ffab91","#b39ddb"
   ];
   const keys = Object.keys(seriesYield).sort((a,b)=>a.localeCompare(b,"he"));
@@ -1169,8 +1210,6 @@ function renderCharts() {
 
 /* ————————————————————————
    LIQUIDITY CHART – TRACK VS LIQUID / ILLIQUID (IGNORE CATEGORY)
-   Mode: quarter → year+quarter
-         year    → year only, use best quarter 4→3→2→1
 ———————————————————————— */
 function renderLiquidityChart() {
   const canvas = document.getElementById("chart_liquidity");
@@ -1202,7 +1241,6 @@ function renderLiquidityChart() {
   } else {
     // yearly mode: choose best available quarter per track within the selected year
     const rowsYear = baseRows.filter(r => String(r.year)===yearSel && r.quarter);
-    // build agg per track/quarter
     const agg = {};
     rowsYear.forEach(r=>{
       const t=r.track_name; const q=Number(r.quarter);
@@ -1216,12 +1254,10 @@ function renderLiquidityChart() {
       const qOrder=[4,3,2,1];
       let chosenQ = null;
       for (const q of qOrder) {
-        // check any liquidity has data
         const has = Object.keys(agg).some(k=>k.startsWith(`${t}|${q}|`));
         if (has) { chosenQ = q; break; }
       }
       if (chosenQ!==null) {
-        // collect rows of that quarter for this track
         rows.push(...rowsYear.filter(r=>r.track_name===t && Number(r.quarter)===chosenQ));
       }
     });
@@ -1229,7 +1265,6 @@ function renderLiquidityChart() {
 
   if (!rows.length) return;
 
-  // X-axis = track_name
   const trackSet = new Set();
   rows.forEach(r => { if (r.track_name) trackSet.add(r.track_name); });
 
@@ -1246,11 +1281,8 @@ function renderLiquidityChart() {
     rows.forEach(r=>{
       if (r.track_name !== track) return;
       const w = safeNumber(r.weight) || 0;
-      if (r.liquidity === "סחיר") {
-        wLiquid += w;
-      } else {
-        wIlliquid += w;
-      }
+      if (r.liquidity === "סחיר") wLiquid += w;
+      else                         wIlliquid += w;
     });
     dataLiquid.push(wLiquid * 100);
     dataIlliquid.push(wIlliquid * 100);
@@ -1270,7 +1302,7 @@ function renderLiquidityChart() {
       data: dataIlliquid,
       type: "bar",
       backgroundColor: "#ffb74d",
-      borderColor: "#ffb74d",
+      borderColor: "#ffb74ד",
       borderWidth: 1
     }
   ];
@@ -1282,22 +1314,14 @@ function renderLiquidityChart() {
     plugins:{
       legend:{ position:"bottom", labels:{ color:"#e9eefb", font:{size:11} } },
       tooltip:{
-        callbacks:{
-          label:(c)=>`${c.dataset.label}: ${c.parsed.y?.toFixed(2)||0}%`
-        }
+        callbacks:{ label:(c)=>`${c.dataset.label}: ${c.parsed.y?.toFixed(2)||0}%` }
       }
     },
     scales:{
-      x:{
-        ticks:{color:"#a6b2c9"},
-        grid:{color:"rgba(255,255,255,0.06)"},
-        title:{display:true,text:"מסלול",color:"#e9eefb"}
-      },
-      y:{
-        ticks:{color:"#a6b2c9", callback:v=>v.toFixed(1)+"%"},
-        grid:{color:"rgba(255,255,255,0.04)"},
-        title:{display:true,text:"אחזקה מהתיק (%)",color:"#e9eefb"}
-      }
+      x:{ ticks:{color:"#a6b2c9"}, grid:{color:"rgba(255,255,255,0.06)"}, title:{display:true,text:"מסלול",color:"#e9eefב"} },
+      y:{ ticks:{color:"#a6b2c9", callback:v=>v.toFixed(1)+"%"},
+          grid:{color:"rgba(255,255,255,0.04)"},
+          title:{display:true,text:"אחזקה מהתיק (%)",color:"#e9eefb"} }
     }
   };
 
