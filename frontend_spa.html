@@ -261,7 +261,6 @@
 
     <!-- FILTERS (כלליים) -->
     <section class="filters-bar">
-
       <!-- פילטר "חברה" הוסר -->
 
       <div class="field">
@@ -559,6 +558,7 @@ function refreshFilterOptions() {
       if (key!=="track"       && filters.track       && r.track_name  !== filters.track)       return false;
       if (key!=="liquidity"   && filters.liquidity   && r.liquidity   !== filters.liquidity)   return false;
 
+      // שים לב: לא מסננים לפי category כאן רק אם key==="category"
       if (key!=="category" && Array.isArray(filters.category) && filters.category.length &&
           !filters.category.includes(r.category)) return false;
 
@@ -585,10 +585,14 @@ function refreshFilterOptions() {
   });
 }
 
+/* ————————————————————————
+   FILTER APPLICATION
+———————————————————————— */
 function applyFilters() {
   const f = getCurrentFilters();
   const rows = state.raw.filter(r=>Number(r.year)>=2022);
 
+  // זהו הסט המסונן הכללי (כולל אפיק השקעה) – עבור הטבלה ושני הגרפים העליונים
   state.filtered = rows.filter(r=>{
     if (f.saving_type && r.saving_type !== f.saving_type) return false;
     if (f.fund_type   && r.fund_type   !== f.fund_type)   return false;
@@ -604,7 +608,7 @@ function applyFilters() {
     return true;
   });
 
-  refreshLiquidityFilters();
+  refreshLiquidityFilters(); // ממלא אפשרויות שנה/רבעון לגרף התחתון לפי סט ייעודי ללא אפיק
   updateFiltersStatus();
   renderKPIs();
   renderMatrixTable();
@@ -695,7 +699,7 @@ function renderMatrixTable() {
     (a,b)=>String(a).localeCompare(String(b),"he")
   );
 
-  // אגרגציה של weight ו-contribution לכל מסלול/שנה/רבעון (תרומה כאן היא הערך המקורי המצטבר לאותה יחידת נתון)
+  // אגרגציה של weight ו-contribution לכל מסלול/שנה/רבעון (c הוא מצטבר; נחשב Δ מול רבעון קודם)
   const agg = {};
   rows.forEach(r => {
     const track = r.track_name;
@@ -761,7 +765,7 @@ function renderMatrixTable() {
 
   let html = "<thead>";
 
-  // שורת כותרת ראשונה – שנים (לכל רבעון 5 עמודות: משקל, תרומהΔ, תשואה, דירוג תשואה, דירוג מסך התיק)
+  // כותרת: לכל רבעון 5 עמודות: משקל, תרומהΔ, תשואה, דירוג תשואה, דירוג מסך התיק
   html += '<tr><th rowspan="3">מסלול</th>';
   years.forEach(y => {
     const qs = yearMap.get(y) || [];
@@ -769,7 +773,6 @@ function renderMatrixTable() {
   });
   html += "</tr>";
 
-  // שורת כותרת שנייה – רבעונים (colspan=5)
   html += "<tr>";
   years.forEach(y => {
     const qs = yearMap.get(y) || [];
@@ -779,7 +782,6 @@ function renderMatrixTable() {
   });
   html += "</tr>";
 
-  // שורת כותרת שלישית – משקל + תרומהΔ + תשואה + דירוגי תשואה/מסך התיק
   html += "<tr>";
   years.forEach(y => {
     const qs = yearMap.get(y) || [];
@@ -791,7 +793,6 @@ function renderMatrixTable() {
 
   html += "</thead><tbody>";
 
-  // שורות נתונים
   tracks.forEach(track => {
     html += `<tr><td class="matrix-row-header">${track}</td>`;
     years.forEach(y => {
@@ -811,30 +812,25 @@ function renderMatrixTable() {
             wDisplay = (cell.w * 100).toFixed(2) + "%";
           }
 
-          // תרומה Δ לפי הלוגיקה:
-          // Q1: ללא שינוי (מציגים את c הנוכחי)
-          // Q2: c(Q2) - c(Q1)
-          // Q3: c(Q3) - c(Q2)
-          // Q4: c(Q4) - c(Q3)
+          // תרומה Δ: Q1 ללא שינוי; אחרת הפרש מול רבעון קודם
           let cDelta = null;
           const prevCell = agg[track]?.[y]?.[q-1] || null;
           if (q === 1) {
-            cDelta = cell.c;                      // ללא שינוי
+            cDelta = cell.c;
           } else if (prevCell) {
-            cDelta = cell.c - prevCell.c;         // ההפרש מהרבעון הקודם
+            cDelta = cell.c - prevCell.c;
           } else {
-            cDelta = null;                        // אין נתון רבעון קודם -> משאירים ריק
+            cDelta = null;
           }
           if (cDelta !== null && Math.abs(cDelta) > 1e-9) {
             cDeltaDisplay = (cDelta * 100).toFixed(2) + "%";
           } else if (q === 1) {
-            // גם אם cDelta==0 ברבעון 1 נציג 0.00% (כי "ללא שינוי")
             cDeltaDisplay = ((cell.c || 0) * 100).toFixed(2) + "%";
           } else {
             cDeltaDisplay = "-";
           }
 
-          // תשואה (מבוססת על c/w של אותו רבעון, כמו קודם)
+          // תשואה (c/w)
           if (Math.abs(cell.w) > 1e-9) {
             const yVal = cell.c / cell.w;
             if (Math.abs(yVal) > 1e-9) {
@@ -844,7 +840,7 @@ function renderMatrixTable() {
             }
           }
 
-          // דירוג מסך התיק – רק אם w>0
+          // דירוג מסך התיק
           if (cell.w && Math.abs(cell.w) > 1e-9) {
             const wInfo = rankWeightMap[y]?.[q]?.[track];
             if (wInfo && wInfo.total > 0) rankWeightDisplay = `${wInfo.rank}/${wInfo.total}`;
@@ -862,14 +858,36 @@ function renderMatrixTable() {
 }
 
 /* ————————————————————————
-   LIQUIDITY CHART PRIVATE FILTERS
+   LIQUIDITY CHART DATA (IGNORE CATEGORY FILTER)
+———————————————————————— */
+function rowsForLiquidityBase() {
+  // בוחר נתונים לכל הגרף התחתון *ללא* אפיק השקעה, אך עם שאר המסננים הכלליים
+  const f = getCurrentFilters();
+  const rows = state.raw.filter(r=>Number(r.year)>=2022);
+  return rows.filter(r=>{
+    if (f.saving_type && r.saving_type !== f.saving_type) return false;
+    if (f.fund_type   && r.fund_type   !== f.fund_type)   return false;
+    if (f.track       && r.track_name  !== f.track)       return false;
+    if (f.liquidity   && r.liquidity   !== f.liquidity)   return false;
+
+    // מתעלמים במכוון מאפיק ההשקעה (category)
+
+    if (Array.isArray(f.year) && f.year.length &&
+        !f.year.includes(String(r.year))) return false;
+
+    return true;
+  });
+}
+
+/* ————————————————————————
+   LIQUIDITY CHART PRIVATE FILTERS (BASED ON BASE ROWS WITHOUT CATEGORY)
 ———————————————————————— */
 function refreshLiquidityFilters() {
   const selYear = document.getElementById("liq_year_filter");
   const selQuarter = document.getElementById("liq_quarter_filter");
   if (!selYear || !selQuarter) return;
 
-  const rows = state.filtered.filter(r => r.year && r.quarter);
+  const rows = rowsForLiquidityBase().filter(r => r.year && r.quarter);
   if (!rows.length) {
     selYear.innerHTML = "";
     selQuarter.innerHTML = "";
@@ -963,7 +981,7 @@ function renderCharts() {
   const seriesWeightN = {};
   const categorySelected = getCurrentFilters().category.length>0;
 
-  // אוסף לסדרות התשואה והאחזקה
+  // אוסף לסדרות התשואה והאחזקה (על סמך state.filtered – כולל אפיק)
   rows.forEach(r=>{
     if (!r.year || !r.quarter) return;
     const tk = `${r.year}|${r.quarter}`;
@@ -1063,11 +1081,11 @@ function renderCharts() {
     options:opt("אחזקה רבעונית ממוצעת (%)")
   });
 
-  renderLiquidityChart();
+  renderLiquidityChart(); // הגרף התחתון – מתבסס על rowsForLiquidityBase() שמתעלם מאפיק
 }
 
 /* ————————————————————————
-   LIQUIDITY CHART – TRACK VS LIQUID / ILLIQUID
+   LIQUIDITY CHART – TRACK VS LIQUID / ILLIQUID (IGNORE CATEGORY FILTER)
 ———————————————————————— */
 function renderLiquidityChart() {
   const canvas = document.getElementById("chart_liquidity");
@@ -1087,7 +1105,10 @@ function renderLiquidityChart() {
   const yearSel = selYear.value;
   const quarterSel = selQuarter.value;
 
-  const rows = state.filtered.filter(r =>
+  // בסיס נתונים לגרף זה – בלי אפיק השקעה
+  const baseRows = rowsForLiquidityBase();
+
+  const rows = baseRows.filter(r =>
     String(r.year) === yearSel && String(r.quarter) === quarterSel
   );
 
