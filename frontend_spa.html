@@ -297,7 +297,7 @@
         <div class="panel-header">
           <div class="panel-header-title">
             <span class="icon">🧮</span>
-            <span>מטריצת שיעור מסך התיק לפי מסלול / שנה / רבעון</span>
+            <span>מטריצת שיעור מסך התיק ותרומה לפי מסלול / שנה / רבעון</span>
           </div>
         </div>
         <div id="matrix_empty" class="status-text" style="margin-top:4px; display:none;">
@@ -544,7 +544,6 @@ function refreshFilterOptions() {
         o.selected = prev.includes(o.value);
       });
     } else {
-      // BUG FIX: לשמור את הערך הנבחר ולא להחזיר ל"הכול"
       const selected = prev.find(v => v !== "" && vals.includes(v)) || "";
       sel.value = selected;
     }
@@ -625,7 +624,7 @@ function renderKPIs() {
 }
 
 /* ————————————————————————
-   MATRIX TABLE (מסלול / שנה / רבעון)
+   MATRIX TABLE (מסלול / שנה / רבעון + תרומה)
 ———————————————————————— */
 function renderMatrixTable() {
   const table = document.getElementById("matrix_table");
@@ -641,7 +640,7 @@ function renderMatrixTable() {
   }
   emptyEl.style.display = "none";
 
-  // בונים מיפוי שנה -> רשימת רבעונים
+  // מיפוי שנה -> רבעונים
   const yearMap = new Map();
   rows.forEach(r => {
     const y = Number(r.year);
@@ -662,46 +661,49 @@ function renderMatrixTable() {
     (a,b)=>String(a).localeCompare(String(b),"he")
   );
 
-  // אגרגציה של "שיעור מסך התיק" (weight) לכל מסלול/שנה/רבעון
+  // אגרגציה של weight ו-contribution לכל מסלול/שנה/רבעון
   const agg = {};
   rows.forEach(r => {
     const track = r.track_name;
     const y = Number(r.year);
     const q = Number(r.quarter);
     const w = safeNumber(r.weight) || 0;
+    const c = safeNumber(r.contribution) || 0;
 
     if (!agg[track]) agg[track] = {};
     if (!agg[track][y]) agg[track][y] = {};
-    if (!agg[track][y][q]) agg[track][y][q] = 0;
-    agg[track][y][q] += w;
+    if (!agg[track][y][q]) agg[track][y][q] = { w: 0, c: 0 };
+
+    agg[track][y][q].w += w;
+    agg[track][y][q].c += c;
   });
 
   let html = "<thead>";
 
-  // שורת כותרת ראשונה – שנים
+  // שורת כותרת ראשונה – שנים (כל שנה: 2 עמודות לכל רבעון – משקל ותרומה)
   html += '<tr><th rowspan="3">מסלול</th>';
   years.forEach(y => {
     const qs = yearMap.get(y) || [];
-    html += `<th colspan="${qs.length}">${y}</th>`;
+    html += `<th colspan="${qs.length * 2}">${y}</th>`;
   });
   html += "</tr>";
 
-  // שורת כותרת שנייה – רבעונים
+  // שורת כותרת שנייה – רבעונים (כל רבעון colspan=2)
   html += "<tr>";
   years.forEach(y => {
     const qs = yearMap.get(y) || [];
     qs.forEach(q => {
-      html += `<th>רבעון ${q}</th>`;
+      html += `<th colspan="2">רבעון ${q}</th>`;
     });
   });
   html += "</tr>";
 
-  // שורת כותרת שלישית – שם המדד לכל תא
+  // שורת כותרת שלישית – משקל + תרומה
   html += "<tr>";
   years.forEach(y => {
     const qs = yearMap.get(y) || [];
     qs.forEach(() => {
-      html += "<th>שיעור מסך התיק (%)</th>";
+      html += "<th>שיעור מסך התיק (%)</th><th>תרומה (%)</th>";
     });
   });
   html += "</tr>";
@@ -714,11 +716,19 @@ function renderMatrixTable() {
     years.forEach(y => {
       const qs = yearMap.get(y) || [];
       qs.forEach(q => {
-        const val = (agg[track] && agg[track][y] && agg[track][y][q]) ? agg[track][y][q] : null;
-        const display = (val !== null && val !== undefined && Math.abs(val) > 1e-6)
-          ? (val * 100).toFixed(2) + "%"
-          : "-";
-        html += `<td>${display}</td>`;
+        const cell = agg[track] && agg[track][y] && agg[track][y][q] ? agg[track][y][q] : null;
+
+        let wDisplay = "-";
+        let cDisplay = "-";
+
+        if (cell && Math.abs(cell.w) > 1e-6) {
+          wDisplay = (cell.w * 100).toFixed(2) + "%";
+        }
+        if (cell && Math.abs(cell.c) > 1e-6) {
+          cDisplay = (cell.c * 100).toFixed(2) + "%";
+        }
+
+        html += `<td>${wDisplay}</td><td>${cDisplay}</td>`;
       });
     });
     html += "</tr>";
