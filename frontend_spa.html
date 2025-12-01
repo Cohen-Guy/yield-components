@@ -190,6 +190,16 @@
       z-index: 1;
     }
 
+    /* ✅ מספרים באנגלית בתוך מסמך RTL – הסימן השלילי יופיע משמאל */
+    .num {
+      direction: ltr;          /* מציג את המספר משמאל לימין */
+      unicode-bidi: isolate;   /* מבודד מהטקסט סביב */
+      font-variant-numeric: tabular-nums;
+      text-align: center;
+      display: inline-block;
+      min-width: 4.5ch;        /* שומר על יישור יפה בעמודות */
+    }
+
     /* Views */
     .views-wrapper { margin-top: 4px; display: flex; flex-direction: column; gap: 10px; }
     .view { display: none; }
@@ -233,7 +243,7 @@
       <div class="sidebar-logo-icon">⧉</div>
       <div class="sidebar-logo-text">
         <div class="sidebar-logo-title">מרכיבי תשואה</div>
-        <div class="sidebar-logo-sub">Dashboard v3.8</div>
+        <div class="sidebar-logo-sub">Dashboard v3.8.1</div>
       </div>
     </div>
 
@@ -268,7 +278,7 @@
       </div>
     </header>
 
-    <!-- KPI ABOVE FILTERS (מועבר לפני הפילטרים) -->
+    <!-- KPI ABOVE FILTERS -->
     <section class="panels-row">
       <div class="panel">
         <div class="panel-header">
@@ -704,7 +714,7 @@ function renderKPIs() {
 
 /* ————————————————————————
    MATRIX TABLE
-   (עמודות שנים/רבעונים בסדר יורד מימין לשמאל)
+   (עמודות שנים/רבעונים בסדר יורד מימין לשמאל + מספרים LTR)
 ———————————————————————— */
 function renderMatrixTable() {
   const table = document.getElementById("matrix_table");
@@ -820,7 +830,8 @@ function renderMatrixTable() {
             const infoW=rankWeightMap[y]?.[q]?.[t];
             if (infoW && infoW.total>0) rWei=`${infoW.rank}/${infoW.total}`;
           }
-          html += `<td>${wDisp}</td><td>${cDeltaDisp}</td><td>${yDisp}</td><td>${rRet}</td><td>${rWei}</td>`;
+          /* ✅ עוטפים תאי אחוזים במחלקה num כדי להכריח LTR */
+          html += `<td class="num">${wDisp}</td><td class="num">${cDeltaDisp}</td><td class="num">${yDisp}</td><td>${rRet}</td><td>${rWei}</td>`;
         });
       });
       html += "</tr>";
@@ -867,7 +878,8 @@ function renderMatrixTable() {
         const RR=rankReturnYear[y]?.[t]; const RW=rankWeightYear[y]?.[t];
         if (RR) rRet=`${RR.rank}/${RR.total}`;
         if (RW) rWei=`${RW.rank}/${RW.total}`;
-        html += `<td>${wDisp}</td><td>${cDisp}</td><td>${yDisp}</td><td>${rRet}</td><td>${rWei}</td>`;
+        /* ✅ LTR במספרים */
+        html += `<td class="num">${wDisp}</td><td class="num">${cDisp}</td><td class="num">${yDisp}</td><td>${rRet}</td><td>${rWei}</td>`;
       });
       html += "</tr>";
     });
