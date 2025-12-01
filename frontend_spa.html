@@ -274,13 +274,13 @@
 
     <!-- FILTERS -->
     <section class="filters-bar">
-      <!-- חברה (נשאר ראשון) -->
+      <!-- חברה -->
       <div class="field">
         <label>חברה</label>
         <select id="f_company"></select>
       </div>
 
-      <!-- סדר מבוקש: סוג חיסכון → סוג קופה → מסלול → סחירות → אפיק השקעה → שנה -->
+      <!-- סדר: סוג חיסכון → סוג קופה → מסלול → סחירות → אפיק → שנה -->
       <div class="field">
         <label>סוג חיסכון</label>
         <select id="f_saving_type"></select>
@@ -296,7 +296,6 @@
         <select id="f_track"></select>
       </div>
 
-      <!-- חדש: סחירות -->
       <div class="field">
         <label>סחירות</label>
         <select id="f_liquidity"></select>
@@ -304,13 +303,11 @@
 
       <div class="field">
         <label>אפיק השקעה</label>
-        <!-- בחירה מרובה -->
         <select id="f_category" multiple></select>
       </div>
 
       <div class="field">
         <label>שנת דיווח</label>
-        <!-- בחירה מרובה -->
         <select id="f_year" multiple></select>
       </div>
     </section>
@@ -334,7 +331,7 @@
 
     <!-- VIEWS -->
     <section class="views-wrapper">
-      <!-- View 1: Overview -->
+      <!-- Overview -->
       <section class="view" id="view_overview">
         <div class="panel">
           <div class="panel-header">
@@ -351,7 +348,7 @@
         </div>
       </section>
 
-      <!-- View 2: Tracks -->
+      <!-- Tracks -->
       <section class="view active" id="view_tracks">
         <div class="panel">
           <div class="panel-header">
@@ -368,7 +365,7 @@
         </div>
       </section>
 
-      <!-- View 3: Charts -->
+      <!-- Charts -->
       <section class="view" id="view_charts">
         <div class="panel">
           <div class="panel-header">
@@ -408,7 +405,7 @@
     raw: [],
     filtered: [],
     meta: {},
-    currentView: "tracks",   // ברירת מחדל: מסלולים
+    currentView: "tracks",
     chartYield: null,
     chartWeight: null
   };
@@ -418,7 +415,7 @@
     saving_type: { id: "f_saving_type", field: "saving_type",   sort: "locale" },
     fund_type:   { id: "f_fund_type",   field: "fund_type",     sort: "locale" },
     track:       { id: "f_track",       field: "track_name",    sort: "locale" },
-    liquidity:   { id: "f_liquidity",   field: "liquidity",     sort: "locale" },              // ← חדש
+    liquidity:   { id: "f_liquidity",   field: "liquidity",     sort: "locale" },
     category:    { id: "f_category",    field: "category",      sort: "locale",  multi: true },
     year:        { id: "f_year",        field: "year",          sort: "numeric", multi: true }
   };
@@ -443,27 +440,30 @@
     });
     selectEl.appendChild(frag);
   }
-  function pct(val, digits = 2) {
-    if (val === null || val === undefined || isNaN(val)) return "—";
-    return (val * 100).toFixed(digits) + "%";
-  }
-  function safeNumber(v) { const x = Number(v); return isNaN(x) ? null : x; }
+  function safeNumber(v) { const x = Number(String(v).replaceAll(",","")); return isNaN(x) ? null : x; }
   function uniqueSortedYears(rows) {
     return Array.from(new Set(
-      rows
-        .map(r => r.year)
-        .filter(v => v !== null && v !== undefined && Number(v) >= 2022)
+      rows.map(r => r.year).filter(v => v !== null && v !== undefined && Number(v) >= 2022)
     )).sort((a, b) => a - b);
   }
-
-  // קריאת ערכים מסלקט (בודד / מרובה)
   function getSelectValues(selectEl, multi = false) {
-    if (!multi) {
-      return selectEl.value || "";
-    }
-    return Array.from(selectEl.selectedOptions)
-      .map(o => o.value)
-      .filter(v => v !== "");
+    if (!multi) return selectEl.value || "";
+    return Array.from(selectEl.selectedOptions).map(o => o.value).filter(v => v !== "");
+  }
+
+  // ====== אינפרנס יחידות והמרה לאחוזים ======
+  // קובע אם סדרה "נראית" באחוזים (רוב הערכים בין 1.5% ל-150%)
+  function inferIsPercent(arr, minFrac=0.6) {
+    const xs = arr.map(safeNumber).filter(x => x !== null && x > 0);
+    if (!xs.length) return false;
+    const pctLike = xs.filter(x => x >= 1.5 && x <= 150).length / xs.length;
+    return pctLike >= minFrac;
+  }
+  // מחזיר value על סקאלת אחוזים (0-100): אם המקור אחוזים → value, אחרת → value*100
+  function toPct(value, isPercent) {
+    const v = safeNumber(value);
+    if (v === null) return null;
+    return isPercent ? v : v * 100;
   }
 
   /* ===========================
@@ -476,18 +476,12 @@
   }
   function setView(viewName) {
     state.currentView = viewName;
-
-    // מעדכן את ה-sidebar
     document.querySelectorAll(".nav-item").forEach(el =>
       el.classList.toggle("active", el.getAttribute("data-view") === viewName)
     );
-
-    // מעדכן איזה view מופיע על המסך
     document.querySelectorAll(".view").forEach(el =>
       el.classList.toggle("active", el.id.replace("view_", "") === viewName)
     );
-
-    // מרנדר את התוכן הרלוונטי
     if (viewName === "overview") renderOverviewMatrix();
     else if (viewName === "tracks") renderTracksMatrix();
     else if (viewName === "charts") renderCharts();
@@ -541,7 +535,7 @@
     const savingTypes = Array.from(new Set(rows.map(r=>r.saving_type).filter(Boolean))).sort((a,b)=>a.localeCompare(b,"he"));
     const fundTypes   = Array.from(new Set(rows.map(r=>r.fund_type).filter(Boolean))).sort((a,b)=>a.localeCompare(b,"he"));
     const tracks      = Array.from(new Set(rows.map(r=>r.track_name).filter(Boolean))).sort((a,b)=>a.localeCompare(b,"he"));
-    const liquidities = Array.from(new Set(rows.map(r=>r.liquidity).filter(Boolean))).sort((a,b)=>a.localeCompare(b,"he")); // חדש
+    const liquidities = Array.from(new Set(rows.map(r=>r.liquidity).filter(Boolean))).sort((a,b)=>a.localeCompare(b,"he"));
     const categories  = Array.from(new Set(rows.map(r=>r.category).filter(Boolean))).sort((a,b)=>a.localeCompare(b,"he"));
     const years       = uniqueSortedYears(rows);
 
@@ -549,7 +543,7 @@
     setSelectOptions(document.getElementById(FILTERS.saving_type.id), savingTypes);
     setSelectOptions(document.getElementById(FILTERS.fund_type.id),   fundTypes);
     setSelectOptions(document.getElementById(FILTERS.track.id),       tracks);
-    setSelectOptions(document.getElementById(FILTERS.liquidity.id),   liquidities);                 // חדש
+    setSelectOptions(document.getElementById(FILTERS.liquidity.id),   liquidities);
     setSelectOptions(document.getElementById(FILTERS.category.id),    categories, { includeAll:false });
     setSelectOptions(document.getElementById(FILTERS.year.id),        years,     { includeAll:false });
 
@@ -619,7 +613,7 @@
       saving_type: getSelectValues(document.getElementById(FILTERS.saving_type.id), false),
       fund_type:   getSelectValues(document.getElementById(FILTERS.fund_type.id),   false),
       track:       getSelectValues(document.getElementById(FILTERS.track.id),       false),
-      liquidity:   getSelectValues(document.getElementById(FILTERS.liquidity.id),   false), // חדש
+      liquidity:   getSelectValues(document.getElementById(FILTERS.liquidity.id),   false),
       category:    getSelectValues(document.getElementById(FILTERS.category.id),    true),
       year:        getSelectValues(document.getElementById(FILTERS.year.id),        true),
     };
@@ -629,28 +623,18 @@
 
   function applyFilters() {
     const f = getCurrentFilters();
-
-    // מסנן מראש רשומות משנים לפני 2022
     const rows = (state.raw || []).filter(r => r.year == null || Number(r.year) >= 2022);
-
-    // מסנן לפי הפילטרים שנבחרו
     state.filtered = rows.filter(r => {
       if (f.company && r.company_short !== f.company) return false;
       if (f.saving_type && r.saving_type !== f.saving_type) return false;
       if (f.fund_type && r.fund_type !== f.fund_type) return false;
       if (f.track && r.track_name !== f.track) return false;
       if (f.liquidity && r.liquidity !== f.liquidity) return false;
-
-      if (Array.isArray(f.category) && f.category.length &&
-          !f.category.includes(r.category)) return false;
-
-      if (Array.isArray(f.year) && f.year.length &&
-          !f.year.includes(String(r.year))) return false;
-
+      if (Array.isArray(f.category) && f.category.length && !f.category.includes(r.category)) return false;
+      if (Array.isArray(f.year) && f.year.length && !f.year.includes(String(r.year))) return false;
       return true;
     });
 
-    // רענון תצוגות אחרי הסינון
     updateFiltersStatus();
     renderKPIs();
     renderOverviewMatrix();
@@ -666,7 +650,7 @@
     if (f.saving_type) parts.push("סוג חיסכון: " + f.saving_type);
     if (f.fund_type) parts.push("סוג קופה: " + f.fund_type);
     if (f.track) parts.push("מסלול: " + f.track);
-    if (f.liquidity) parts.push("סחירות: " + f.liquidity);                      // חדש
+    if (f.liquidity) parts.push("סחירות: " + f.liquidity);
     if (Array.isArray(f.category) && f.category.length) parts.push("אפיק: " + f.category.join(", "));
     if (Array.isArray(f.year) && f.year.length) parts.push("שנים: " + f.year.join(", "));
     document.getElementById("status_filters").textContent =
@@ -702,35 +686,72 @@
   }
 
   /* ===========================
-     לוגיקת Measures 1:1
+     לוגיקת יחידות וחישובים (1:1 עם ה־Query)
+     - תרומה_% = משקל_% * תשואה_%
+     - תשואה_% = תרומה_% / משקל_%
+     - אין נרמול של משקלים
   ============================ */
-  function yearsInScope(rows) { return uniqueSortedYears(rows); }
-  function renderYearsBadges(containerId, rows) {
-    const el = document.getElementById(containerId);
-    const yrs = yearsInScope(rows);
-    el.innerHTML = yrs.length ? yrs.map(y=>`<span class="year-chip">${y}</span>`).join("") : "—";
+
+  // קבלת דגלי יחידות (האם weight/contribution הם באחוזים) עבור תת-קבוצה
+  function unitFlagsForSubset(subset) {
+    const wArr = subset.map(r=>r.weight).filter(v=>v!==null && v!==undefined);
+    const cArr = subset.map(r=>r.contribution).filter(v=>v!==null && v!==undefined);
+    return {
+      wIsPct: inferIsPercent(wArr),
+      cIsPct: inferIsPercent(cArr)
+    };
   }
 
-  // קיבוץ בסיסי לפי מפתח ישות (Company או Company+Track) ולפי שנה
+  // מחזיר אובייקט צבירה לפי ישות ושנה (ומחשב yield על פי אחוזים)
   function aggregateByEntityYear(rows, entityKeyFn) {
     const by = {};
+    // נחלק לפי entity + year כדי להחיל דגלי יחידות עקביים לכל תא
+    const tmp = {};
     rows.forEach(r=>{
       const key = entityKeyFn(r);
       if (!key) return;
       if (r.year===null || r.year===undefined) return;
       const yr = Number(r.year);
-      by[key] = by[key] || {};
-      by[key][yr] = by[key][yr] || { wSum:0, cSum:0, n:0 };
-      by[key][yr].wSum += safeNumber(r.weight)||0;
-      by[key][yr].cSum += safeNumber(r.contribution)||0;
-      by[key][yr].n += 1;
+      const bucket = key + "||" + yr;
+      (tmp[bucket] = tmp[bucket] || []).push(r);
     });
+
+    const flagsCache = {};
+    Object.entries(tmp).forEach(([bucket, subset])=>{
+      // דגלי יחידות לתת-הקבוצה
+      const flags = unitFlagsForSubset(subset);
+      flagsCache[bucket] = flags;
+    });
+
+    // צבירה בפועל (בסקלת אחוזים)
+    Object.entries(tmp).forEach(([bucket, subset])=>{
+      const [key, yrStr] = bucket.split("||");
+      const yr = Number(yrStr);
+      const { wIsPct, cIsPct } = flagsCache[bucket];
+
+      let wSumPct = 0, cSumPct = 0, n = 0;
+      subset.forEach(r=>{
+        const wPct = toPct(r.weight,       wIsPct);
+        const cPct = toPct(r.contribution, cIsPct);
+        if (wPct!==null) wSumPct += wPct;
+        if (cPct!==null) cSumPct += cPct;
+        n += 1;
+      });
+
+      by[key] = by[key] || {};
+      by[key][yr] = { wSumPct, cSumPct, n, flags: { wIsPct, cIsPct } };
+    });
+
     return by;
   }
 
-  // חישוב weight לתצוגה (לפי כלל האפיק)
-  function displayWeight(avgWeightSimple, hasCategoryFilter) {
-    return hasCategoryFilter ? avgWeightSimple : 1.0; // בלי אפיק → 100%
+  // משקל לתצוגה: אם אין אפיק נבחר → 100%; אחרת ממוצע פשוט של משקל (בסקלת אחוזים → נציג כשבר)
+  function displayWeightFromAggCell(cell, hasCategoryFilter) {
+    if (!cell) return null;
+    if (!hasCategoryFilter) return 1.0; // 100%
+    if (!cell.n) return null;
+    const avgWeightPct = cell.wSumPct / cell.n;      // בסקלת אחוזים
+    return avgWeightPct / 100;                       // לשבר לתצוגה
   }
 
   // דירוג DENSE יורד
@@ -748,14 +769,15 @@
     return out;
   }
 
-  // תשואה מצטברת לכל התקופה (רק אם יש לכל השנים הנראות)
+  // תשואה מצטברת לכל התקופה (מכפלת (1+תשואה) על פני השנים שנמצאות בטווח)
   function cumulativeReturnForEntity(entityYearsData, visibleYears) {
     const ylds = [];
     for (const y of visibleYears) {
       const cell = entityYearsData[y];
-      if (!cell || cell.yield===null || isNaN(cell.yield)) return null;
-      ylds.push(cell.yield);
+      if (!cell || cell.yieldFrac===null || isNaN(cell.yieldFrac)) return null;
+      ylds.push(cell.yieldFrac);
     }
+    if (!ylds.length) return null;
     if (ylds.length===1) return ylds[0];
     let prod = 1;
     ylds.forEach(v=> prod *= (1+v));
@@ -765,6 +787,13 @@
   /* ===========================
      בניית מטריצת דירוג/שיעור/תשואה
   ============================ */
+  function yearsInScope(rows) { return uniqueSortedYears(rows); }
+  function renderYearsBadges(containerId, rows) {
+    const el = document.getElementById(containerId);
+    const yrs = yearsInScope(rows);
+    el.innerHTML = yrs.length ? yrs.map(y=>`<span class="year-chip">${y}</span>`).join("") : "—";
+  }
+
   function buildMatrix(rows, { byTracks=false } = {}) {
     const scopeYears = yearsInScope(rows);
     const hasCategory = (getCurrentFilters().category || []).length > 0;
@@ -778,6 +807,7 @@
       return byTracks ? { company:comp, track:(track||"") } : { company:comp };
     };
 
+    // צבירה עם יחידות באחוזים
     const aggs = aggregateByEntityYear(rows, entityKeyFn);
 
     const perEntity = {};
@@ -786,12 +816,14 @@
       let wDispSum=0, wDispN=0;
 
       for (const y of scopeYears) {
-        const c = yearsMap[y];
-        if (!c) { yearsData[y] = { yield:null, wDisp:null }; continue; }
-        const yieldY = c.wSum ? (c.cSum / c.wSum) : null;
-        const avgWeightSimple = c.n ? (c.wSum / c.n) : null;
-        const wDisp = (avgWeightSimple===null) ? null : displayWeight(avgWeightSimple, hasCategory);
-        yearsData[y] = { yield: yieldY, wDisp };
+        const cell = yearsMap[y];
+        if (!cell) { yearsData[y] = { yieldFrac:null, wDisp:null }; continue; }
+
+        // תשואה_% = סכום(תרומה_%) / סכום(משקל_%)
+        const yieldFrac = cell.wSumPct ? (cell.cSumPct / cell.wSumPct) : null; // עדיין כשבר (0.12 = 12%)
+        const wDisp = displayWeightFromAggCell(cell, hasCategory);             // כשבר (0-1)
+
+        yearsData[y] = { yieldFrac, wDisp };
         if (wDisp!==null) { wDispSum += wDisp; wDispN += 1; }
       }
 
@@ -800,6 +832,7 @@
       perEntity[key] = { years: yearsData, allPeriod: { yieldCum, wDispAvg } };
     }
 
+    // דירוגים
     const rankAllWeight = {};
     const rankAllYield  = {};
     const rankPerYearWeight = {};
@@ -819,7 +852,7 @@
       const mY = {};
       for (const [k,obj] of Object.entries(perEntity)) {
         mW[k] = obj.years[y].wDisp;
-        mY[k] = obj.years[y].yield;
+        mY[k] = obj.years[y].yieldFrac;
       }
       rankPerYearWeight[y] = denseRankDesc(mW);
       rankPerYearYield[y]  = denseRankDesc(mY);
@@ -871,7 +904,7 @@
       const rW = rankPerYearWeight[y] && rankPerYearWeight[y][key] ? rankPerYearWeight[y][key] : "";
       const rY = rankPerYearYield[y]  && rankPerYearYield[y][key]  ? rankPerYearYield[y][key]  : "";
       const w = (cell && cell.wDisp!==null && !isNaN(cell.wDisp)) ? (cell.wDisp*100).toFixed(2)+"%" : "";
-      const v = (cell && cell.yield!==null && !isNaN(cell.yield)) ? (cell.yield*100).toFixed(2)+"%" : "";
+      const v = (cell && cell.yieldFrac!==null && !isNaN(cell.yieldFrac)) ? (cell.yieldFrac*100).toFixed(2)+"%" : "";
       tr += `<td>${rW}</td><td>${rY}</td><td>${w}</td><td>${v}</td>`;
     });
     tr += `</tr>`;
@@ -914,17 +947,8 @@
     keys.forEach(k=>{
       const ent = perEntity[k];
       const yearsObj = { order: scopeYears, map: ent.years };
-      const data = {
-        label: entityLabel(k),
-        years: yearsObj,
-        allP: ent.allPeriod
-      };
-      const rankings = {
-        rankAllWeight,
-        rankAllYield,
-        rankPerYearWeight,
-        rankPerYearYield
-      };
+      const data = { label: entityLabel(k), years: yearsObj, allP: ent.allPeriod };
+      const rankings = { rankAllWeight, rankAllYield, rankPerYearWeight, rankPerYearYield };
       html += renderMatrixRow(k, data, rankings, byTracks);
     });
     html += `</tbody></table>`;
@@ -932,33 +956,13 @@
   }
 
   /* ===========================
-     פוטרים (שמורים להרחבה עתידית)
+     פוטרים (שמורים להרחבה)
   ============================ */
   function renderFooter(containerId) {
     const el = document.getElementById(containerId);
     if (!el) return;
-    const rows = state.filtered || [];
-    const n = rows.length;
-
-    let sumW=0, sumC=0;
-    rows.forEach(r=>{ sumW += safeNumber(r.weight)||0; sumC += safeNumber(r.contribution)||0; });
-    const weightedYield = sumW ? (sumC/sumW) : null;
-
-    const categorySelected = (getCurrentFilters().category || []).length > 0;
-    let avgDisplayWeight;
-    if (!n) {
-      avgDisplayWeight = null;
-    } else if (!categorySelected) {
-      avgDisplayWeight = 1.0;
-    } else {
-      avgDisplayWeight = sumW / n;
-    }
-    // ניתן להוסיף כאן תצוגת פוטר בהתאם לצורך
   }
 
-  /* ===========================
-     רינדור למסכים
-  ============================ */
   function renderOverviewMatrix() {
     renderMatrix("table_overview_wrapper", { byTracks:false });
     renderFooter("overview_footer");
@@ -969,7 +973,7 @@
   }
 
   /* ===========================
-     גרפים
+     גרפים – עם אינפרנס יחידות זהה
   ============================ */
   function renderCharts() {
     const rows = state.filtered || [];
@@ -993,33 +997,56 @@
     if (!timeKeys.length) return;
     const labels = timeKeys.map(k=>{ const [yy,qq]=k.split("|"); return yy+" Q"+qq; });
 
+    const hasCategory = (getCurrentFilters().category || []).length > 0;
+
     const seriesKey = (r)=>{
       const comp = r.company_short || r.company || "לא ידוע";
       const track = r.track_name || (r.track_id ? "מסלול "+r.track_id : "");
       return track ? `${comp} – ${track}` : comp;
     };
 
-    const seriesYield = {};
-    const categorySelected = (getCurrentFilters().category || []).length > 0;
-    const seriesWeightSum = {};
-    const seriesWeightN   = {};
-
+    // ראשית: לאסוף נתוני תת-קבוצות כדי לגזור דגלי יחידות לכל סדרה-רבעון
+    const bucketRows = {}; // key: series|timeKey -> array rows
     rows.forEach(r=>{
       if (r.year==null || r.quarter==null) return;
       const tk = r.year+"|"+r.quarter;
       const sk = seriesKey(r);
-      const w = safeNumber(r.weight)||0;
-      const c = safeNumber(r.contribution)||0;
+      const bkey = sk + "||" + tk;
+      (bucketRows[bkey] = bucketRows[bkey] || []).push(r);
+    });
 
-      if (!seriesYield[sk]) seriesYield[sk] = {};
-      if (!seriesYield[sk][tk]) seriesYield[sk][tk] = {w:0,c:0};
-      seriesYield[sk][tk].w += w;
-      seriesYield[sk][tk].c += c;
+    const flagsPerBucket = {};
+    Object.entries(bucketRows).forEach(([bkey, subset])=>{
+      flagsPerBucket[bkey] = unitFlagsForSubset(subset);
+    });
 
-      if (!seriesWeightSum[sk]) seriesWeightSum[sk] = {};
-      if (!seriesWeightSum[sk][tk]) { seriesWeightSum[sk][tk] = 0; seriesWeightN[sk] = seriesWeightN[sk] || {}; seriesWeightN[sk][tk]=0; }
-      seriesWeightSum[sk][tk] += w;
-      seriesWeightN[sk][tk]   += 1;
+    // כעת צבירה (בסקלת אחוזים) וחישובים
+    const seriesYieldPct = {};  // אחוזים (מספרים 0-100)
+    const seriesWDispPct = {};  // משקל לתצוגה – אחוזים
+    const seriesKeysSet = new Set();
+
+    Object.entries(bucketRows).forEach(([bkey, subset])=>{
+      const [sk, tk] = bkey.split("||");
+      seriesKeysSet.add(sk);
+      const { wIsPct, cIsPct } = flagsPerBucket[bkey];
+
+      let wSumPct=0, cSumPct=0, n=0;
+      subset.forEach(r=>{
+        const wPct = toPct(r.weight, wIsPct);
+        const cPct = toPct(r.contribution, cIsPct);
+        if (wPct!==null) wSumPct += wPct;
+        if (cPct!==null) cSumPct += cPct;
+        n += 1;
+      });
+
+      // תשואה_% = סכום(תרומה_%) / סכום(משקל_%)
+      const yPct = wSumPct ? (cSumPct / wSumPct) * 100 : null;
+
+      // משקל לתצוגה: אם אין אפיק → 100%, אחרת ממוצע פשוט של המשקל (באחוזים)
+      const wDispPct = !hasCategory ? 100 : (n ? (wSumPct / n) : null);
+
+      (seriesYieldPct[sk] = seriesYieldPct[sk] || {})[tk] = yPct;
+      (seriesWDispPct[sk] = seriesWDispPct[sk] || {})[tk] = wDispPct;
     });
 
     const palette = [
@@ -1027,17 +1054,13 @@
       "#4db6ac","#ce93d8","#f06292","#ffd54f","#7986cb",
       "#90caf9","#a5d6a7","#ffe082","#ffab91","#b39ddb"
     ];
-    const seriesKeys = Array.from(new Set([
-      ...Object.keys(seriesYield),
-      ...Object.keys(seriesWeightSum)
-    ])).sort((a,b)=>a.localeCompare(b,"he"));
+    const seriesKeys = Array.from(seriesKeysSet).sort((a,b)=>a.localeCompare(b,"he"));
 
     const datasetsYield = seriesKeys.map((name,idx)=>{
       const color = palette[idx%palette.length];
       const data = timeKeys.map(k=>{
-        const cell = seriesYield[name] && seriesYield[name][k];
-        if (!cell || !cell.w) return null;
-        return (cell.c / cell.w) * 100;
+        const v = seriesYieldPct[name] && seriesYieldPct[name][k];
+        return (v===null || v===undefined || isNaN(v)) ? null : v;
       });
       return { label:name, data, type:"bar", backgroundColor:color+"cc", borderColor:color, borderWidth:1, order:1, skipNull:true };
     }).filter(ds=>ds.data.some(v=>v!==null && !isNaN(v)));
@@ -1045,15 +1068,8 @@
     const datasetsWeight = seriesKeys.map((name,idx)=>{
       const color = palette[idx%palette.length];
       const data = timeKeys.map(k=>{
-        if (!categorySelected) {
-          const hasData = (seriesYield[name] && seriesYield[name][k] && (seriesYield[name][k].w>0 || seriesYield[name][k].c!==undefined))
-                       || (seriesWeightN[name] && seriesWeightN[name][k]>0);
-          return hasData ? 100 : null;
-        }
-        const sum = seriesWeightSum[name] && seriesWeightSum[name][k];
-        const n   = seriesWeightN[name]   && seriesWeightN[name][k];
-        if (!n) return null;
-        return (sum / n) * 100;
+        const v = seriesWDispPct[name] && seriesWDispPct[name][k];
+        return (v===null || v===undefined || isNaN(v)) ? null : v;
       });
       return { label:name, data, type:"bar", backgroundColor:color+"cc", borderColor:color, borderWidth:1, order:1, skipNull:true };
     }).filter(ds=>ds.data.some(v=>v!==null && !isNaN(v)));
@@ -1089,11 +1105,7 @@
   ============================ */
   document.getElementById("btn_reload").addEventListener("click", reloadData);
   initNav();
-
-  // קובע את המסך הראשוני ל-"tracks"
   setView("tracks");
-
-  // ואז טוען נתונים
   reloadData();
 </script>
 
