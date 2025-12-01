@@ -254,10 +254,7 @@
     <!-- FILTERS -->
     <section class="filters-bar">
 
-      <div class="field">
-        <label>חברה</label>
-        <select id="f_company"></select>
-      </div>
+      <!-- שים לב: הוסר פילטר "חברה" לפי בקשתך -->
 
       <div class="field">
         <label>סוג חיסכון</label>
@@ -349,6 +346,13 @@
               <canvas id="chart_weight"></canvas>
             </div>
           </div>
+
+          <div class="chart-block">
+            <div class="chart-title">אחזקה לפי מסלול וסחירות (%)</div>
+            <div class="chart-container">
+              <canvas id="chart_liquidity"></canvas>
+            </div>
+          </div>
         </div>
 
       </section>
@@ -367,10 +371,10 @@ const state = {
   meta: {},
   chartYield: null,
   chartWeight: null,
+  chartLiquidity: null,
 };
 
 const FILTERS = {
-  company:     { id: "f_company",     field: "company_short", sort: "locale" },
   saving_type: { id: "f_saving_type", field: "saving_type",   sort: "locale" },
   fund_type:   { id: "f_fund_type",   field: "fund_type",     sort: "locale" },
   track:       { id: "f_track",       field: "track_name",    sort: "locale" },
@@ -467,7 +471,6 @@ function updateSidebarMeta() {
 ———————————————————————— */
 function buildFilters() {
   const rows = state.raw;
-  const companies   = Array.from(new Set(rows.map(r=>r.company_short).filter(Boolean))).sort((a,b)=>a.localeCompare(b,"he"));
   const savingTypes = Array.from(new Set(rows.map(r=>r.saving_type).filter(Boolean))).sort((a,b)=>a.localeCompare(b,"he"));
   const fundTypes   = Array.from(new Set(rows.map(r=>r.fund_type).filter(Boolean))).sort((a,b)=>a.localeCompare(b,"he"));
   const tracks      = Array.from(new Set(rows.map(r=>r.track_name).filter(Boolean))).sort((a,b)=>a.localeCompare(b,"he"));
@@ -475,7 +478,6 @@ function buildFilters() {
   const categories  = Array.from(new Set(rows.map(r=>r.category).filter(Boolean))).sort((a,b)=>a.localeCompare(b,"he"));
   const years       = uniqueSortedYears(rows);
 
-  setSelectOptions(document.getElementById(FILTERS.company.id),     companies);
   setSelectOptions(document.getElementById(FILTERS.saving_type.id), savingTypes);
   setSelectOptions(document.getElementById(FILTERS.fund_type.id),   fundTypes);
   setSelectOptions(document.getElementById(FILTERS.track.id),       tracks);
@@ -491,7 +493,6 @@ function buildFilters() {
 
 function getCurrentFilters() {
   return {
-    company:     getSelectValues(document.getElementById(FILTERS.company.id)),
     saving_type: getSelectValues(document.getElementById(FILTERS.saving_type.id)),
     fund_type:   getSelectValues(document.getElementById(FILTERS.fund_type.id)),
     track:       getSelectValues(document.getElementById(FILTERS.track.id)),
@@ -518,11 +519,10 @@ function refreshFilterOptions() {
       : [sel.value];
 
     const rowsForKey = rows.filter(r=>{
-      if (key!=="company"     && filters.company     && r.company_short !== filters.company) return false;
-      if (key!=="saving_type" && filters.saving_type && r.saving_type   !== filters.saving_type) return false;
-      if (key!=="fund_type"   && filters.fund_type   && r.fund_type     !== filters.fund_type)   return false;
-      if (key!=="track"       && filters.track       && r.track_name    !== filters.track)       return false;
-      if (key!=="liquidity"   && filters.liquidity   && r.liquidity     !== filters.liquidity)   return false;
+      if (key!=="saving_type" && filters.saving_type && r.saving_type !== filters.saving_type) return false;
+      if (key!=="fund_type"   && filters.fund_type   && r.fund_type   !== filters.fund_type)   return false;
+      if (key!=="track"       && filters.track       && r.track_name  !== filters.track)       return false;
+      if (key!=="liquidity"   && filters.liquidity   && r.liquidity   !== filters.liquidity)   return false;
 
       if (key!=="category" && Array.isArray(filters.category) && filters.category.length &&
           !filters.category.includes(r.category)) return false;
@@ -555,11 +555,10 @@ function applyFilters() {
   const rows = state.raw.filter(r=>Number(r.year)>=2022);
 
   state.filtered = rows.filter(r=>{
-    if (f.company && r.company_short !== f.company) return false;
     if (f.saving_type && r.saving_type !== f.saving_type) return false;
-    if (f.fund_type && r.fund_type !== f.fund_type) return false;
-    if (f.track && r.track_name !== f.track) return false;
-    if (f.liquidity && r.liquidity !== f.liquidity) return false;
+    if (f.fund_type   && r.fund_type   !== f.fund_type)   return false;
+    if (f.track       && r.track_name  !== f.track)       return false;
+    if (f.liquidity   && r.liquidity   !== f.liquidity)   return false;
 
     if (Array.isArray(f.category) && f.category.length &&
         !f.category.includes(r.category)) return false;
@@ -581,13 +580,12 @@ function updateFiltersStatus() {
   const cnt = state.filtered.length;
 
   const parts = [];
-  if (f.company) parts.push("חברה: "+f.company);
   if (f.saving_type) parts.push("סוג חיסכון: "+f.saving_type);
-  if (f.fund_type) parts.push("סוג קופה: "+f.fund_type);
-  if (f.track) parts.push("מסלול: "+f.track);
-  if (f.liquidity) parts.push("סחירות: "+f.liquidity);
+  if (f.fund_type)   parts.push("סוג קופה: "+f.fund_type);
+  if (f.track)       parts.push("מסלול: "+f.track);
+  if (f.liquidity)   parts.push("סחירות: "+f.liquidity);
   if (f.category.length) parts.push("אפיק: "+f.category.join(", "));
-  if (f.year.length) parts.push("שנים: "+f.year.join(", "));
+  if (f.year.length)     parts.push("שנים: "+f.year.join(", "));
 
   document.getElementById("status_filters").textContent =
     (parts.length ? parts.join(" • ") : "ללא סינון") +
@@ -744,8 +742,9 @@ function renderMatrixTable() {
 function renderCharts() {
   const rows = state.filtered;
 
-  if (state.chartYield)  { state.chartYield.destroy();  state.chartYield=null; }
-  if (state.chartWeight) { state.chartWeight.destroy(); state.chartWeight=null; }
+  if (state.chartYield)      { state.chartYield.destroy();      state.chartYield=null; }
+  if (state.chartWeight)     { state.chartWeight.destroy();     state.chartWeight=null; }
+  if (state.chartLiquidity)  { state.chartLiquidity.destroy();  state.chartLiquidity=null; }
 
   if (!rows.length) return;
 
@@ -776,6 +775,7 @@ function renderCharts() {
   const seriesWeightN = {};
   const categorySelected = getCurrentFilters().category.length>0;
 
+  // אוסף לסדרות התשואה והאחזקה
   rows.forEach(r=>{
     if (!r.year || !r.quarter) return;
     const tk = `${r.year}|${r.quarter}`;
@@ -796,6 +796,21 @@ function renderCharts() {
     }
     seriesWeightSum[sk][tk]+=w;
     seriesWeightN[sk][tk]+=1;
+  });
+
+  // אוסף לסדרת האחזקה לפי מסלול וסחירות
+  const seriesLiquidity = {};
+  rows.forEach(r=>{
+    if (!r.year || !r.quarter) return;
+    const tk = `${r.year}|${r.quarter}`;
+    const trackName = r.track_name || "ללא מסלול";
+    const liq = r.liquidity || "לא ידוע";
+    const key = `${trackName} – ${liq}`;
+    const w = safeNumber(r.weight) || 0;
+
+    if (!seriesLiquidity[key]) seriesLiquidity[key] = {};
+    if (!seriesLiquidity[key][tk]) seriesLiquidity[key][tk] = 0;
+    seriesLiquidity[key][tk] += w;
   });
 
   const palette = [
@@ -846,8 +861,29 @@ function renderCharts() {
     };
   });
 
-  const ctxYield=document.getElementById("chart_yield").getContext("2d");
-  const ctxWeight=document.getElementById("chart_weight").getContext("2d");
+  // גרף אחזקות לפי מסלול וסחירות
+  const keysLiquidity = Object.keys(seriesLiquidity).sort((a,b)=>a.localeCompare(b,"he"));
+  const datasetsLiquidity = keysLiquidity.map((name,i)=>{
+    const color = palette[i%palette.length];
+    const data = timeKeys.map(k=>{
+      const val = seriesLiquidity[name] && seriesLiquidity[name][k];
+      if (!val) return null;
+      return val * 100;
+    });
+    return {
+      label: name,
+      data,
+      type: "bar",
+      backgroundColor: color + "cc",
+      borderColor: color,
+      borderWidth: 1,
+      skipNull: true
+    };
+  });
+
+  const ctxYield     = document.getElementById("chart_yield").getContext("2d");
+  const ctxWeight    = document.getElementById("chart_weight").getContext("2d");
+  const ctxLiquidity = document.getElementById("chart_liquidity").getContext("2d");
 
   const opt=(title)=>({
     responsive:true,
@@ -863,8 +899,23 @@ function renderCharts() {
     }
   });
 
-  state.chartYield=new Chart(ctxYield,{type:"bar",data:{labels,datasets:datasetsYield},options:opt("תשואה רבעונית (%)")});
-  state.chartWeight=new Chart(ctxWeight,{type:"bar",data:{labels,datasets:datasetsWeight},options:opt("אחזקה רבעונית ממוצעת (%)")});
+  state.chartYield = new Chart(ctxYield,{
+    type:"bar",
+    data:{labels,datasets:datasetsYield},
+    options:opt("תשואה רבעונית (%)")
+  });
+
+  state.chartWeight = new Chart(ctxWeight,{
+    type:"bar",
+    data:{labels,datasets:datasetsWeight},
+    options:opt("אחזקה רבעונית ממוצעת (%)")
+  });
+
+  state.chartLiquidity = new Chart(ctxLiquidity,{
+    type:"bar",
+    data:{labels,datasets:datasetsLiquidity},
+    options:opt("אחזקה לפי מסלול וסחירות (%)")
+  });
 }
 
 /* ————————————————————————
