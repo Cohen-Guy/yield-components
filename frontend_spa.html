@@ -190,7 +190,7 @@
       z-index: 1;
     }
 
-    /* ✅ מספרים באנגלית בתוך מסמך RTL – הסימן השלילי משמאל */
+    /* מספרים LTR כדי שהמינוס יוצג משמאל */
     .num {
       direction: ltr;
       unicode-bidi: isolate;
@@ -200,10 +200,10 @@
       min-width: 4.5ch;
     }
 
-    /* ✅ הדגשת שורת מסלול השייך לחברת מנורה – כחול כהה שקוף */
+    /* הדגשת שורות מנורה */
     tr.row-menora td,
     tr.row-menora .matrix-row-header {
-      background: rgba(34, 60, 140, 0.22) !important; /* כחול כהה עם שקיפות */
+      background: rgba(34, 60, 140, 0.22) !important;
     }
 
     /* Views */
@@ -249,7 +249,7 @@
       <div class="sidebar-logo-icon">⧉</div>
       <div class="sidebar-logo-text">
         <div class="sidebar-logo-title">מרכיבי תשואה</div>
-        <div class="sidebar-logo-sub">Dashboard v3.8.2</div>
+        <div class="sidebar-logo-sub">Dashboard v3.9.0</div>
       </div>
     </div>
 
@@ -310,6 +310,11 @@
           <option value="quarter">לפי רבעון</option>
           <option value="year">לפי שנים</option>
         </select>
+      </div>
+
+      <div class="field">
+        <label>שדות לטבלה</label>
+        <select id="f_cols" multiple></select>
       </div>
 
       <div class="field">
@@ -433,6 +438,15 @@ const FILTERS = {
   year:        { id: "f_year",        field: "year",          sort: "numeric", multi: true }
 };
 
+/* מפתח שדות אפשריים לטבלה */
+const TABLE_FIELDS = [
+  { key: "weight",     label: "שיעור מסך התיק (%)" },
+  { key: "contrib",    label: "תרומה (Δ) (%)" },
+  { key: "yield",      label: "תשואה (%)" },
+  { key: "rank_yield", label: "דירוג תשואה" },
+  { key: "rank_weight",label: "דירוג מסך התיק" }
+];
+
 /* ————————————————————————
    UTILITIES
 ———————————————————————— */
@@ -453,8 +467,13 @@ function setSelectOptions(selectEl, values, { includeAll = true, allLabel = "ה�
   }
   values.forEach(v => {
     const o = document.createElement("option");
-    o.value = String(v);
-    o.textContent = String(v);
+    if (typeof v === "object" && v.value !== undefined) {
+      o.value = String(v.value);
+      o.textContent = String(v.text);
+    } else {
+      o.value = String(v);
+      o.textContent = String(v);
+    }
     frag.appendChild(o);
   });
   selectEl.appendChild(frag);
@@ -545,16 +564,26 @@ function buildFilters() {
   setSelectOptions(document.getElementById(FILTERS.category.id),    categories, { includeAll:false });
   setSelectOptions(document.getElementById(FILTERS.year.id),        years,      { includeAll:false });
 
+  /* פילטר שדות לטבלה (בחירה מרובה) */
+  const colsSel = document.getElementById("f_cols");
+  const colOptions = TABLE_FIELDS.map(f => ({ value: f.key, text: f.label }));
+  setSelectOptions(colsSel, colOptions, { includeAll:false });
+  // ברירת מחדל – לבחור את כולם
+  Array.from(colsSel.options).forEach(o => o.selected = true);
+
   Object.values(FILTERS).forEach(({id})=>{
     const el = document.getElementById(id);
     el.addEventListener("change", onFilterChange);
   });
 
-  const colMode = document.getElementById("col_mode");
-  colMode.addEventListener("change", ()=>{
+  document.getElementById("col_mode").addEventListener("change", ()=>{
     toggleLiquidityQuarterVisibility();
     refreshLiquidityFilters();
     applyFilters();
+  });
+
+  colsSel.addEventListener("change", () => {
+    renderMatrixTable();    // הטבלה מתעדכנת לפי בחירת העמודות
   });
 
   const ly = document.getElementById("liq_year_filter");
@@ -583,6 +612,7 @@ function getCurrentFilters() {
     category:    getSelectValues(document.getElementById(FILTERS.category.id), true),
     year:        getSelectValues(document.getElementById(FILTERS.year.id), true),
     col_mode:    document.getElementById("col_mode").value || "quarter",
+    table_cols:  getSelectValues(document.getElementById("f_cols"), true)
   };
 }
 
@@ -683,6 +713,10 @@ function updateFiltersStatus() {
   if (f.liquidity)   parts.push("סחירות: "+f.liquidity);
   if (f.category.length) parts.push("אפיק: "+f.category.join(", "));
   if (f.year.length)     parts.push("שנים: "+f.year.join(", "));
+  if (f.table_cols.length) {
+    const labels = TABLE_FIELDS.filter(x=>f.table_cols.includes(x.key)).map(x=>x.label);
+    parts.push("שדות בטבלה: "+labels.join(", "));
+  }
 
   document.getElementById("status_filters").textContent =
     (parts.length ? parts.join(" • ") : "ללא סינון") +
@@ -719,9 +753,14 @@ function renderKPIs() {
 }
 
 /* ————————————————————————
-   MATRIX TABLE
-   (עמודות שנים/רבעונים בסדר יורד מימין לשמאל + LTR למספרים + הדגשת מנורה)
+   MATRIX TABLE (כותרות דינמיות לפי בחירת שדות)
 ———————————————————————— */
+function selectedTableFields() {
+  const f = getCurrentFilters();
+  if (!f.table_cols.length) return [...TABLE_FIELDS]; // אם לא נבחר כלום – להציג הכול
+  return TABLE_FIELDS.filter(x => f.table_cols.includes(x.key));
+}
+
 function renderMatrixTable() {
   const table = document.getElementById("matrix_table");
   const emptyEl = document.getElementById("matrix_empty");
@@ -730,6 +769,7 @@ function renderMatrixTable() {
 
   const mode = document.getElementById("col_mode").value || "quarter";
   const rows = state.filtered.filter(r => r.track_name && r.year);
+  const fields = selectedTableFields();  // העמודות שנבחרו להצגה
 
   if (!rows.length) {
     table.innerHTML = "";
@@ -771,29 +811,26 @@ function renderMatrixTable() {
     }
   });
 
-  /* ✅ קביעת מסלולים של חברת "מנורה" (תומך גם ב"מנורה מבטחים") */
+  // מסלולי "מנורה"
   const menoraTracks = new Set();
   tracks.forEach(t => {
-    const hasMenora = rows.some(r =>
-      r.track_name === t &&
-      String(r.company_short || "").includes("מנורה")
-    );
+    const hasMenora = rows.some(r => r.track_name === t && String(r.company_short || "").includes("מנורה"));
     if (hasMenora) menoraTracks.add(t);
   });
 
   let html = "<thead>";
   if (mode === "quarter") {
     titleEl.textContent = "מטריצת שיעור מסך התיק, תרומה (Δ), תשואה ודירוגים – לפי רבעון";
-    html += '<tr><th rowspan="3">מסלול</th>';
+    html += `<tr><th rowspan="3">מסלול</th>`;
     years.forEach(y => {
       const qs=yearMap.get(y)||[];
-      html += `<th colspan="${qs.length*5}">${y}</th>`;
+      html += `<th colspan="${qs.length * fields.length}">${y}</th>`;
     });
     html += "</tr><tr>";
-    years.forEach(y => (yearMap.get(y)||[]).forEach(q=> html += `<th colspan="5">רבעון ${q}</th>`));
+    years.forEach(y => (yearMap.get(y)||[]).forEach(q=> html += `<th colspan="${fields.length}">רבעון ${q}</th>`));
     html += "</tr><tr>";
     years.forEach(y => (yearMap.get(y)||[]).forEach(()=> {
-      html += "<th>שיעור מסך התיק (%)</th><th>תרומה (Δ) (%)</th><th>תשואה (%)</th><th>דירוג תשואה</th><th>דירוג מסך התיק</th>";
+      fields.forEach(fld => html += `<th>${fld.label}</th>`);
     }));
     html += "</tr></thead><tbody>";
 
@@ -826,8 +863,10 @@ function renderMatrixTable() {
       years.forEach(y=>{
         (yearMap.get(y)||[]).forEach(q=>{
           const cell=agg[t]?.[y]?.[q]||null;
-          let wDisp="-", cDeltaDisp="-", yDisp="-", rRet="", rWei="";
-          if (cell && Math.abs(cell.w)>1e-9) wDisp=(cell.w*100).toFixed(2)+"%";
+
+          // ערכים מחושבים
+          const wDisp = (cell && Math.abs(cell.w)>1e-9) ? (cell.w*100).toFixed(2)+"%" : "-";
+          let cDeltaDisp = "-";
           if (cell){
             let cDelta=null;
             if (q===1){ cDelta=cell.c; }
@@ -837,9 +876,10 @@ function renderMatrixTable() {
             }
             if (cDelta!==null) cDeltaDisp=(cDelta*100).toFixed(2)+"%";
           }
+          let yDisp="-", rRet="", rWei="";
           if (cell && Math.abs(cell.w)>1e-9){
             const yv=cell.c/cell.w;
-            if (Math.abs(yv)>1e-9) {
+            if (yv && Math.abs(yv)>1e-9) {
               yDisp=(yv*100).toFixed(2)+"%";
               const infoR=rankReturnMap[y]?.[q]?.[t];
               if (infoR && infoR.total>0) rRet=`${infoR.rank}/${infoR.total}`;
@@ -847,7 +887,15 @@ function renderMatrixTable() {
             const infoW=rankWeightMap[y]?.[q]?.[t];
             if (infoW && infoW.total>0) rWei=`${infoW.rank}/${infoW.total}`;
           }
-          html += `<td class="num">${wDisp}</td><td class="num">${cDeltaDisp}</td><td class="num">${yDisp}</td><td>${rRet}</td><td>${rWei}</td>`;
+
+          // הדפסה לפי בחירת עמודות
+          fields.forEach(fld=>{
+            if (fld.key==="weight")      html += `<td class="num">${wDisp}</td>`;
+            else if (fld.key==="contrib")html += `<td class="num">${cDeltaDisp}</td>`;
+            else if (fld.key==="yield")  html += `<td class="num">${yDisp}</td>`;
+            else if (fld.key==="rank_yield")  html += `<td>${rRet}</td>`;
+            else if (fld.key==="rank_weight") html += `<td>${rWei}</td>`;
+          });
         });
       });
       html += "</tr>";
@@ -855,10 +903,10 @@ function renderMatrixTable() {
     html += "</tbody>";
   } else {
     titleEl.textContent = "מטריצת שיעור מסך התיק, תרומה (שנתי), תשואה ודירוגים – לפי שנים";
-    html += '<tr><th rowspan="2">מסלול</th>';
-    years.forEach(y=> html += `<th colspan="5">${y}</th>`);
+    html += `<tr><th rowspan="2">מסלול</th>`;
+    years.forEach(y=> html += `<th colspan="${fields.length}">${y}</th>`);
     html += "</tr><tr>";
-    years.forEach(()=> html += "<th>שיעור מסך התיק (%)</th><th>תרומה (%)</th><th>תשואה (%)</th><th>דירוג תשואה</th><th>דירוג מסך התיק</th>");
+    years.forEach(()=> fields.forEach(fld => html += `<th>${fld.label}</th>`));
     html += "</tr></thead><tbody>";
 
     const rankReturnYear={}, rankWeightYear={};
@@ -885,17 +933,25 @@ function renderMatrixTable() {
       html += `<tr class="${rowClass}"><td class="matrix-row-header">${t}</td>`;
       years.forEach(y=>{
         const bq=bestQuarterForYear(agg,t,y); const cell=bq? agg[t]?.[y]?.[bq]:null;
-        let wDisp="-", cDisp="-", yDisp="-", rRet="", rWei="";
+
+        const wDisp = (cell && Math.abs(cell.w)>1e-9)? (cell.w*100).toFixed(2)+"%" : "-";
+        const cDisp = (cell)? (cell.c*100).toFixed(2)+"%" : "-";
+        let yDisp="-";
         if (cell && Math.abs(cell.w)>1e-9){
-          wDisp=(cell.w*100).toFixed(2)+"%";
-          cDisp=(cell.c*100).toFixed(2)+"%";
           const yv=cell.c/cell.w;
-          if (Math.abs(yv)>1e-9) yDisp=(yv*100).toFixed(2)+"%";
+          if (yv && Math.abs(yv)>1e-9) yDisp=(yv*100).toFixed(2)+"%";
         }
         const RR=rankReturnYear[y]?.[t]; const RW=rankWeightYear[y]?.[t];
-        if (RR) rRet=`${RR.rank}/${RR.total}`;
-        if (RW) rWei=`${RW.rank}/${RW.total}`;
-        html += `<td class="num">${wDisp}</td><td class="num">${cDisp}</td><td class="num">${yDisp}</td><td>${rRet}</td><td>${rWei}</td>`;
+        const rRet = RR? `${RR.rank}/${RR.total}` : "";
+        const rWei = RW? `${RW.rank}/${RW.total}` : "";
+
+        fields.forEach(fld=>{
+          if (fld.key==="weight")      html += `<td class="num">${wDisp}</td>`;
+          else if (fld.key==="contrib")html += `<td class="num">${cDisp}</td>`;
+          else if (fld.key==="yield")  html += `<td class="num">${yDisp}</td>`;
+          else if (fld.key==="rank_yield")  html += `<td>${rRet}</td>`;
+          else if (fld.key==="rank_weight") html += `<td>${rWei}</td>`;
+        });
       });
       html += "</tr>";
     });
