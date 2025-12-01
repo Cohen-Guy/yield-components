@@ -122,6 +122,37 @@
     }
     select:focus { border-color: var(--accent); box-shadow: 0 0 0 1px rgba(93,208,255,0.5); }
 
+    /* KPI panels */
+    .panels-row { display: grid; grid-template-columns: 2fr 1.8fr; gap: 10px; margin-top: 8px; margin-bottom: 10px; }
+    .panel {
+      background: linear-gradient(135deg, rgba(14,18,40,0.98), rgba(10,12,30,0.98));
+      border-radius: 14px; padding: 10px 12px; border: 1px solid var(--border-subtle);
+      box-shadow: 0 14px 32px rgba(0,0,0,0.5); display: flex; flex-direction: column; gap: 6px; min-height: 200px;
+    }
+    .panel-header { display: flex; align-items: center; justify-content: space-between; font-size: 0.9rem; }
+    .panel-header-title { display: flex; align-items: center; gap: 6px; }
+    .panel-header-title span.icon { font-size: 1.1rem; }
+
+    .kpi-row {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 8px;
+      margin-top: 4px;
+    }
+    .kpi-card {
+      background: radial-gradient(circle at top, rgba(93,208,255,0.2), rgba(10,15,40,0.95));
+      border-radius: 12px;
+      padding: 7px 9px;
+      border: 1px solid rgba(93,208,255,0.4);
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      font-size: 0.8rem;
+    }
+    .kpi-label { color: var(--text-muted); font-size: 0.75rem; }
+    .kpi-value { font-size: 1rem; font-weight: 600; }
+    .kpi-badge { font-size: 0.7rem; color: var(--accent); }
+
     /* MATRIX TABLE */
     .matrix-wrapper { margin-top: 10px; }
     .matrix-scroll {
@@ -158,37 +189,6 @@
       right: 0;
       z-index: 1;
     }
-
-    /* KPI panels */
-    .panels-row { display: grid; grid-template-columns: 2fr 1.8fr; gap: 10px; margin-top: 8px; margin-bottom: 10px; }
-    .panel {
-      background: linear-gradient(135deg, rgba(14,18,40,0.98), rgba(10,12,30,0.98));
-      border-radius: 14px; padding: 10px 12px; border: 1px solid var(--border-subtle);
-      box-shadow: 0 14px 32px rgba(0,0,0,0.5); display: flex; flex-direction: column; gap: 6px; min-height: 200px;
-    }
-    .panel-header { display: flex; align-items: center; justify-content: space-between; font-size: 0.9rem; }
-    .panel-header-title { display: flex; align-items: center; gap: 6px; }
-    .panel-header-title span.icon { font-size: 1.1rem; }
-
-    .kpi-row {
-      display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 8px;
-      margin-top: 4px;
-    }
-    .kpi-card {
-      background: radial-gradient(circle at top, rgba(93,208,255,0.2), rgba(10,15,40,0.95));
-      border-radius: 12px;
-      padding: 7px 9px;
-      border: 1px solid rgba(93,208,255,0.4);
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-      font-size: 0.8rem;
-    }
-    .kpi-label { color: var(--text-muted); font-size: 0.75rem; }
-    .kpi-value { font-size: 1rem; font-weight: 600; }
-    .kpi-badge { font-size: 0.7rem; color: var(--accent); }
 
     /* Views */
     .views-wrapper { margin-top: 4px; display: flex; flex-direction: column; gap: 10px; }
@@ -233,7 +233,7 @@
       <div class="sidebar-logo-icon">⧉</div>
       <div class="sidebar-logo-text">
         <div class="sidebar-logo-title">מרכיבי תשואה</div>
-        <div class="sidebar-logo-sub">Dashboard v3.5</div>
+        <div class="sidebar-logo-sub">Dashboard v3.6</div>
       </div>
     </div>
 
@@ -311,6 +311,23 @@
 
     </section>
 
+    <!-- ⬆⬆⬆ KPI SECTION MOVED ABOVE THE TABLE AS REQUESTED ⬆⬆⬆ -->
+    <section class="panels-row">
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-header-title"><span class="icon">📊</span><span>מדדי מפתח – סיכום</span></div>
+        </div>
+        <div class="kpi-row" id="kpi_row"></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-header-title"><span class="icon">ℹ️</span><span>סטטוס פילטרים</span></div>
+        </div>
+        <div class="status-text" id="status_filters">טוען נתונים...</div>
+      </div>
+    </section>
+
     <!-- MATRIX TABLE -->
     <section class="matrix-wrapper">
       <div class="panel">
@@ -326,23 +343,6 @@
         <div class="matrix-scroll">
           <table id="matrix_table" class="matrix-table table-wide"></table>
         </div>
-      </div>
-    </section>
-
-    <!-- KPIs -->
-    <section class="panels-row">
-      <div class="panel">
-        <div class="panel-header">
-          <div class="panel-header-title"><span class="icon">📊</span><span>מדדי מפתח – סיכום</span></div>
-        </div>
-        <div class="kpi-row" id="kpi_row"></div>
-      </div>
-
-      <div class="panel">
-        <div class="panel-header">
-          <div class="panel-header-title"><span class="icon">ℹ️</span><span>סטטוס פילטרים</span></div>
-        </div>
-        <div class="status-text" id="status_filters">טוען נתונים...</div>
       </div>
     </section>
 
@@ -703,7 +703,7 @@ function renderKPIs() {
 }
 
 /* ————————————————————————
-   MATRIX TABLE (בקיצור – ללא שינוי לוגי כאן לעומת הבקשה)
+   MATRIX TABLE (כולל הדירוגים והלוגיקות הקיימות)
 ———————————————————————— */
 function renderMatrixTable() {
   const table = document.getElementById("matrix_table");
@@ -824,12 +824,6 @@ function renderMatrixTable() {
     html += "</tr></thead><tbody>";
 
     const rankReturnYear={}, rankWeightYear={};
-    tracks.forEach(t=>{
-      years.forEach(y=>{
-        const bq=bestQuarterForYear(agg,t,y); const c= bq? agg[t]?.[y]?.[bq]:null;
-        if (!rankReturnYear[y]){ rankReturnYear[y]={}; rankWeightYear[y]={}; }
-      });
-    });
     years.forEach(y=>{
       const arrR=[], arrW=[];
       tracks.forEach(t=>{
@@ -1012,12 +1006,8 @@ function renderCharts() {
   const seriesWeightSum = {};
   const seriesWeightN = {};
 
-  // סט קטגוריות לתצוגה בגרף "אחזקה רבעונית ממוצעת לתצוגה (%)"
-  // לוגיקה חדשה:
-  // - אם נבחרו קטגוריות בפילטר => להשתמש רק בהן
-  // - אחרת אם נבחרה "סחירות" (סחיר/לא סחיר) => להשתמש בכל הקטגוריות שמופיעות תחת אותה סחירות
-  // - אחרת => להשתמש בכל הקטגוריות (לפי הנתונים המסוננים האחרים)
-  let allowedCategories = null; // null => כל הקטגוריות
+  // Allowed categories logic for the weight chart:
+  let allowedCategories = null;
   if (Array.isArray(f.category) && f.category.length) {
     allowedCategories = new Set(f.category);
   } else if (f.liquidity) {
@@ -1027,8 +1017,6 @@ function renderCharts() {
           .filter(Boolean)
     );
     allowedCategories = catsUnderLiquidity;
-  } else {
-    // allowedCategories=null => כל מה שקיים ב-rows
   }
 
   rows.forEach(r=>{
@@ -1036,7 +1024,7 @@ function renderCharts() {
     const tk = `${r.year}|${r.quarter}`;
     const sk = seriesKey(r);
 
-    // לצורך "תשואה רבעונית" תמיד נסכם את כל הרשומות המסוננות (כולל סחירות וקטגוריות)
+    // Yield chart (sum all)
     const wAll = nz(r.weight);
     const cAll = nz(r.contribution);
 
@@ -1045,7 +1033,7 @@ function renderCharts() {
     seriesYield[sk][tk].w += wAll;
     seriesYield[sk][tk].c += cAll;
 
-    // לצורך "אחזקה רבעונית ממוצעת לתצוגה" נחשב ממוצע רק על allowedCategories (אם הוגדר) אחרת על כל הקטגוריות
+    // Weight chart (only allowed categories if set)
     const useThisRowForWeight = (allowedCategories===null) ? true : allowedCategories.has(r.category);
     if (useThisRowForWeight) {
       if (!seriesWeightSum[sk]) seriesWeightSum[sk]={};
@@ -1086,8 +1074,6 @@ function renderCharts() {
   });
 
   // ——— גרף אחזקה רבעונית ממוצעת לתצוגה (%) ———
-  // לוגיקה מעודכנת: תמיד ממוצע (sum(weights)/count)*100 על פני הרשומות שעומדות ב-allowedCategories.
-  // אם אין שום רשומה לרביעון מסוים – מציגים null (חור).
   const datasetsWeight = keys.map((name,i)=>{
     const color=palette[i%palette.length];
     const data=timeKeys.map(k=>{
