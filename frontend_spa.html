@@ -170,15 +170,19 @@
       max-height: 260px;
       overflow: auto;
     }
+
+    /* חשוב: הטבלה תמיד לפי רוחב התוכן בלבד */
     .matrix-table {
       border-collapse: collapse;
       font-size: 0.78rem;
       text-align: center;
-      width: max-content;
-      table-layout: auto;
+      width: max-content;      /* לוקח רק את רוחב התוכן */
+      table-layout: auto;      /* עושה התאמה דינמית לגודל התאים בכל רענון */
     }
-    .matrix-table.table-wide { min-width: 100%; width: max-content; }
-    .matrix-table.table-fit  { min-width: auto;  width: max-content; }
+
+    /* מבטלים כל חובת מינימום־רוחב כדי שלא יישאר "ריק" */
+    .matrix-table.table-wide { min-width: unset; width: max-content; }
+    .matrix-table.table-fit  { min-width: unset; width: max-content; }
 
     .matrix-table th,
     .matrix-table td {
@@ -722,7 +726,7 @@ function applyFilters() {
   refreshLiquidityFilters();
   updateFiltersStatus();
   renderKPIs();
-  renderMatrixTable();
+  renderMatrixTable();   // *הטבלאות נבנות מחדש, ללא עמודות מיותרות*
   renderCharts();
 }
 function updateFiltersStatus() {
@@ -790,18 +794,21 @@ function applyMatrixTableWidthMode() {
   if (!table) return;
   const mode = document.getElementById("col_mode").value || "quarter";
   table.classList.remove("table-wide","table-fit");
+  // שתי המצבים משתמשים ברוחב לפי תוכן בלבד — ללא מינימום
   if (mode === "quarter") table.classList.add("table-wide");
   else                    table.classList.add("table-fit");
+}
+/* תא "פעיל" אם יש בו משקל או תרומה לא־אפסיים */
+function isActiveCell(cell){
+  if (!cell) return false;
+  return (Math.abs(cell.w||0)>1e-9) || (Math.abs(cell.c||0)>1e-9);
 }
 function bestQuarterForYear(agg, track, year) {
   for (const q of [4,3,2,1]) if (agg?.[track]?.[year]?.[q]) return q;
   return null;
 }
 
-/* NEW: compute per-track summary over the displayed period
-   - cumulative return: Π(1+yield) - 1  (yield = contribution/weight) for each displayed cell with w>0
-   - avg weight: mean of weights over displayed cells
-*/
+/* NEW: compute per-track summary over the displayed period */
 function computeTrackSummary(agg, track, yearsDesc, yearMap, mode) {
   let product = 1.0;
   let anyYield = false;
@@ -851,7 +858,9 @@ function computeTrackSummary(agg, track, yearsDesc, yearMap, mode) {
 }
 
 /* ————————————————————————
-   RENDER MATRIX TABLE (includes new summary columns)
+   RENDER MATRIX TABLE
+   * מסיר לגמרי עמודות (רבעונים/שנים) ללא נתונים פעילים
+   * מצמצם רוחב אוטומטית לפי תוכן בפועל
 ———————————————————————— */
 function renderMatrixTable() {
   const table = document.getElementById("matrix_table");
@@ -865,7 +874,8 @@ function renderMatrixTable() {
 
   const fields = selectedTableFields();
 
-  table.innerHTML = "";
+  // איפוס מוחלט של התוכן כדי לאלץ דפדפן לחשב פריסת עמודות מחדש
+  table.replaceChildren();
 
   if (!rows.length) {
     emptyEl.style.display = "block";
@@ -891,8 +901,8 @@ function renderMatrixTable() {
     if (!yearMap.has(y)) yearMap.set(y, new Set());
     if (q) yearMap.get(y).add(q);
   });
-  const years = Array.from(yearMap.keys()).sort((a,b)=>b-a);
-  years.forEach(y => yearMap.set(y, Array.from(yearMap.get(y)).sort((a,b)=>b-a)));
+  const yearsAll = Array.from(yearMap.keys()).sort((a,b)=>b-a);
+  yearsAll.forEach(y => yearMap.set(y, Array.from(yearMap.get(y)).sort((a,b)=>b-a)));
 
   const tracks = Array.from(new Set(rows.map(r => r.track_name)))
     .sort((a,b)=>String(a).localeCompare(String(b),"he"));
@@ -910,6 +920,34 @@ function renderMatrixTable() {
     }
   });
 
+  // קובעים אילו עמודות אקטיביות באמת (יש בהן נתון פעיל לפחות למסלול אחד)
+  let years = [];
+  const activeQuartersByYear = new Map();
+  if (mode === "quarter") {
+    years = yearsAll.filter(y=>{
+      const qs = yearMap.get(y)||[];
+      const activeQs = qs.filter(q=>{
+        return tracks.some(t => isActiveCell(agg?.[t]?.[y]?.[q]));
+      });
+      if (activeQs.length) activeQuartersByYear.set(y, activeQs);
+      return activeQs.length>0;
+    });
+  } else {
+    years = yearsAll.filter(y=>{
+      return tracks.some(t=>{
+        const bq = bestQuarterForYear(agg, t, y);
+        return isActiveCell(bq ? agg?.[t]?.[y]?.[bq] : null);
+      });
+    });
+  }
+
+  if (!years.length) {
+    // אין עמודות פעילות — מציגים "אין נתונים"
+    emptyEl.style.display = "block";
+    applyMatrixTableWidthMode();
+    return;
+  }
+
   // menora highlight
   const menoraTracks = new Set();
   tracks.forEach(t => {
@@ -917,40 +955,63 @@ function renderMatrixTable() {
     if (hasMenora) menoraTracks.add(t);
   });
 
-  let html = "<thead>";
+  // בניית THEAD
+  const thead = document.createElement("thead");
+  const tbody = document.createElement("tbody");
+
   if (mode === "quarter") {
     titleEl.textContent = "מטריצת שיעור מסך התיק, תרומה (Δ), תשואה, דירוגים וסיכום – לפי רבעון";
 
     // header row 1
-    html += `<tr>
-               <th rowspan="3">מסלול</th>
-               <th rowspan="3">סיכום תשואה (%)</th>
-               <th rowspan="3">סיכום משקל ממוצע (%)</th>`;
-    years.forEach(y => {
-      const qs=yearMap.get(y)||[];
-      html += `<th colspan="${qs.length * fields.length}">${y}</th>`;
+    const tr1 = document.createElement("tr");
+    tr1.innerHTML = `
+      <th rowspan="3">מסלול</th>
+      <th rowspan="3">סיכום תשואה (%)</th>
+      <th rowspan="3">סיכום משקל ממוצע (%)</th>
+    `;
+    years.forEach(y=>{
+      const qs = activeQuartersByYear.get(y) || [];
+      const th = document.createElement("th");
+      th.colSpan = qs.length * fields.length;
+      th.textContent = y;
+      tr1.appendChild(th);
     });
-    html += `</tr>`;
+    thead.appendChild(tr1);
 
     // header row 2
-    html += `<tr>`;
-    years.forEach(y => (yearMap.get(y)||[]).forEach(q=> html += `<th colspan="${fields.length}">רבעון ${q}</th>`));
-    html += `</tr>`;
+    const tr2 = document.createElement("tr");
+    years.forEach(y=>{
+      (activeQuartersByYear.get(y)||[]).forEach(q=>{
+        const th = document.createElement("th");
+        th.colSpan = fields.length;
+        th.textContent = `רבעון ${q}`;
+        tr2.appendChild(th);
+      });
+    });
+    thead.appendChild(tr2);
 
     // header row 3
-    html += `<tr>`;
-    years.forEach(y => (yearMap.get(y)||[]).forEach(()=> { fields.forEach(fld => html += `<th>${fld.label}</th>`); }));
-    html += `</tr></thead><tbody>`;
+    const tr3 = document.createElement("tr");
+    years.forEach(y=>{
+      (activeQuartersByYear.get(y)||[]).forEach(()=>{
+        fields.forEach(fld=>{
+          const th = document.createElement("th");
+          th.textContent = fld.label;
+          tr3.appendChild(th);
+        });
+      });
+    });
+    thead.appendChild(tr3);
 
-    // ranks maps
+    // Ranks maps
     const rankReturnMap={}; const rankWeightMap={};
     years.forEach(y=>{
       rankReturnMap[y]={}; rankWeightMap[y]={};
-      (yearMap.get(y)||[]).forEach(q=>{
+      (activeQuartersByYear.get(y)||[]).forEach(q=>{
         const arrR=[], arrW=[];
         tracks.forEach(t=>{
           const cell=agg[t]?.[y]?.[q];
-          if (!cell) return;
+          if (!isActiveCell(cell)) return;
           if (Math.abs(cell.w)>1e-9) {
             const yv=cell.c/cell.w;
             if (yv && Math.abs(yv)>1e-9) arrR.push({t,val:yv});
@@ -965,27 +1026,29 @@ function renderMatrixTable() {
       });
     });
 
+    // ROWS
     tracks.forEach(t=>{
       const rowClass = menoraTracks.has(t) ? 'row-menora' : '';
-      const summary = computeTrackSummary(agg, t, years, yearMap, "quarter");
-      html += `<tr class="${rowClass}">
-                 <td class="matrix-row-header">${t}</td>
-                 <td class="num">${summary.cumReturnPct}</td>
-                 <td class="num">${summary.avgWeightPct}</td>`;
+      const tr = document.createElement("tr");
+      tr.className = rowClass;
+
+      const summary = computeTrackSummary(agg, t, years, activeQuartersByYear, "quarter");
+      tr.innerHTML = `
+        <td class="matrix-row-header">${t}</td>
+        <td class="num">${summary.cumReturnPct}</td>
+        <td class="num">${summary.avgWeightPct}</td>
+      `;
 
       years.forEach(y=>{
-        (yearMap.get(y)||[]).forEach(q=>{
+        (activeQuartersByYear.get(y)||[]).forEach(q=>{
           const cell=agg[t]?.[y]?.[q]||null;
 
           const wDisp = (cell && Math.abs(cell.w)>1e-9) ? (cell.w*100).toFixed(2)+"%" : "-";
           let cDeltaDisp = "-";
           if (cell){
             let cDelta=null;
-            if (q===1){ cDelta=cell.c; }
-            else {
-              const prev=agg[t]?.[y]?.[q-1]||null;
-              cDelta=prev? (cell.c-prev.c): null;
-            }
+            // מאחר שמציגים רק רבעונים "פעילים", הדלתא כאן פר תא קיים
+            cDelta = cell.c;
             if (cDelta!==null) cDeltaDisp=(cDelta*100).toFixed(2)+"%";
           }
           let yDisp="-", rRet="", rWei="";
@@ -1001,35 +1064,54 @@ function renderMatrixTable() {
           }
 
           fields.forEach(fld=>{
-            if (fld.key==="weight")      html += `<td class="num">${wDisp}</td>`;
-            else if (fld.key==="contrib")html += `<td class="num">${cDeltaDisp}</td>`;
-            else if (fld.key==="yield")  html += `<td class="num">${yDisp}</td>`;
-            else if (fld.key==="rank_yield")  html += `<td>${rRet}</td>`;
-            else if (fld.key==="rank_weight") html += `<td>${rWei}</td>`;
+            let td = document.createElement("td");
+            if (fld.key==="weight")      td.innerHTML = `<span class="num">${wDisp}</span>`;
+            else if (fld.key==="contrib")td.innerHTML = `<span class="num">${cDeltaDisp}</span>`;
+            else if (fld.key==="yield")  td.innerHTML = `<span class="num">${yDisp}</span>`;
+            else if (fld.key==="rank_yield")  td.textContent = rRet;
+            else if (fld.key==="rank_weight") td.textContent = rWei;
+            tr.appendChild(td);
           });
         });
       });
-      html += "</tr>";
+
+      tbody.appendChild(tr);
     });
-    html += "</tbody>";
+
   } else {
     titleEl.textContent = "מטריצת שיעור מסך התיק, תרומה (שנתי), תשואה, דירוגים וסיכום – לפי שנים";
 
-    html += `<tr>
-               <th rowspan="2">מסלול</th>
-               <th rowspan="2">סיכום תשואה (%)</th>
-               <th rowspan="2">סיכום משקל ממוצע (%)</th>`;
-    years.forEach(y=> html += `<th colspan="${fields.length}">${y}</th>`);
-    html += `</tr><tr>`;
-    years.forEach(()=> fields.forEach(fld => html += `<th>${fld.label}</th>`));
-    html += `</tr></thead><tbody>`;
+    const tr1 = document.createElement("tr");
+    tr1.innerHTML = `
+      <th rowspan="2">מסלול</th>
+      <th rowspan="2">סיכום תשואה (%)</th>
+      <th rowspan="2">סיכום משקל ממוצע (%)</th>
+    `;
+    years.forEach(y=>{
+      const th = document.createElement("th");
+      th.colSpan = fields.length;
+      th.textContent = y;
+      tr1.appendChild(th);
+    });
+    thead.appendChild(tr1);
 
+    const tr2 = document.createElement("tr");
+    years.forEach(()=>{
+      fields.forEach(fld=>{
+        const th = document.createElement("th");
+        th.textContent = fld.label;
+        tr2.appendChild(th);
+      });
+    });
+    thead.appendChild(tr2);
+
+    // רנקים לשנתי
     const rankReturnYear={}, rankWeightYear={};
     years.forEach(y=>{
       const arrR=[], arrW=[];
       tracks.forEach(t=>{
         const bq=bestQuarterForYear(agg,t,y); const cell=bq? agg[t]?.[y]?.[bq]:null;
-        if (!cell) return;
+        if (!isActiveCell(cell)) return;
         if (Math.abs(cell.w)>1e-9){
           const yv=cell.c/cell.w;
           if (yv && Math.abs(yv)>1e-9) arrR.push({t,val:yv});
@@ -1045,11 +1127,15 @@ function renderMatrixTable() {
 
     tracks.forEach(t=>{
       const rowClass = menoraTracks.has(t) ? 'row-menora' : '';
-      const summary = computeTrackSummary(agg, t, years, yearMap, "year");
-      html += `<tr class="${rowClass}">
-                 <td class="matrix-row-header">${t}</td>
-                 <td class="num">${summary.cumReturnPct}</td>
-                 <td class="num">${summary.avgWeightPct}</td>`;
+      const tr = document.createElement("tr");
+      tr.className = rowClass;
+
+      const summary = computeTrackSummary(agg, t, years, null, "year");
+      tr.innerHTML = `
+        <td class="matrix-row-header">${t}</td>
+        <td class="num">${summary.cumReturnPct}</td>
+        <td class="num">${summary.avgWeightPct}</td>
+      `;
 
       years.forEach(y=>{
         const bq=bestQuarterForYear(agg,t,y); const cell=bq? agg[t]?.[y]?.[bq]:null;
@@ -1066,19 +1152,26 @@ function renderMatrixTable() {
         const rWei = RW? `${RW.rank}/${RW.total}` : "";
 
         fields.forEach(fld=>{
-          if (fld.key==="weight")      html += `<td class="num">${wDisp}</td>`;
-          else if (fld.key==="contrib")html += `<td class="num">${cDisp}</td>`;
-          else if (fld.key==="yield")  html += `<td class="num">${yDisp}</td>`;
-          else if (fld.key==="rank_yield")  html += `<td>${rRet}</td>`;
-          else if (fld.key==="rank_weight") html += `<td>${rWei}</td>`;
+          let td = document.createElement("td");
+          if (fld.key==="weight")      td.innerHTML = `<span class="num">${wDisp}</span>`;
+          else if (fld.key==="contrib")td.innerHTML = `<span class="num">${cDisp}</span>`;
+          else if (fld.key==="yield")  td.innerHTML = `<span class="num">${yDisp}</span>`;
+          else if (fld.key==="rank_yield")  td.textContent = rRet;
+          else if (fld.key==="rank_weight") td.textContent = rWei;
+          tr.appendChild(td);
         });
       });
-      html += "</tr>";
+
+      tbody.appendChild(tr);
     });
-    html += "</tbody>";
   }
 
-  table.innerHTML = html;
+  table.appendChild(thead);
+  table.appendChild(tbody);
+
+  // הבטחת פריסת־מחדש ורוחב לפי תוכן בלבד
+  table.style.tableLayout = "auto";
+  table.style.width = "max-content";
   applyMatrixTableWidthMode();
 }
 
