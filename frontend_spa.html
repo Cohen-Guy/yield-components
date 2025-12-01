@@ -714,8 +714,9 @@ function renderMatrixTable() {
       qs.forEach(q => {
         const val = (agg[track] && agg[track][y] && agg[track][y][q]) ? agg[track][y][q] : null;
         const display = (val !== null && val !== undefined && Math.abs(val) > 1e-6)
-          ? val.toFixed(2)
+          ? (val * 100).toFixed(2) + "%"
           : "-";
+
         html += `<td>${display}</td>`;
       });
     });
