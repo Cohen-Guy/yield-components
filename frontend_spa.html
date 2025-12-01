@@ -190,14 +190,20 @@
       z-index: 1;
     }
 
-    /* ✅ מספרים באנגלית בתוך מסמך RTL – הסימן השלילי יופיע משמאל */
+    /* ✅ מספרים באנגלית בתוך מסמך RTL – הסימן השלילי משמאל */
     .num {
-      direction: ltr;          /* מציג את המספר משמאל לימין */
-      unicode-bidi: isolate;   /* מבודד מהטקסט סביב */
+      direction: ltr;
+      unicode-bidi: isolate;
       font-variant-numeric: tabular-nums;
       text-align: center;
       display: inline-block;
-      min-width: 4.5ch;        /* שומר על יישור יפה בעמודות */
+      min-width: 4.5ch;
+    }
+
+    /* ✅ הדגשת שורת מסלול השייך לחברת מנורה – כחול כהה שקוף */
+    tr.row-menora td,
+    tr.row-menora .matrix-row-header {
+      background: rgba(34, 60, 140, 0.22) !important; /* כחול כהה עם שקיפות */
     }
 
     /* Views */
@@ -243,7 +249,7 @@
       <div class="sidebar-logo-icon">⧉</div>
       <div class="sidebar-logo-text">
         <div class="sidebar-logo-title">מרכיבי תשואה</div>
-        <div class="sidebar-logo-sub">Dashboard v3.8.1</div>
+        <div class="sidebar-logo-sub">Dashboard v3.8.2</div>
       </div>
     </div>
 
@@ -714,7 +720,7 @@ function renderKPIs() {
 
 /* ————————————————————————
    MATRIX TABLE
-   (עמודות שנים/רבעונים בסדר יורד מימין לשמאל + מספרים LTR)
+   (עמודות שנים/רבעונים בסדר יורד מימין לשמאל + LTR למספרים + הדגשת מנורה)
 ———————————————————————— */
 function renderMatrixTable() {
   const table = document.getElementById("matrix_table");
@@ -765,6 +771,16 @@ function renderMatrixTable() {
     }
   });
 
+  /* ✅ קביעת מסלולים של חברת "מנורה" (תומך גם ב"מנורה מבטחים") */
+  const menoraTracks = new Set();
+  tracks.forEach(t => {
+    const hasMenora = rows.some(r =>
+      r.track_name === t &&
+      String(r.company_short || "").includes("מנורה")
+    );
+    if (hasMenora) menoraTracks.add(t);
+  });
+
   let html = "<thead>";
   if (mode === "quarter") {
     titleEl.textContent = "מטריצת שיעור מסך התיק, תרומה (Δ), תשואה ודירוגים – לפי רבעון";
@@ -805,7 +821,8 @@ function renderMatrixTable() {
     });
 
     tracks.forEach(t=>{
-      html += `<tr><td class="matrix-row-header">${t}</td>`;
+      const rowClass = menoraTracks.has(t) ? 'row-menora' : '';
+      html += `<tr class="${rowClass}"><td class="matrix-row-header">${t}</td>`;
       years.forEach(y=>{
         (yearMap.get(y)||[]).forEach(q=>{
           const cell=agg[t]?.[y]?.[q]||null;
@@ -830,7 +847,6 @@ function renderMatrixTable() {
             const infoW=rankWeightMap[y]?.[q]?.[t];
             if (infoW && infoW.total>0) rWei=`${infoW.rank}/${infoW.total}`;
           }
-          /* ✅ עוטפים תאי אחוזים במחלקה num כדי להכריח LTR */
           html += `<td class="num">${wDisp}</td><td class="num">${cDeltaDisp}</td><td class="num">${yDisp}</td><td>${rRet}</td><td>${rWei}</td>`;
         });
       });
@@ -865,7 +881,8 @@ function renderMatrixTable() {
     });
 
     tracks.forEach(t=>{
-      html += `<tr><td class="matrix-row-header">${t}</td>`;
+      const rowClass = menoraTracks.has(t) ? 'row-menora' : '';
+      html += `<tr class="${rowClass}"><td class="matrix-row-header">${t}</td>`;
       years.forEach(y=>{
         const bq=bestQuarterForYear(agg,t,y); const cell=bq? agg[t]?.[y]?.[bq]:null;
         let wDisp="-", cDisp="-", yDisp="-", rRet="", rWei="";
@@ -878,7 +895,6 @@ function renderMatrixTable() {
         const RR=rankReturnYear[y]?.[t]; const RW=rankWeightYear[y]?.[t];
         if (RR) rRet=`${RR.rank}/${RR.total}`;
         if (RW) rWei=`${RW.rank}/${RW.total}`;
-        /* ✅ LTR במספרים */
         html += `<td class="num">${wDisp}</td><td class="num">${cDisp}</td><td class="num">${yDisp}</td><td>${rRet}</td><td>${rWei}</td>`;
       });
       html += "</tr>";
