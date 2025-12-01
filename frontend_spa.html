@@ -135,16 +135,9 @@
       text-align: center;
       width: max-content;          /* ברירת מחדל: לפי התוכן */
     }
-    /* מצב רבעוני – הרבה עמודות: */
-    .matrix-table.table-wide {
-      min-width: 100%;             /* שלא תהיה צרה מדי */
-      width: max-content;
-    }
-    /* מצב שנתי – מעט עמודות: */
-    .matrix-table.table-fit {
-      min-width: auto;
-      width: max-content;          /* קומפקטי ונוח לקריאה */
-    }
+    .matrix-table.table-wide { min-width: 100%; width: max-content; }
+    .matrix-table.table-fit  { min-width: auto;  width: max-content; }
+
     .matrix-table th,
     .matrix-table td {
       border: 1px solid var(--border-subtle);
@@ -240,7 +233,7 @@
       <div class="sidebar-logo-icon">⧉</div>
       <div class="sidebar-logo-text">
         <div class="sidebar-logo-title">מרכיבי תשואה</div>
-        <div class="sidebar-logo-sub">Dashboard v3.4</div>
+        <div class="sidebar-logo-sub">Dashboard v3.5</div>
       </div>
     </div>
 
@@ -266,7 +259,7 @@
       <div class="main-title-block">
         <div class="main-title">דשבורד מרכיבי תשואה</div>
         <div class="main-subtitle">
-          גרפים + טבלת מטריצה לפי מסלול / שנה / רבעון • מצב תצוגת עמודות: רבעון/שנה
+          גרפים + טבלת מטריצה לפי מסלול / שנה / רבעון
         </div>
       </div>
       <div class="main-header-actions">
@@ -275,10 +268,9 @@
       </div>
     </header>
 
-    <!-- FILTERS (כלליים) -->
+    <!-- FILTERS -->
     <section class="filters-bar">
 
-      <!-- מצב עמודות: לפי רבעון / לפי שנים -->
       <div class="field">
         <label>תצוגת עמודות</label>
         <select id="col_mode">
@@ -325,7 +317,7 @@
         <div class="panel-header">
           <div class="panel-header-title">
             <span class="icon">🧮</span>
-            <span id="matrix_title">מטריצת שיעור מסך התיק, תרומה (Δ/שנתי), תשואה ודירוגים</span>
+            <span id="matrix_title">מטריצת שיעור מסך התיק, תרומה, תשואה ודירוגים</span>
           </div>
         </div>
         <div id="matrix_empty" class="status-text" style="margin-top:4px; display:none;">
@@ -360,8 +352,8 @@
 
         <div class="panel">
           <div class="panel-header">
-            <div class="panel-header-title"><span class="icon">📈</span><span>גרפים רבעוניים</span></div>
-            <div class="panel-header-sub">ציר X (שני הגרפים העליונים): שנה+רבעון • ציר Y: אחוזים</div>
+            <div class="panel-header-title"><span class="icon">📈</span><span>גרפים</span></div>
+            <div class="panel-header-sub">שני הגרפים העליונים רבעוניים • ציר Y באחוזים</div>
           </div>
 
           <div class="chart-block">
@@ -378,7 +370,6 @@
             </div>
           </div>
 
-          <!-- פילטרים פרטיים לגרף האחזקה לפי מסלול וסחירות -->
           <div class="chart-filters-row">
             <div class="field">
               <label>שנה (גרף אחזקה לפי מסלול וסחירות)</label>
@@ -433,6 +424,7 @@ function safeNumber(v) {
   const x = Number(v);
   return isNaN(x) ? null : x;
 }
+function nz(v){ const x=safeNumber(v); return x==null?0:x; }
 
 function setSelectOptions(selectEl, values, { includeAll = true, allLabel = "הכול" } = {}) {
   const frag = document.createDocumentFragment();
@@ -542,15 +534,13 @@ function buildFilters() {
     el.addEventListener("change", onFilterChange);
   });
 
-  // מצב עמודות
   const colMode = document.getElementById("col_mode");
   colMode.addEventListener("change", ()=>{
     toggleLiquidityQuarterVisibility();
     refreshLiquidityFilters();
-    applyFilters(); // יפעיל רינדור טבלה/גרפים
+    applyFilters();
   });
 
-  // פילטרים פרטיים לגרף האחזקה לפי מסלול+סחירות
   const ly = document.getElementById("liq_year_filter");
   const lq = document.getElementById("liq_quarter_filter");
   if (ly) {
@@ -635,31 +625,26 @@ function applyFilters() {
   const f = getCurrentFilters();
   const rows = state.raw.filter(r=>Number(r.year)>=2022);
 
-  // הסט הכללי (כולל category) – לטבלה ושני הגרפים העליונים
+  // נתונים כלליים לטבלה ושני הגרפים העליונים (כולל סינון סחירות וקטגוריה)
   state.filtered = rows.filter(r=>{
     if (f.saving_type && r.saving_type !== f.saving_type) return false;
     if (f.fund_type   && r.fund_type   !== f.fund_type)   return false;
     if (f.track       && r.track_name  !== f.track)       return false;
     if (f.liquidity   && r.liquidity   !== f.liquidity)   return false;
-
-    if (Array.isArray(f.category) && f.category.length &&
-        !f.category.includes(r.category)) return false;
-
-    if (Array.isArray(f.year) && f.year.length &&
-        !f.year.includes(String(r.year))) return false;
-
+    if (Array.isArray(f.category) && f.category.length && !f.category.includes(r.category)) return false;
+    if (Array.isArray(f.year) && f.year.length && !f.year.includes(String(r.year))) return false;
     return true;
   });
 
-  refreshLiquidityFilters();       // עדכון שנה/רבעון לגרף התחתון
+  refreshLiquidityFilters();
   updateFiltersStatus();
   renderKPIs();
-  renderMatrixTable();             // רנדר טבלה
-  renderCharts();                  // רנדר גרפים
+  renderMatrixTable();
+  renderCharts();
 }
 
 /* ————————————————————————
-   MATRIX WIDTH MODE – מתאים רוחב טבלה למצב עמודות
+   MATRIX WIDTH MODE
 ———————————————————————— */
 function applyMatrixTableWidthMode() {
   const table = document.getElementById("matrix_table");
@@ -718,7 +703,7 @@ function renderKPIs() {
 }
 
 /* ————————————————————————
-   MATRIX TABLE (Quarter / Year modes)
+   MATRIX TABLE (בקיצור – ללא שינוי לוגי כאן לעומת הבקשה)
 ———————————————————————— */
 function renderMatrixTable() {
   const table = document.getElementById("matrix_table");
@@ -732,12 +717,12 @@ function renderMatrixTable() {
   if (!rows.length) {
     table.innerHTML = "";
     emptyEl.style.display = "block";
-    applyMatrixTableWidthMode(); // גם כשאין נתונים
+    applyMatrixTableWidthMode();
     return;
   }
   emptyEl.style.display = "none";
 
-  // שנים -> סט רבעונים
+  // שנים ורבעונים
   const yearMap = new Map();
   rows.forEach(r => {
     const y = Number(r.year);
@@ -746,238 +731,166 @@ function renderMatrixTable() {
     if (!yearMap.has(y)) yearMap.set(y, new Set());
     if (q) yearMap.get(y).add(q);
   });
-
   const years = Array.from(yearMap.keys()).sort((a,b)=>a-b);
-  years.forEach(y => {
-    const qs = Array.from(yearMap.get(y)).sort((a,b)=>a-b);
-    yearMap.set(y, qs);
-  });
+  years.forEach(y => yearMap.set(y, Array.from(yearMap.get(y)).sort((a,b)=>a-b)));
 
-  // שורות = מסלולים
-  const tracks = Array.from(new Set(rows.map(r => r.track_name))).sort(
-    (a,b)=>String(a).localeCompare(String(b),"he")
-  );
+  const tracks = Array.from(new Set(rows.map(r => r.track_name))).sort((a,b)=>String(a).localeCompare(String(b),"he"));
 
-  // אגרגציה בסיסית לפי מסלול/שנה/רבעון
+  // אגרגציה
   const agg = {};
   rows.forEach(r => {
-    const track = r.track_name;
-    const y = Number(r.year);
-    const q = Number(r.quarter) || null;
-    const w = safeNumber(r.weight) || 0;
-    const c = safeNumber(r.contribution) || 0;
-
-    if (!agg[track]) agg[track] = {};
-    if (!agg[track][y]) agg[track][y] = {};
+    const t=r.track_name, y=Number(r.year), q=Number(r.quarter)||null;
+    const w=nz(r.weight), c=nz(r.contribution);
+    if (!agg[t]) agg[t]={};
+    if (!agg[t][y]) agg[t][y]={};
     if (q) {
-      if (!agg[track][y][q]) agg[track][y][q] = { w: 0, c: 0 };
-      agg[track][y][q].w += w;
-      agg[track][y][q].c += c;
+      if (!agg[t][y][q]) agg[t][y][q]={w:0,c:0};
+      agg[t][y][q].w += w; agg[t][y][q].c += c;
     }
   });
 
   let html = "<thead>";
-
   if (mode === "quarter") {
     titleEl.textContent = "מטריצת שיעור מסך התיק, תרומה (Δ), תשואה ודירוגים – לפי רבעון";
-    // כותרות: שנים -> רבעונים -> עמודות
     html += '<tr><th rowspan="3">מסלול</th>';
-    years.forEach(y => {
-      const qs = yearMap.get(y) || [];
-      html += `<th colspan="${qs.length * 5}">${y}</th>`;
-    });
-    html += "</tr>";
+    years.forEach(y => { const qs=yearMap.get(y)||[]; html += `<th colspan="${qs.length*5}">${y}</th>`; });
+    html += "</tr><tr>";
+    years.forEach(y => (yearMap.get(y)||[]).forEach(q=> html += `<th colspan="5">רבעון ${q}</th>`));
+    html += "</tr><tr>";
+    years.forEach(y => (yearMap.get(y)||[]).forEach(()=> html += "<th>שיעור מסך התיק (%)</th><th>תרומה (Δ) (%)</th><th>תשואה (%)</th><th>דירוג תשואה</th><th>דירוג מסך התיק</th>"));
+    html += "</tr></thead><tbody>";
 
-    html += "<tr>";
-    years.forEach(y => {
-      const qs = yearMap.get(y) || [];
-      qs.forEach(q => {
-        html += `<th colspan="5">רבעון ${q}</th>`;
-      });
-    });
-    html += "</tr>";
-
-    html += "<tr>";
-    years.forEach(y => {
-      const qs = yearMap.get(y) || [];
-      qs.forEach(() => {
-        html += "<th>שיעור מסך התיק (%)</th><th>תרומה (Δ) (%)</th><th>תשואה (%)</th><th>דירוג תשואה</th><th>דירוג מסך התיק</th>";
-      });
-    });
-    html += "</tr>";
-    html += "</thead><tbody>";
-
-    // דירוגים פר-רבעון
-    const rankReturnMap = {};
-    const rankWeightMap = {};
+    // דירוגים
+    const rankReturnMap={}; const rankWeightMap={};
     years.forEach(y=>{
-      const qs = yearMap.get(y) || [];
       rankReturnMap[y]={}; rankWeightMap[y]={};
-      qs.forEach(q=>{
-        const arrR=[]; const arrW=[];
+      (yearMap.get(y)||[]).forEach(q=>{
+        const arrR=[], arrW=[];
         tracks.forEach(t=>{
           const cell=agg[t]?.[y]?.[q];
           if (!cell) return;
           if (Math.abs(cell.w)>1e-9) {
-            const yv = cell.c/cell.w;
-            if (yv && Math.abs(yv)>1e-9) arrR.push({t, val: yv});
+            const yv=cell.c/cell.w;
+            if (yv && Math.abs(yv)>1e-9) arrR.push({t,val:yv});
+            arrW.push({t,val:cell.w});
           }
-          if (cell.w && Math.abs(cell.w)>1e-9) arrW.push({t, val: cell.w});
         });
         arrR.sort((a,b)=>b.val-a.val);
         arrW.sort((a,b)=>b.val-a.val);
-        const mapR={}; arrR.forEach((o,i)=>mapR[o.t]={rank:i+1,total:arrR.length});
-        const mapW={}; arrW.forEach((o,i)=>mapW[o.t]={rank:i+1,total:arrW.length});
-        rankReturnMap[y][q]=mapR; rankWeightMap[y][q]=mapW;
+        const mR={}; arrR.forEach((o,i)=>mR[o.t]={rank:i+1,total:arrR.length});
+        const mW={}; arrW.forEach((o,i)=>mW[o.t]={rank:i+1,total:arrW.length});
+        rankReturnMap[y][q]=mR; rankWeightMap[y][q]=mW;
       });
     });
 
-    tracks.forEach(track=>{
-      html += `<tr><td class="matrix-row-header">${track}</td>`;
+    tracks.forEach(t=>{
+      html += `<tr><td class="matrix-row-header">${t}</td>`;
       years.forEach(y=>{
-        const qs = yearMap.get(y) || [];
-        qs.forEach(q=>{
-          const cell = agg[track]?.[y]?.[q] || null;
-
-          // משקל
-          let wDisplay = "-";
-          if (cell && Math.abs(cell.w)>1e-6) wDisplay = (cell.w*100).toFixed(2)+"%";
-
-          // תרומה Δ
-          let cDeltaDisplay = "-";
-          if (cell) {
-            let cDelta = null;
-            if (q===1) {
-              cDelta = cell.c; // לרבעון 1 ללא שינוי
-            } else {
-              const prev = agg[track]?.[y]?.[q-1] || null;
-              cDelta = prev ? (cell.c - prev.c) : null;
+        (yearMap.get(y)||[]).forEach(q=>{
+          const cell=agg[t]?.[y]?.[q]||null;
+          let wDisp="-", cDeltaDisp="-", yDisp="-", rRet="", rWei="";
+          if (cell && Math.abs(cell.w)>1e-9) wDisp=(cell.w*100).toFixed(2)+"%";
+          if (cell){
+            let cDelta=null;
+            if (q===1){ cDelta=cell.c; }
+            else {
+              const prev=agg[t]?.[y]?.[q-1]||null;
+              cDelta=prev? (cell.c-prev.c): null;
             }
-            if (cDelta!==null && Math.abs(cDelta)>1e-9) cDeltaDisplay = (cDelta*100).toFixed(2)+"%";
-            else if (q===1) cDeltaDisplay = ((cell.c||0)*100).toFixed(2)+"%";
+            if (cDelta!==null) cDeltaDisp=(cDelta*100).toFixed(2)+"%";
           }
-
-          // תשואה + דירוגים
-          let yDisplay = "-";
-          let rRet = ""; let rWei="";
-          if (cell && Math.abs(cell.w)>1e-9) {
-            const yv = cell.c/cell.w;
+          if (cell && Math.abs(cell.w)>1e-9){
+            const yv=cell.c/cell.w;
             if (Math.abs(yv)>1e-9) {
-              yDisplay = (yv*100).toFixed(2)+"%";
-              const infoR = rankReturnMap[y]?.[q]?.[track];
-              if (infoR && infoR.total>0) rRet = `${infoR.rank}/${infoR.total}`;
+              yDisp=(yv*100).toFixed(2)+"%";
+              const infoR=rankReturnMap[y]?.[q]?.[t];
+              if (infoR && infoR.total>0) rRet=`${infoR.rank}/${infoR.total}`;
             }
-            const infoW = rankWeightMap[y]?.[q]?.[track];
-            if (infoW && infoW.total>0) rWei = `${infoW.rank}/${infoW.total}`;
+            const infoW=rankWeightMap[y]?.[q]?.[t];
+            if (infoW && infoW.total>0) rWei=`${infoW.rank}/${infoW.total}`;
           }
-
-          html += `<td>${wDisplay}</td><td>${cDeltaDisplay}</td><td>${yDisplay}</td><td>${rRet}</td><td>${rWei}</td>`;
+          html += `<td>${wDisp}</td><td>${cDeltaDisp}</td><td>${yDisp}</td><td>${rRet}</td><td>${rWei}</td>`;
         });
       });
       html += "</tr>";
     });
-
     html += "</tbody>";
-    table.innerHTML = html;
-
   } else {
     titleEl.textContent = "מטריצת שיעור מסך התיק, תרומה (שנתי), תשואה ודירוגים – לפי שנים";
-    // כותרות: שנים בלבד (5 עמודות לכל שנה)
     html += '<tr><th rowspan="2">מסלול</th>';
-    years.forEach(y => html += `<th colspan="5">${y}</th>`);
-    html += "</tr>";
+    years.forEach(y=> html += `<th colspan="5">${y}</th>`);
+    html += "</tr><tr>";
+    years.forEach(()=> html += "<th>שיעור מסך התיק (%)</th><th>תרומה (%)</th><th>תשואה (%)</th><th>דירוג תשואה</th><th>דירוג מסך התיק</th>");
+    html += "</tr></thead><tbody>";
 
-    html += "<tr>";
-    years.forEach(()=> {
-      html += "<th>שיעור מסך התיק (%)</th><th>תרומה (%)</th><th>תשואה (%)</th><th>דירוג תשואה</th><th>דירוג מסך התיק</th>";
+    const rankReturnYear={}, rankWeightYear={};
+    tracks.forEach(t=>{
+      years.forEach(y=>{
+        const bq=bestQuarterForYear(agg,t,y); const c= bq? agg[t]?.[y]?.[bq]:null;
+        if (!rankReturnYear[y]){ rankReturnYear[y]={}; rankWeightYear[y]={}; }
+      });
     });
-    html += "</tr>";
-    html += "</thead><tbody>";
-
-    // דירוגים פר-שנה (מבוססים על רבעון "הטוב ביותר": 4→3→2→1)
-    const rankReturnYear = {};
-    const rankWeightYear = {};
     years.forEach(y=>{
-      const arrR=[]; const arrW=[];
+      const arrR=[], arrW=[];
       tracks.forEach(t=>{
-        const bq = bestQuarterForYear(agg, t, y);
-        if (!bq) return;
-        const cell = agg[t]?.[y]?.[bq];
+        const bq=bestQuarterForYear(agg,t,y); const cell=bq? agg[t]?.[y]?.[bq]:null;
         if (!cell) return;
-        if (Math.abs(cell.w)>1e-9) {
-          const yv = cell.c/cell.w;
-          if (yv && Math.abs(yv)>1e-9) arrR.push({t, val: yv});
-          arrW.push({t, val: cell.w});
+        if (Math.abs(cell.w)>1e-9){
+          const yv=cell.c/cell.w;
+          if (yv && Math.abs(yv)>1e-9) arrR.push({t,val:yv});
+          arrW.push({t,val:cell.w});
         }
       });
       arrR.sort((a,b)=>b.val-a.val);
       arrW.sort((a,b)=>b.val-a.val);
-      const mapR={}; arrR.forEach((o,i)=>mapR[o.t]={rank:i+1,total:arrR.length});
-      const mapW={}; arrW.forEach((o,i)=>mapW[o.t]={rank:i+1,total:arrW.length});
-      rankReturnYear[y]=mapR; rankWeightYear[y]=mapW;
+      const mR={}; arrR.forEach((o,i)=>mR[o.t]={rank:i+1,total:arrR.length});
+      const mW={}; arrW.forEach((o,i)=>mW[o.t]={rank:i+1,total:arrW.length});
+      rankReturnYear[y]=mR; rankWeightYear[y]=mW;
     });
 
-    tracks.forEach(track=>{
-      html += `<tr><td class="matrix-row-header">${track}</td>`;
+    tracks.forEach(t=>{
+      html += `<tr><td class="matrix-row-header">${t}</td>`;
       years.forEach(y=>{
-        const bq = bestQuarterForYear(agg, track, y);
-        const cell = bq ? agg[track]?.[y]?.[bq] : null;
-
-        // משקל מתוך רבעון 4/3/2/1 (ללא ממוצע/חיסור)
-        let wDisplay = "-";
-        if (cell && Math.abs(cell.w)>1e-6) wDisplay = (cell.w*100).toFixed(2)+"%";
-
-        // תרומה שנתית = התרומה של אותו רבעון נבחר (אין חיסור!)
-        let cDisplay = "-";
-        if (cell) cDisplay = (cell.c*100).toFixed(2)+"%";
-
-        // תשואה = c/w של אותו רבעון נבחר
-        let yDisplay = "-";
-        if (cell && Math.abs(cell.w)>1e-9) {
-          const yv = cell.c/cell.w;
-          if (Math.abs(yv)>1e-9) yDisplay = (yv*100).toFixed(2)+"%";
+        const bq=bestQuarterForYear(agg,t,y); const cell=bq? agg[t]?.[y]?.[bq]:null;
+        let wDisp="-", cDisp="-", yDisp="-", rRet="", rWei="";
+        if (cell && Math.abs(cell.w)>1e-9){
+          wDisp=(cell.w*100).toFixed(2)+"%";
+          cDisp=(cell.c*100).toFixed(2)+"%";
+          const yv=cell.c/cell.w;
+          if (Math.abs(yv)>1e-9) yDisp=(yv*100).toFixed(2)+"%";
         }
-
-        // דירוגים שנתיים
-        const rR = rankReturnYear[y]?.[track];
-        const rW = rankWeightYear[y]?.[track];
-        const rankR = rR ? `${rR.rank}/${rR.total}` : "";
-        const rankW = rW ? `${rW.rank}/${rW.total}` : "";
-
-        html += `<td>${wDisplay}</td><td>${cDisplay}</td><td>${yDisplay}</td><td>${rankR}</td><td>${rankW}</td>`;
+        const RR=rankReturnYear[y]?.[t]; const RW=rankWeightYear[y]?.[t];
+        if (RR) rRet=`${RR.rank}/${RR.total}`;
+        if (RW) rWei=`${RW.rank}/${RW.total}`;
+        html += `<td>${wDisp}</td><td>${cDisp}</td><td>${yDisp}</td><td>${rRet}</td><td>${rWei}</td>`;
       });
       html += "</tr>";
     });
-
     html += "</tbody>";
-    table.innerHTML = html;
   }
 
-  // להתאים את רוחב הטבלה לפי מצב העמודות
+  table.innerHTML = html;
   applyMatrixTableWidthMode();
 }
 
 /* ————————————————————————
-   LIQUIDITY CHART DATA (IGNORE CATEGORY & IGNORE TOP 'LIQUIDITY' FILTER)
-   👉 שינוי מרכזי: הגרף התחתון לא מושפע מהסנן הראשי "סחירות"
+   LIQUIDITY CHART BASE (IGNORE CATEGORY & LIQUIDITY FILTERS)
 ———————————————————————— */
 function rowsForLiquidityBase() {
-  // *ללא* category וללא liquidity — כדי שתמיד יופיעו שתי העמודות (סחיר/לא סחיר)
   const f = getCurrentFilters();
   const rows = state.raw.filter(r=>Number(r.year)>=2022);
   return rows.filter(r=>{
     if (f.saving_type && r.saving_type !== f.saving_type) return false;
     if (f.fund_type   && r.fund_type   !== f.fund_type)   return false;
     if (f.track       && r.track_name  !== f.track)       return false;
-    // ❌ בכוונה לא מסננים לפי f.liquidity
-    if (Array.isArray(f.year) && f.year.length &&
-        !f.year.includes(String(r.year))) return false;
+    // בכוונה לא מסננים לפי liquidity ולא לפי category בגרף זה
+    if (Array.isArray(f.year) && f.year.length && !f.year.includes(String(r.year))) return false;
     return true;
   });
 }
 
 /* ————————————————————————
-   LIQUIDITY CHART PRIVATE FILTERS (year/quarter switch by mode)
+   LIQUIDITY CHART PRIVATE FILTERS
 ———————————————————————— */
 function toggleLiquidityQuarterVisibility() {
   const mode = document.getElementById("col_mode").value || "quarter";
@@ -1052,12 +965,12 @@ function refreshLiquidityFilters() {
     }
     selQuarter.value = String(quarterToUse);
   } else {
-    selQuarter.innerHTML = ""; // yearly mode: לא מוצגים רבעונים
+    selQuarter.innerHTML = "";
   }
 }
 
 /* ————————————————————————
-   CHARTS (top charts stay quarterly on purpose)
+   CHARTS
 ———————————————————————— */
 function renderCharts() {
   const rows = state.filtered;
@@ -1069,6 +982,9 @@ function renderCharts() {
     return;
   }
 
+  const f = getCurrentFilters();
+
+  // -------- הכנה ללייבלים של ציר הזמן --------
   const timeSet = new Set();
   rows.forEach(r=>{
     if (r.year && r.quarter) timeSet.add(r.year+"|"+r.quarter);
@@ -1091,40 +1007,66 @@ function renderCharts() {
     return t ? `${c} – ${t}` : c;
   };
 
+  // -------- אגרגציה לשני הגרפים העליונים --------
   const seriesYield = {};
   const seriesWeightSum = {};
   const seriesWeightN = {};
-  const categorySelected = getCurrentFilters().category.length>0;
+
+  // סט קטגוריות לתצוגה בגרף "אחזקה רבעונית ממוצעת לתצוגה (%)"
+  // לוגיקה חדשה:
+  // - אם נבחרו קטגוריות בפילטר => להשתמש רק בהן
+  // - אחרת אם נבחרה "סחירות" (סחיר/לא סחיר) => להשתמש בכל הקטגוריות שמופיעות תחת אותה סחירות
+  // - אחרת => להשתמש בכל הקטגוריות (לפי הנתונים המסוננים האחרים)
+  let allowedCategories = null; // null => כל הקטגוריות
+  if (Array.isArray(f.category) && f.category.length) {
+    allowedCategories = new Set(f.category);
+  } else if (f.liquidity) {
+    const catsUnderLiquidity = new Set(
+      rows.filter(r=>r.liquidity===f.liquidity)
+          .map(r=>r.category)
+          .filter(Boolean)
+    );
+    allowedCategories = catsUnderLiquidity;
+  } else {
+    // allowedCategories=null => כל מה שקיים ב-rows
+  }
 
   rows.forEach(r=>{
     if (!r.year || !r.quarter) return;
     const tk = `${r.year}|${r.quarter}`;
     const sk = seriesKey(r);
-    const w = safeNumber(r.weight)||0;
-    const c = safeNumber(r.contribution)||0;
+
+    // לצורך "תשואה רבעונית" תמיד נסכם את כל הרשומות המסוננות (כולל סחירות וקטגוריות)
+    const wAll = nz(r.weight);
+    const cAll = nz(r.contribution);
 
     if (!seriesYield[sk]) seriesYield[sk]={};
     if (!seriesYield[sk][tk]) seriesYield[sk][tk]={w:0,c:0};
-    seriesYield[sk][tk].w += w;
-    seriesYield[sk][tk].c += c;
+    seriesYield[sk][tk].w += wAll;
+    seriesYield[sk][tk].c += cAll;
 
-    if (!seriesWeightSum[sk]) seriesWeightSum[sk]={};
-    if (!seriesWeightSum[sk][tk]) {
-      seriesWeightSum[sk][tk]=0;
-      if (!seriesWeightN[sk]) seriesWeightN[sk]={};
-      seriesWeightN[sk][tk]=0;
+    // לצורך "אחזקה רבעונית ממוצעת לתצוגה" נחשב ממוצע רק על allowedCategories (אם הוגדר) אחרת על כל הקטגוריות
+    const useThisRowForWeight = (allowedCategories===null) ? true : allowedCategories.has(r.category);
+    if (useThisRowForWeight) {
+      if (!seriesWeightSum[sk]) seriesWeightSum[sk]={};
+      if (!seriesWeightSum[sk][tk]) {
+        seriesWeightSum[sk][tk]=0;
+        if (!seriesWeightN[sk]) seriesWeightN[sk]={};
+        seriesWeightN[sk][tk]=0;
+      }
+      seriesWeightSum[sk][tk]+= nz(r.weight);
+      seriesWeightN[sk][tk]+= 1;
     }
-    seriesWeightSum[sk][tk]+=w;
-    seriesWeightN[sk][tk]+=1;
   });
 
   const palette = [
-    "#53d3ff","#ffb74ד","#81c784","#ba68c8","#ff8a65",
+    "#53d3ff","#ffb74d","#81c784","#ba68c8","#ff8a65",
     "#4db6ac","#ce93d8","#f06292","#ffd54f","#7986cb",
     "#90caf9","#a5d6a7","#ffe082","#ffab91","#b39ddb"
   ];
   const keys = Object.keys(seriesYield).sort((a,b)=>a.localeCompare(b,"he"));
 
+  // ——— גרף תשואה רבעונית (%) ———
   const datasetsYield = keys.map((name,i)=>{
     const color=palette[i%palette.length];
     const data=timeKeys.map(k=>{
@@ -1143,15 +1085,14 @@ function renderCharts() {
     };
   });
 
+  // ——— גרף אחזקה רבעונית ממוצעת לתצוגה (%) ———
+  // לוגיקה מעודכנת: תמיד ממוצע (sum(weights)/count)*100 על פני הרשומות שעומדות ב-allowedCategories.
+  // אם אין שום רשומה לרביעון מסוים – מציגים null (חור).
   const datasetsWeight = keys.map((name,i)=>{
     const color=palette[i%palette.length];
     const data=timeKeys.map(k=>{
-      if (!categorySelected) {
-        const has = (seriesYield[name][k] && seriesYield[name][k].w>0);
-        return has ? 100 : null;
-      }
-      const sum=seriesWeightSum[name][k];
-      const n=seriesWeightN[name][k];
+      const sum=seriesWeightSum[name]?.[k] ?? 0;
+      const n  =seriesWeightN[name]?.[k] ?? 0;
       if (!n) return null;
       return (sum/n)*100;
     });
@@ -1192,10 +1133,10 @@ function renderCharts() {
   state.chartWeight = new Chart(ctxWeight,{
     type:"bar",
     data:{labels,datasets:datasetsWeight},
-    options:opt("אחזקה רבעונית ממוצעת (%)")
+    options:opt("אחזקה רבעונית ממוצעת לתצוגה (%)")
   });
 
-  renderLiquidityChart(); // גרף תחתון – מושפע ממצב עמודות
+  renderLiquidityChart(); // הגרף התחתון
 }
 
 /* ————————————————————————
@@ -1229,12 +1170,11 @@ function renderLiquidityChart() {
       String(r.year) === yearSel && String(r.quarter) === quarterSel
     );
   } else {
-    // yearly mode: choose best available quarter per track within the selected year
     const rowsYear = baseRows.filter(r => String(r.year)===yearSel && r.quarter);
     const agg = {};
     rowsYear.forEach(r=>{
       const t=r.track_name; const q=Number(r.quarter);
-      const w=safeNumber(r.weight)||0;
+      const w=nz(r.weight);
       const key = `${t}|${q}|${r.liquidity||""}`;
       if (!agg[key]) agg[key]=0;
       agg[key]+=w;
@@ -1270,7 +1210,7 @@ function renderLiquidityChart() {
     let wIlliquid = 0;
     rows.forEach(r=>{
       if (r.track_name !== track) return;
-      const w = safeNumber(r.weight) || 0;
+      const w = nz(r.weight);
       if (r.liquidity === "סחיר") {
         wLiquid += w;
       } else {
