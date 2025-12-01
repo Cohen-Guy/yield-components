@@ -302,7 +302,7 @@
         <div class="panel-header">
           <div class="panel-header-title">
             <span class="icon">🧮</span>
-            <span>מטריצת שיעור מסך התיק, תרומה, תשואה ודירוג תשואה לפי מסלול / שנה / רבעון</span>
+            <span>מטריצת שיעור מסך התיק, תרומה, תשואה ודירוגים לפי מסלול / שנה / רבעון</span>
           </div>
         </div>
         <div id="matrix_empty" class="status-text" style="margin-top:4px; display:none;">
@@ -510,7 +510,6 @@ function buildFilters() {
     el.addEventListener("change", onFilterChange);
   });
 
-  // פילטרים פרטיים לגרף האחזקה לפי מסלול+סחירות
   const ly = document.getElementById("liq_year_filter");
   const lq = document.getElementById("liq_quarter_filter");
   if (ly) {
@@ -658,7 +657,7 @@ function renderKPIs() {
 }
 
 /* ————————————————————————
-   MATRIX TABLE (מסלול / שנה / רבעון + תרומה + תשואה + דירוג תשואה)
+   MATRIX TABLE (מסלול / שנה / רבעון + תרומה + תשואה + דירוגים)
 ———————————————————————— */
 function renderMatrixTable() {
   const table = document.getElementById("matrix_table");
@@ -712,59 +711,82 @@ function renderMatrixTable() {
     agg[track][y][q].c += c;
   });
 
-  // חישוב דירוג תשואה לכל רבעון:
-  // רק מסלולים עם תשואה > 0 נכנסים לחישוב.
-  const rankMap = {}; // rankMap[year][quarter][track] = {rank, total}
+  // חישוב דירוגים לכל רבעון:
+  // דירוג תשואה: רק תשואות > 0
+  // דירוג מסך התיק (משקל): רק משקלים > 0
+  const rankReturnMap = {}; // rankReturnMap[year][quarter][track] = {rank, total}
+  const rankWeightMap = {}; // rankWeightMap[year][quarter][track] = {rank, total}
+
   years.forEach(y => {
     const qs = yearMap.get(y) || [];
-    if (!rankMap[y]) rankMap[y] = {};
+    if (!rankReturnMap[y]) rankReturnMap[y] = {};
+    if (!rankWeightMap[y]) rankWeightMap[y] = {};
+
     qs.forEach(q => {
-      const arr = [];
+      const arrReturn = [];
+      const arrWeight = [];
+
       tracks.forEach(track => {
         const cell = agg[track] && agg[track][y] && agg[track][y][q] ? agg[track][y][q] : null;
         if (!cell) return;
-        if (Math.abs(cell.w) <= 1e-9) return;
-        const yVal = cell.c / cell.w; // תשואה (לא באחוזים)
-        if (!yVal || Math.abs(yVal) <= 1e-9) return; // תשואה ריקה / אפס לא נכנסת לדירוג
-        arr.push({ track, yVal });
+
+        // תשואה
+        if (Math.abs(cell.w) > 1e-9) {
+          const yVal = cell.c / cell.w;
+          if (yVal && Math.abs(yVal) > 1e-9) {
+            arrReturn.push({ track, val: yVal });
+          }
+        }
+
+        // משקל (מסך התיק)
+        if (cell.w && Math.abs(cell.w) > 1e-9) {
+          arrWeight.push({ track, val: cell.w });
+        }
       });
 
-      arr.sort((a,b)=>b.yVal - a.yVal); // מירבי ראשון
-      const total = arr.length;
-      const mapQ = {};
-      arr.forEach((item,idx)=>{
-        mapQ[item.track] = { rank: idx+1, total };
-      });
-      rankMap[y][q] = mapQ;
+      // דירוג מירבי ראשון
+      arrReturn.sort((a,b)=>b.val - a.val);
+      arrWeight.sort((a,b)=>b.val - a.val);
+
+      const totalR = arrReturn.length;
+      const totalW = arrWeight.length;
+
+      const mapR = {};
+      arrReturn.forEach((item,idx)=> mapR[item.track] = { rank: idx+1, total: totalR });
+      const mapW = {};
+      arrWeight.forEach((item,idx)=> mapW[item.track] = { rank: idx+1, total: totalW });
+
+      rankReturnMap[y][q] = mapR;
+      rankWeightMap[y][q] = mapW;
     });
   });
 
   let html = "<thead>";
 
-  // שורת כותרת ראשונה – שנים (כל שנה: 4 עמודות לכל רבעון – משקל, תרומה, תשואה, דירוג תשואה)
+  // שורת כותרת ראשונה – שנים (כל שנה: 5 עמודות לכל רבעון – משקל, תרומה, תשואה, דירוג תשואה, דירוג מסך התיק)
   html += '<tr><th rowspan="3">מסלול</th>';
   years.forEach(y => {
     const qs = yearMap.get(y) || [];
-    html += `<th colspan="${qs.length * 4}">${y}</th>`;
+    html += `<th colspan="${qs.length * 5}">${y}</th>`;
   });
   html += "</tr>";
 
-  // שורת כותרת שנייה – רבעונים (כל רבעון colspan=4)
+  // שורת כותרת שנייה – רבעונים (כל רבעון colspan=5)
   html += "<tr>";
   years.forEach(y => {
     const qs = yearMap.get(y) || [];
     qs.forEach(q => {
-      html += `<th colspan="4">רבעון ${q}</th>`;
+      html += `<th colspan="5">רבעון ${q}</th>`;
     });
   });
   html += "</tr>";
 
-  // שורת כותרת שלישית – משקל + תרומה + תשואה + דירוג
+  // שורת כותרת שלישית – משקל + תרומה + תשואה + דירוג תשואה + דירוג מסך התיק
   html += "<tr>";
   years.forEach(y => {
     const qs = yearMap.get(y) || [];
     qs.forEach(() => {
-      html += "<th>שיעור מסך התיק (%)</th><th>תרומה (%)</th><th>תשואה (%)</th><th>דירוג תשואה</th>";
+      html += "<th>שיעור מסך התיק (%)</th><th>תרומה (%)</th><th>תשואה (%)</th><th>דירוג תשואה</th><th>דירוג מסך התיק</th>";
     });
   });
   html += "</tr>";
@@ -782,7 +804,8 @@ function renderMatrixTable() {
         let wDisplay = "-";
         let cDisplay = "-";
         let yDisplay = "-";
-        let rankDisplay = "";
+        let rankReturnDisplay = "";
+        let rankWeightDisplay = "";
 
         if (cell) {
           if (Math.abs(cell.w) > 1e-6) {
@@ -799,17 +822,19 @@ function renderMatrixTable() {
             const yPct = yVal * 100;
             if (Math.abs(yVal) > 1e-9) {
               yDisplay = yPct.toFixed(2) + "%";
-              const rankInfo = rankMap[y] && rankMap[y][q] && rankMap[y][q][track]
-                ? rankMap[y][q][track]
-                : null;
-              if (rankInfo && rankInfo.total > 0) {
-                rankDisplay = `${rankInfo.rank}/${rankInfo.total}`;
-              }
+              const rInfo = rankReturnMap[y] && rankReturnMap[y][q] && rankReturnMap[y][q][track];
+              if (rInfo && rInfo.total > 0) rankReturnDisplay = `${rInfo.rank}/${rInfo.total}`;
             }
+          }
+
+          // דירוג מסך התיק – רק אם w>0
+          if (cell.w && Math.abs(cell.w) > 1e-9) {
+            const wInfo = rankWeightMap[y] && rankWeightMap[y][q] && rankWeightMap[y][q][track];
+            if (wInfo && wInfo.total > 0) rankWeightDisplay = `${wInfo.rank}/${wInfo.total}`;
           }
         }
 
-        html += `<td>${wDisplay}</td><td>${cDisplay}</td><td>${yDisplay}</td><td>${rankDisplay}</td>`;
+        html += `<td>${wDisplay}</td><td>${cDisplay}</td><td>${yDisplay}</td><td>${rankReturnDisplay}</td><td>${rankWeightDisplay}</td>`;
       });
     });
     html += "</tr>";
