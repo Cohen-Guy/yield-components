@@ -171,7 +171,7 @@
       overflow: auto;
     }
 
-    /* טבלה לפי רוחב התוכן בלבד */
+    /* Auto-fit to content, hide non-selected columns entirely */
     .matrix-table {
       border-collapse: collapse;
       font-size: 0.78rem;
@@ -203,7 +203,6 @@
       z-index: 1;
     }
 
-    /* מספרים LTR */
     .num {
       direction: ltr;
       unicode-bidi: isolate;
@@ -213,7 +212,6 @@
       min-width: 4.8ch;
     }
 
-    /* הדגשת שורות מנורה */
     tr.row-menora td,
     tr.row-menora .matrix-row-header {
       background: rgba(34, 60, 140, 0.22) !important;
@@ -234,10 +232,7 @@
       gap: 6px;
     }
 
-    /* גודל קבוע לכל הגרפים */
     .chart-container { position: relative; width: 100%; height: 260px; }
-
-    /* מאפשר גם להגביל רוחב מקסימלי לגרף התחתון במקרה הצורך (לא חובה) */
     .chart-container.narrow-center { max-width: 1100px; margin-inline: auto; }
 
     .chart-filters-row {
@@ -266,7 +261,7 @@
     <div class="sidebar-logo">
       <div class="sidebar-logo-icon">⧉</div>
       <div class="sidebar-logo-text">
-        <div class="sidebar-logo-title">מרכיבי תשואה</div>
+        <div class="sidebar-logo-title">मरכיבי תשואה</div>
         <div class="sidebar-logo-sub">Dashboard v4.1.0</div>
       </div>
     </div>
@@ -365,7 +360,6 @@
         <select id="f_year" multiple></select>
       </div>
 
-      <!-- ⏳ פילטר ציר זמן (שנה/רבעון) -->
       <div class="field timeline-wrap">
         <label>ציר זמן (שנה/רבעון) – גרור ימין/שמאל</label>
         <div class="timeline-controls">
@@ -386,7 +380,7 @@
         <div class="panel-header">
           <div class="panel-header-title">
             <span class="icon">🧮</span>
-            <span id="matrix_title">מטריצת שיעור מסך התיק, תרומה, תשואה, דירוגים וסיכום תקופה</span>
+            <span id="matrix_title">מטריצת שיעור מסך התיק, תשואה, דירוגים וסיכום תקופה</span>
           </div>
         </div>
         <div id="matrix_empty" class="status-text" style="margin-top:4px; display:none;">
@@ -438,7 +432,6 @@
 
           <div class="chart-block">
             <div class="chart-title" id="liq_chart_title">אחזקה לפי מסלול וסחירות (%)</div>
-            <!-- שמירת גובה זהה לגרפים העליונים + אפשרות להגביל רוחב מקסימלי (לבחירה) -->
             <div class="chart-container narrow-center">
               <canvas id="chart_liquidity"></canvas>
             </div>
@@ -478,9 +471,9 @@ const FILTERS = {
   year:        { id: "f_year",        field: "year",          sort: "numeric", multi: true }
 };
 
+/* שדות הטבלה: הוסר "תרומה (Δ) (%)" לחלוטין */
 const TABLE_FIELDS = [
   { key: "weight",     label: "שיעור מסך התיק (%)" },
-  { key: "contrib",    label: "תרומה (Δ) (%)" },
   { key: "yield",      label: "תשואה (%)" },
   { key: "rank_yield", label: "דירוג תשואה" },
   { key: "rank_weight",label: "דירוג מסך התיק" }
@@ -582,9 +575,7 @@ function inTimelineRange(row) {
   return idx!==undefined && idx>=state.tlStart && idx<=state.tlEnd;
 }
 
-/* ————————————————————————
-   NAV
-———————————————————————— */
+/* NAV */
 document.querySelectorAll(".nav-item").forEach(item => {
   item.addEventListener("click", () => {
     document.querySelectorAll(".nav-item").forEach(n=>n.classList.remove("active"));
@@ -598,9 +589,7 @@ document.querySelectorAll(".nav-item").forEach(item => {
   });
 });
 
-/* ————————————————————————
-   LOAD DATA
-———————————————————————— */
+/* LOAD DATA */
 async function reloadData() {
   document.getElementById("status_filters").textContent = "טוען נתונים...";
   try {
@@ -627,9 +616,7 @@ function updateSidebarMeta() {
   `;
 }
 
-/* ————————————————————————
-   FILTERS
-———————————————————————— */
+/* FILTERS */
 function buildFilters() {
   const rows = state.raw;
   const savingTypes = Array.from(new Set(rows.map(r=>r.saving_type).filter(Boolean))).sort((a,b)=>a.localeCompare(b,"he"));
@@ -709,9 +696,7 @@ function refreshFilterOptions() {
   });
 }
 
-/* ————————————————————————
-   APPLY FILTERS
-———————————————————————— */
+/* APPLY FILTERS */
 function applyFilters() {
   const f = getCurrentFilters();
   const rows = state.raw.filter(r=>Number(r.year)>=2022);
@@ -756,9 +741,7 @@ function updateFiltersStatus() {
     ` • רשומות לאחר סינון: ${cnt}`;
 }
 
-/* ————————————————————————
-   KPI
-———————————————————————— */
+/* KPI */
 function renderKPIs() {
   const rows = state.filtered;
   const kpi = document.getElementById("kpi_row");
@@ -785,9 +768,7 @@ function renderKPIs() {
   `;
 }
 
-/* ————————————————————————
-   TABLE – helpers
-———————————————————————— */
+/* TABLE helpers */
 function selectedTableFields() {
   const f = getCurrentFilters();
   if (!f.table_cols.length) return [];
@@ -810,7 +791,7 @@ function bestQuarterForYear(agg, track, year) {
   return null;
 }
 
-/* NEW: compute per-track summary */
+/* summary */
 function computeTrackSummary(agg, track, yearsDesc, yearMap, mode) {
   let product = 1.0;
   let anyYield = false;
@@ -853,9 +834,7 @@ function computeTrackSummary(agg, track, yearsDesc, yearMap, mode) {
   };
 }
 
-/* ————————————————————————
-   RENDER MATRIX TABLE
-———————————————————————— */
+/* RENDER MATRIX TABLE – without "תרומה (Δ) (%)" */
 function renderMatrixTable() {
   const table = document.getElementById("matrix_table");
   const emptyEl = document.getElementById("matrix_empty");
@@ -947,13 +926,13 @@ function renderMatrixTable() {
   const tbody = document.createElement("tbody");
 
   if (mode === "quarter") {
-    titleEl.textContent = "מטריצת שיעור מסך התיק, תרומה (Δ), תשואה, דירוגים וסיכום – לפי רבעון";
+    titleEl.textContent = "מטריצת שיעור מסך התיק, תשואה, דירוגים וסיכום – לפי רבעון";
 
     const tr1 = document.createElement("tr");
     tr1.innerHTML = `
       <th rowspan="3">מסלול</th>
-      <th rowspan="3">סיכום תשואה (%)</th>
-      <th rowspan="3">סיכום משקל ממוצע (%)</th>
+      <th rowspan="3">תשואה מצטברת</th>
+      <th rowspan="3">משקל ממוצע לכל התקופה</th>
     `;
     years.forEach(y=>{
       const qs = activeQuartersByYear.get(y) || [];
@@ -995,7 +974,7 @@ function renderMatrixTable() {
         tracks.forEach(t=>{
           const cell=agg[t]?.[y]?.[q];
           if (!isActiveCell(cell)) return;
-          if (Math.abs(cell.w)>1e-9) {
+          if (Math.abs(cell.w)>1e-9){
             const yv=cell.c/cell.w;
             if (yv && Math.abs(yv)>1e-9) arrR.push({t,val:yv});
             arrW.push({t,val:cell.w});
@@ -1026,11 +1005,6 @@ function renderMatrixTable() {
           const cell=agg[t]?.[y]?.[q]||null;
 
           const wDisp = (cell && Math.abs(cell.w)>1e-9) ? (cell.w*100).toFixed(2)+"%" : "-";
-          let cDeltaDisp = "-";
-          if (cell){
-            const cDelta = cell.c;
-            if (cDelta!==null) cDeltaDisp=(cDelta*100).toFixed(2)+"%";
-          }
           let yDisp="-", rRet="", rWei="";
           if (cell && Math.abs(cell.w)>1e-9){
             const yv=cell.c/cell.w;
@@ -1045,11 +1019,10 @@ function renderMatrixTable() {
 
           fields.forEach(fld=>{
             let td = document.createElement("td");
-            if (fld.key==="weight")      td.innerHTML = `<span class="num">${wDisp}</span>`;
-            else if (fld.key==="contrib")td.innerHTML = `<span class="num">${cDeltaDisp}</span>`;
-            else if (fld.key==="yield")  td.innerHTML = `<span class="num">${yDisp}</span>`;
-            else if (fld.key==="rank_yield")  td.textContent = rRet;
-            else if (fld.key==="rank_weight") td.textContent = rWei;
+            if (fld.key==="weight")            td.innerHTML = `<span class="num">${wDisp}</span>`;
+            else if (fld.key==="yield")        td.innerHTML = `<span class="num">${yDisp}</span>`;
+            else if (fld.key==="rank_yield")   td.textContent = rRet;
+            else if (fld.key==="rank_weight")  td.textContent = rWei;
             tr.appendChild(td);
           });
         });
@@ -1059,13 +1032,13 @@ function renderMatrixTable() {
     });
 
   } else {
-    titleEl.textContent = "מטריצת שיעור מסך התיק, תרומה (שנתי), תשואה, דירוגים וסיכום – לפי שנים";
+    titleEl.textContent = "מטריצת שיעור מסך התיק, תשואה, דירוגים וסיכום – לפי שנים";
 
     const tr1 = document.createElement("tr");
     tr1.innerHTML = `
       <th rowspan="2">מסלול</th>
-      <th rowspan="2">סיכום תשואה (%)</th>
-      <th rowspan="2">סיכום משקל ממוצע (%)</th>
+      <th rowspan="2">תשואה מצטברת</th>
+      <th rowspan="2">משקל ממוצע לכל התקופה</th>
     `;
     years.forEach(y=>{
       const th = document.createElement("th");
@@ -1120,7 +1093,6 @@ function renderMatrixTable() {
         const bq=bestQuarterForYear(agg,t,y); const cell=bq? agg[t]?.[y]?.[bq]:null;
 
         const wDisp = (cell && Math.abs(cell.w)>1e-9)? (cell.w*100).toFixed(2)+"%" : "-";
-        const cDisp = (cell)? (cell.c*100).toFixed(2)+"%" : "-";
         let yDisp="-";
         if (cell && Math.abs(cell.w)>1e-9){
           const yv=cell.c/cell.w;
@@ -1132,11 +1104,10 @@ function renderMatrixTable() {
 
         fields.forEach(fld=>{
           let td = document.createElement("td");
-          if (fld.key==="weight")      td.innerHTML = `<span class="num">${wDisp}</span>`;
-          else if (fld.key==="contrib")td.innerHTML = `<span class="num">${cDisp}</span>`;
-          else if (fld.key==="yield")  td.innerHTML = `<span class="num">${yDisp}</span>`;
-          else if (fld.key==="rank_yield")  td.textContent = rRet;
-          else if (fld.key==="rank_weight") td.textContent = rWei;
+          if (fld.key==="weight")            td.innerHTML = `<span class="num">${wDisp}</span>`;
+          else if (fld.key==="yield")        td.innerHTML = `<span class="num">${yDisp}</span>`;
+          else if (fld.key==="rank_yield")   td.textContent = rRet;
+          else if (fld.key==="rank_weight")  td.textContent = rWei;
           tr.appendChild(td);
         });
       });
@@ -1153,9 +1124,7 @@ function renderMatrixTable() {
   applyMatrixTableWidthMode();
 }
 
-/* ————————————————————————
-   CHARTS
-———————————————————————— */
+/* CHARTS */
 function rowsForLiquidityBase() {
   const f = getCurrentFilters();
   const rows = state.raw.filter(r=>Number(r.year)>=2022);
@@ -1322,7 +1291,7 @@ function renderCharts() {
   renderLiquidityChart();
 }
 
-/* === גרף תחתון – התאמת עובי העמודות כך שלא "יימתח" כאשר יש פחות קטגוריות === */
+/* BOTTOM CHART */
 function renderLiquidityChart() {
   const canvas = document.getElementById("chart_liquidity");
   if (!canvas) return;
@@ -1389,7 +1358,6 @@ function renderLiquidityChart() {
     { label: "לא סחיר",  data: dataIlliquid, type: "bar", backgroundColor: "#ffb74d", borderColor: "#ffb74d", borderWidth: 1, maxBarThickness: 28 }
   ];
 
-  /* הגדרה כללית שמגבילה את עובי העמודות כדי לשמור על "מראה" זהה לגרפים העליונים */
   const options = {
     responsive:true,
     maintainAspectRatio:false,
@@ -1400,22 +1368,16 @@ function renderLiquidityChart() {
     },
     elements: {
       bar: {
-        maxBarThickness: 28,   // גבול עליון לעובי עמודה
-        barPercentage: 0.85,   // יחס רוחב העמודה לקטגוריה
-        categoryPercentage: 0.6 // מצמצם את הרוחב הכולל לכל קטגוריה
+        maxBarThickness: 28,
+        barPercentage: 0.85,
+        categoryPercentage: 0.6
       }
     },
     scales:{
-      x:{
-        ticks:{color:"#a6b2c9"},
-        grid:{color:"rgba(255,255,255,0.06)"},
-        title:{display:true,text:"מסלול",color:"#e9eefb"}
-      },
-      y:{
-        ticks:{color:"#a6b2c9", callback:v=>v.toFixed(1)+"%"},
-        grid:{color:"rgba(255,255,255,0.04)"},
-        title:{display:true,text:"אחזקה מהתיק (%)",color:"#e9eefb"}
-      }
+      x:{ ticks:{color:"#a6b2c9"}, grid:{color:"rgba(255,255,255,0.06)"}, title:{display:true,text:"מסלול",color:"#e9eefb"} },
+      y:{ ticks:{color:"#a6b2c9", callback:v=>v.toFixed(1)+"%"},
+          grid:{color:"rgba(255,255,255,0.04)"},
+          title:{display:true,text:"אחזקה מהתיק (%)",color:"#e9eefb"} }
     },
     layout: { padding: { left: 8, right: 8 } }
   };
@@ -1423,9 +1385,7 @@ function renderLiquidityChart() {
   state.chartLiquidity = new Chart(ctxLiquidity,{ type: "bar", data: { labels: tracks, datasets: datasetsLiquidity }, options });
 }
 
-/* ————————————————————————
-   INIT
-———————————————————————— */
+/* INIT */
 document.getElementById("btn_reload").addEventListener("click", reloadData);
 
 reloadData();
