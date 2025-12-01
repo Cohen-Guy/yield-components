@@ -171,16 +171,14 @@
       overflow: auto;
     }
 
-    /* חשוב: הטבלה תמיד לפי רוחב התוכן בלבד */
+    /* טבלה לפי רוחב התוכן בלבד */
     .matrix-table {
       border-collapse: collapse;
       font-size: 0.78rem;
       text-align: center;
-      width: max-content;      /* לוקח רק את רוחב התוכן */
-      table-layout: auto;      /* עושה התאמה דינמית לגודל התאים בכל רענון */
+      width: max-content;
+      table-layout: auto;
     }
-
-    /* מבטלים כל חובת מינימום־רוחב כדי שלא יישאר "ריק" */
     .matrix-table.table-wide { min-width: unset; width: max-content; }
     .matrix-table.table-fit  { min-width: unset; width: max-content; }
 
@@ -205,7 +203,7 @@
       z-index: 1;
     }
 
-    /* מספרים LTR כדי שהמינוס יוצג משמאל */
+    /* מספרים LTR */
     .num {
       direction: ltr;
       unicode-bidi: isolate;
@@ -235,7 +233,12 @@
       align-items: center;
       gap: 6px;
     }
+
+    /* גודל קבוע לכל הגרפים */
     .chart-container { position: relative; width: 100%; height: 260px; }
+
+    /* מאפשר גם להגביל רוחב מקסימלי לגרף התחתון במקרה הצורך (לא חובה) */
+    .chart-container.narrow-center { max-width: 1100px; margin-inline: auto; }
 
     .chart-filters-row {
       margin-top: 6px;
@@ -435,7 +438,8 @@
 
           <div class="chart-block">
             <div class="chart-title" id="liq_chart_title">אחזקה לפי מסלול וסחירות (%)</div>
-            <div class="chart-container">
+            <!-- שמירת גובה זהה לגרפים העליונים + אפשרות להגביל רוחב מקסימלי (לבחירה) -->
+            <div class="chart-container narrow-center">
               <canvas id="chart_liquidity"></canvas>
             </div>
           </div>
@@ -726,7 +730,7 @@ function applyFilters() {
   refreshLiquidityFilters();
   updateFiltersStatus();
   renderKPIs();
-  renderMatrixTable();   // *הטבלאות נבנות מחדש, ללא עמודות מיותרות*
+  renderMatrixTable();
   renderCharts();
 }
 function updateFiltersStatus() {
@@ -794,11 +798,9 @@ function applyMatrixTableWidthMode() {
   if (!table) return;
   const mode = document.getElementById("col_mode").value || "quarter";
   table.classList.remove("table-wide","table-fit");
-  // שתי המצבים משתמשים ברוחב לפי תוכן בלבד — ללא מינימום
   if (mode === "quarter") table.classList.add("table-wide");
   else                    table.classList.add("table-fit");
 }
-/* תא "פעיל" אם יש בו משקל או תרומה לא־אפסיים */
 function isActiveCell(cell){
   if (!cell) return false;
   return (Math.abs(cell.w||0)>1e-9) || (Math.abs(cell.c||0)>1e-9);
@@ -808,26 +810,22 @@ function bestQuarterForYear(agg, track, year) {
   return null;
 }
 
-/* NEW: compute per-track summary over the displayed period */
+/* NEW: compute per-track summary */
 function computeTrackSummary(agg, track, yearsDesc, yearMap, mode) {
   let product = 1.0;
   let anyYield = false;
-  let wSum = 0;
-  let wCount = 0;
+  let wSum = 0, wCount = 0;
 
   if (mode === "quarter") {
     yearsDesc.forEach(y=>{
       (yearMap.get(y)||[]).forEach(q=>{
         const cell = agg?.[track]?.[y]?.[q];
         if (!cell) return;
-        const w = cell.w;
-        const c = cell.c;
+        const w = cell.w, c = cell.c;
         if (w && Math.abs(w)>1e-12) {
-          const yld = c / w;
-          product *= (1 + yld);
+          product *= (1 + c / w);
           anyYield = true;
-          wSum += w;
-          wCount += 1;
+          wSum += w; wCount += 1;
         }
       });
     });
@@ -839,11 +837,9 @@ function computeTrackSummary(agg, track, yearsDesc, yearMap, mode) {
       if (!cell) return;
       const w = cell.w, c = cell.c;
       if (w && Math.abs(w)>1e-12) {
-        const yld = c / w;
-        product *= (1 + yld);
+        product *= (1 + c / w);
         anyYield = true;
-        wSum += w;
-        wCount += 1;
+        wSum += w; wCount += 1;
       }
     });
   }
@@ -859,8 +855,6 @@ function computeTrackSummary(agg, track, yearsDesc, yearMap, mode) {
 
 /* ————————————————————————
    RENDER MATRIX TABLE
-   * מסיר לגמרי עמודות (רבעונים/שנים) ללא נתונים פעילים
-   * מצמצם רוחב אוטומטית לפי תוכן בפועל
 ———————————————————————— */
 function renderMatrixTable() {
   const table = document.getElementById("matrix_table");
@@ -874,7 +868,6 @@ function renderMatrixTable() {
 
   const fields = selectedTableFields();
 
-  // איפוס מוחלט של התוכן כדי לאלץ דפדפן לחשב פריסת עמודות מחדש
   table.replaceChildren();
 
   if (!rows.length) {
@@ -892,7 +885,6 @@ function renderMatrixTable() {
   }
   noFieldsEl.style.display = "none";
 
-  // years/quarters (descending for columns)
   const yearMap = new Map();
   rows.forEach(r => {
     const y = Number(r.year);
@@ -907,7 +899,6 @@ function renderMatrixTable() {
   const tracks = Array.from(new Set(rows.map(r => r.track_name)))
     .sort((a,b)=>String(a).localeCompare(String(b),"he"));
 
-  // aggregate
   const agg = {};
   rows.forEach(r => {
     const t=r.track_name, y=Number(r.year), q=Number(r.quarter)||null;
@@ -920,7 +911,6 @@ function renderMatrixTable() {
     }
   });
 
-  // קובעים אילו עמודות אקטיביות באמת (יש בהן נתון פעיל לפחות למסלול אחד)
   let years = [];
   const activeQuartersByYear = new Map();
   if (mode === "quarter") {
@@ -942,27 +932,23 @@ function renderMatrixTable() {
   }
 
   if (!years.length) {
-    // אין עמודות פעילות — מציגים "אין נתונים"
     emptyEl.style.display = "block";
     applyMatrixTableWidthMode();
     return;
   }
 
-  // menora highlight
   const menoraTracks = new Set();
   tracks.forEach(t => {
     const hasMenora = rows.some(r => r.track_name === t && String(r.company_short || "").includes("מנורה"));
     if (hasMenora) menoraTracks.add(t);
   });
 
-  // בניית THEAD
   const thead = document.createElement("thead");
   const tbody = document.createElement("tbody");
 
   if (mode === "quarter") {
     titleEl.textContent = "מטריצת שיעור מסך התיק, תרומה (Δ), תשואה, דירוגים וסיכום – לפי רבעון";
 
-    // header row 1
     const tr1 = document.createElement("tr");
     tr1.innerHTML = `
       <th rowspan="3">מסלול</th>
@@ -978,7 +964,6 @@ function renderMatrixTable() {
     });
     thead.appendChild(tr1);
 
-    // header row 2
     const tr2 = document.createElement("tr");
     years.forEach(y=>{
       (activeQuartersByYear.get(y)||[]).forEach(q=>{
@@ -990,7 +975,6 @@ function renderMatrixTable() {
     });
     thead.appendChild(tr2);
 
-    // header row 3
     const tr3 = document.createElement("tr");
     years.forEach(y=>{
       (activeQuartersByYear.get(y)||[]).forEach(()=>{
@@ -1003,7 +987,6 @@ function renderMatrixTable() {
     });
     thead.appendChild(tr3);
 
-    // Ranks maps
     const rankReturnMap={}; const rankWeightMap={};
     years.forEach(y=>{
       rankReturnMap[y]={}; rankWeightMap[y]={};
@@ -1026,7 +1009,6 @@ function renderMatrixTable() {
       });
     });
 
-    // ROWS
     tracks.forEach(t=>{
       const rowClass = menoraTracks.has(t) ? 'row-menora' : '';
       const tr = document.createElement("tr");
@@ -1046,9 +1028,7 @@ function renderMatrixTable() {
           const wDisp = (cell && Math.abs(cell.w)>1e-9) ? (cell.w*100).toFixed(2)+"%" : "-";
           let cDeltaDisp = "-";
           if (cell){
-            let cDelta=null;
-            // מאחר שמציגים רק רבעונים "פעילים", הדלתא כאן פר תא קיים
-            cDelta = cell.c;
+            const cDelta = cell.c;
             if (cDelta!==null) cDeltaDisp=(cDelta*100).toFixed(2)+"%";
           }
           let yDisp="-", rRet="", rWei="";
@@ -1105,7 +1085,6 @@ function renderMatrixTable() {
     });
     thead.appendChild(tr2);
 
-    // רנקים לשנתי
     const rankReturnYear={}, rankWeightYear={};
     years.forEach(y=>{
       const arrR=[], arrW=[];
@@ -1169,14 +1148,13 @@ function renderMatrixTable() {
   table.appendChild(thead);
   table.appendChild(tbody);
 
-  // הבטחת פריסת־מחדש ורוחב לפי תוכן בלבד
   table.style.tableLayout = "auto";
   table.style.width = "max-content";
   applyMatrixTableWidthMode();
 }
 
 /* ————————————————————————
-   CHARTS (unchanged from previous)
+   CHARTS
 ———————————————————————— */
 function rowsForLiquidityBase() {
   const f = getCurrentFilters();
@@ -1343,6 +1321,8 @@ function renderCharts() {
 
   renderLiquidityChart();
 }
+
+/* === גרף תחתון – התאמת עובי העמודות כך שלא "יימתח" כאשר יש פחות קטגוריות === */
 function renderLiquidityChart() {
   const canvas = document.getElementById("chart_liquidity");
   if (!canvas) return;
@@ -1405,10 +1385,11 @@ function renderLiquidityChart() {
   });
 
   const datasetsLiquidity = [
-    { label: "סחיר",     data: dataLiquid,   type: "bar", backgroundColor: "#53d3ff", borderColor: "#53d3ff", borderWidth: 1 },
-    { label: "לא סחיר",  data: dataIlliquid, type: "bar", backgroundColor: "#ffb74d", borderColor: "#ffb74d", borderWidth: 1 }
+    { label: "סחיר",     data: dataLiquid,   type: "bar", backgroundColor: "#53d3ff", borderColor: "#53d3ff", borderWidth: 1, maxBarThickness: 28 },
+    { label: "לא סחיר",  data: dataIlliquid, type: "bar", backgroundColor: "#ffb74d", borderColor: "#ffb74d", borderWidth: 1, maxBarThickness: 28 }
   ];
 
+  /* הגדרה כללית שמגבילה את עובי העמודות כדי לשמור על "מראה" זהה לגרפים העליונים */
   const options = {
     responsive:true,
     maintainAspectRatio:false,
@@ -1417,12 +1398,26 @@ function renderLiquidityChart() {
       legend:{ position:"bottom", labels:{ color:"#e9eefb", font:{size:11} } },
       tooltip:{ callbacks:{ label:(c)=>`${c.dataset.label}: ${c.parsed.y?.toFixed(2)||0}%` } }
     },
+    elements: {
+      bar: {
+        maxBarThickness: 28,   // גבול עליון לעובי עמודה
+        barPercentage: 0.85,   // יחס רוחב העמודה לקטגוריה
+        categoryPercentage: 0.6 // מצמצם את הרוחב הכולל לכל קטגוריה
+      }
+    },
     scales:{
-      x:{ ticks:{color:"#a6b2c9"}, grid:{color:"rgba(255,255,255,0.06)"}, title:{display:true,text:"מסלול",color:"#e9eefb"} },
-      y:{ ticks:{color:"#a6b2c9", callback:v=>v.toFixed(1)+"%"},
-          grid:{color:"rgba(255,255,255,0.04)"},
-          title:{display:true,text:"אחזקה מהתיק (%)",color:"#e9eefb"} }
-    }
+      x:{
+        ticks:{color:"#a6b2c9"},
+        grid:{color:"rgba(255,255,255,0.06)"},
+        title:{display:true,text:"מסלול",color:"#e9eefb"}
+      },
+      y:{
+        ticks:{color:"#a6b2c9", callback:v=>v.toFixed(1)+"%"},
+        grid:{color:"rgba(255,255,255,0.04)"},
+        title:{display:true,text:"אחזקה מהתיק (%)",color:"#e9eefb"}
+      }
+    },
+    layout: { padding: { left: 8, right: 8 } }
   };
 
   state.chartLiquidity = new Chart(ctxLiquidity,{ type: "bar", data: { labels: tracks, datasets: datasetsLiquidity }, options });
