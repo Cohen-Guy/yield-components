@@ -302,7 +302,7 @@
         <div class="panel-header">
           <div class="panel-header-title">
             <span class="icon">🧮</span>
-            <span>מטריצת שיעור מסך התיק, תרומה ותשואה לפי מסלול / שנה / רבעון</span>
+            <span>מטריצת שיעור מסך התיק, תרומה, תשואה ודירוג תשואה לפי מסלול / שנה / רבעון</span>
           </div>
         </div>
         <div id="matrix_empty" class="status-text" style="margin-top:4px; display:none;">
@@ -510,12 +510,12 @@ function buildFilters() {
     el.addEventListener("change", onFilterChange);
   });
 
-  // מאזינים לפילטרים הפרטיים של גרף האחזקה לפי מסלול+סחירות
+  // פילטרים פרטיים לגרף האחזקה לפי מסלול+סחירות
   const ly = document.getElementById("liq_year_filter");
   const lq = document.getElementById("liq_quarter_filter");
   if (ly) {
     ly.addEventListener("change", () => {
-      refreshLiquidityFilters();  // יעדכן רשימת רבעונים לפי השנה החדשה
+      refreshLiquidityFilters();
       renderLiquidityChart();
     });
   }
@@ -604,9 +604,7 @@ function applyFilters() {
     return true;
   });
 
-  // לעדכן פילטרים פרטיים של גרף האחזקה לפי מסלול+סחירות עם דיפולט לשנה/רבעון אחרונים
   refreshLiquidityFilters();
-
   updateFiltersStatus();
   renderKPIs();
   renderMatrixTable();
@@ -660,7 +658,7 @@ function renderKPIs() {
 }
 
 /* ————————————————————————
-   MATRIX TABLE (מסלול / שנה / רבעון + תרומה + תשואה)
+   MATRIX TABLE (מסלול / שנה / רבעון + תרומה + תשואה + דירוג תשואה)
 ———————————————————————— */
 function renderMatrixTable() {
   const table = document.getElementById("matrix_table");
@@ -714,32 +712,59 @@ function renderMatrixTable() {
     agg[track][y][q].c += c;
   });
 
+  // חישוב דירוג תשואה לכל רבעון:
+  // רק מסלולים עם תשואה > 0 נכנסים לחישוב.
+  const rankMap = {}; // rankMap[year][quarter][track] = {rank, total}
+  years.forEach(y => {
+    const qs = yearMap.get(y) || [];
+    if (!rankMap[y]) rankMap[y] = {};
+    qs.forEach(q => {
+      const arr = [];
+      tracks.forEach(track => {
+        const cell = agg[track] && agg[track][y] && agg[track][y][q] ? agg[track][y][q] : null;
+        if (!cell) return;
+        if (Math.abs(cell.w) <= 1e-9) return;
+        const yVal = cell.c / cell.w; // תשואה (לא באחוזים)
+        if (!yVal || Math.abs(yVal) <= 1e-9) return; // תשואה ריקה / אפס לא נכנסת לדירוג
+        arr.push({ track, yVal });
+      });
+
+      arr.sort((a,b)=>b.yVal - a.yVal); // מירבי ראשון
+      const total = arr.length;
+      const mapQ = {};
+      arr.forEach((item,idx)=>{
+        mapQ[item.track] = { rank: idx+1, total };
+      });
+      rankMap[y][q] = mapQ;
+    });
+  });
+
   let html = "<thead>";
 
-  // שורת כותרת ראשונה – שנים (כל שנה: 3 עמודות לכל רבעון – משקל, תרומה, תשואה)
+  // שורת כותרת ראשונה – שנים (כל שנה: 4 עמודות לכל רבעון – משקל, תרומה, תשואה, דירוג תשואה)
   html += '<tr><th rowspan="3">מסלול</th>';
   years.forEach(y => {
     const qs = yearMap.get(y) || [];
-    html += `<th colspan="${qs.length * 3}">${y}</th>`;
+    html += `<th colspan="${qs.length * 4}">${y}</th>`;
   });
   html += "</tr>";
 
-  // שורת כותרת שנייה – רבעונים (כל רבעון colspan=3)
+  // שורת כותרת שנייה – רבעונים (כל רבעון colspan=4)
   html += "<tr>";
   years.forEach(y => {
     const qs = yearMap.get(y) || [];
     qs.forEach(q => {
-      html += `<th colspan="3">רבעון ${q}</th>`;
+      html += `<th colspan="4">רבעון ${q}</th>`;
     });
   });
   html += "</tr>";
 
-  // שורת כותרת שלישית – משקל + תרומה + תשואה
+  // שורת כותרת שלישית – משקל + תרומה + תשואה + דירוג
   html += "<tr>";
   years.forEach(y => {
     const qs = yearMap.get(y) || [];
     qs.forEach(() => {
-      html += "<th>שיעור מסך התיק (%)</th><th>תרומה (%)</th><th>תשואה (%)</th>";
+      html += "<th>שיעור מסך התיק (%)</th><th>תרומה (%)</th><th>תשואה (%)</th><th>דירוג תשואה</th>";
     });
   });
   html += "</tr>";
@@ -757,6 +782,7 @@ function renderMatrixTable() {
         let wDisplay = "-";
         let cDisplay = "-";
         let yDisplay = "-";
+        let rankDisplay = "";
 
         if (cell) {
           if (Math.abs(cell.w) > 1e-6) {
@@ -769,12 +795,21 @@ function renderMatrixTable() {
           }
 
           if (Math.abs(cell.w) > 1e-9) {
-            const yVal = cell.c / cell.w;  // תשואה = תרומה / משקל
-            yDisplay = (yVal * 100).toFixed(2) + "%";
+            const yVal = cell.c / cell.w;  // תשואה (לא באחוזים)
+            const yPct = yVal * 100;
+            if (Math.abs(yVal) > 1e-9) {
+              yDisplay = yPct.toFixed(2) + "%";
+              const rankInfo = rankMap[y] && rankMap[y][q] && rankMap[y][q][track]
+                ? rankMap[y][q][track]
+                : null;
+              if (rankInfo && rankInfo.total > 0) {
+                rankDisplay = `${rankInfo.rank}/${rankInfo.total}`;
+              }
+            }
           }
         }
 
-        html += `<td>${wDisplay}</td><td>${cDisplay}</td><td>${yDisplay}</td>`;
+        html += `<td>${wDisplay}</td><td>${cDisplay}</td><td>${yDisplay}</td><td>${rankDisplay}</td>`;
       });
     });
     html += "</tr>";
@@ -854,7 +889,6 @@ function renderCharts() {
 
   if (state.chartYield)  { state.chartYield.destroy();  state.chartYield=null; }
   if (state.chartWeight) { state.chartWeight.destroy(); state.chartWeight=null; }
-  // את גרף הסחירות אנחנו מנהלים בפונקציה ייעודית, כאן רק ננקה אם אין נתונים
   if (!rows.length) {
     if (state.chartLiquidity) { state.chartLiquidity.destroy(); state.chartLiquidity = null; }
     return;
@@ -987,7 +1021,6 @@ function renderCharts() {
     options:opt("אחזקה רבעונית ממוצעת (%)")
   });
 
-  // לבסוף – הגרף החדש לפי מסלול וסחירות (עם פילטרים פרטיים)
   renderLiquidityChart();
 }
 
@@ -1035,7 +1068,6 @@ function renderLiquidityChart() {
     rows.forEach(r=>{
       if (r.track_name !== track) return;
       const w = safeNumber(r.weight) || 0;
-      // נניח שכל מה שהוא לא "סחיר" נחשב כ"לא סחיר"
       if (r.liquidity === "סחיר") {
         wLiquid += w;
       } else {
@@ -1078,15 +1110,15 @@ function renderLiquidityChart() {
       }
     },
     scales:{
-      x:{ 
-        ticks:{color:"#a6b2c9"}, 
+      x:{
+        ticks:{color:"#a6b2c9"},
         grid:{color:"rgba(255,255,255,0.06)"},
         title:{display:true,text:"מסלול",color:"#e9eefb"}
       },
-      y:{ 
-        ticks:{color:"#a6b2c9", callback:v=>v.toFixed(1)+"%"}, 
-        grid:{color:"rgba(255,255,255,0.04)"}, 
-        title:{display:true,text:"אחזקה מהתיק (%)",color:"#e9eefb"} 
+      y:{
+        ticks:{color:"#a6b2c9", callback:v=>v.toFixed(1)+"%"},
+        grid:{color:"rgba(255,255,255,0.04)"},
+        title:{display:true,text:"אחזקה מהתיק (%)",color:"#e9eefb"}
       }
     }
   };
