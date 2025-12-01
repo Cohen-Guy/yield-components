@@ -544,7 +544,9 @@ function refreshFilterOptions() {
         o.selected = prev.includes(o.value);
       });
     } else {
-      sel.value = prev.includes(sel.value) ? sel.value : "";
+      // BUG FIX: לשמור את הערך הנבחר ולא להחזיר ל"הכול"
+      const selected = prev.find(v => v !== "" && vals.includes(v)) || "";
+      sel.value = selected;
     }
   });
 }
@@ -716,7 +718,6 @@ function renderMatrixTable() {
         const display = (val !== null && val !== undefined && Math.abs(val) > 1e-6)
           ? (val * 100).toFixed(2) + "%"
           : "-";
-
         html += `<td>${display}</td>`;
       });
     });
