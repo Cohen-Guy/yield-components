@@ -116,11 +116,21 @@
     }
     .field { display: flex; flex-direction: column; gap: 3px; min-width: 140px; }
     .field label { font-size: 0.78rem; color: var(--text-muted); }
-    select {
+    select, input[type="range"] {
       background: #050816; border-radius: 10px; border: 1px solid rgba(255,255,255,0.25);
       color: var(--text-main); font-size: 0.8rem; padding: 5px 9px; outline: none; min-height: 30px;
     }
-    select:focus { border-color: var(--accent); box-shadow: 0 0 0 1px rgba(93,208,255,0.5); }
+    select:focus, input[type="range"]:focus { border-color: var(--accent); box-shadow: 0 0 0 1px rgba(93,208,255,0.5); }
+
+    /* Dual range visual */
+    .timeline-wrap { min-width: 280px; }
+    .timeline-controls {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 6px;
+      align-items: center;
+    }
+    .timeline-labels {
+      display: flex; justify-content: space-between; font-size: 0.76rem; color: var(--text-muted); margin-top: 2px;
+    }
 
     /* KPI panels */
     .panels-row { display: grid; grid-template-columns: 2fr 1.8fr; gap: 10px; margin-top: 8px; margin-bottom: 10px; }
@@ -249,7 +259,7 @@
       <div class="sidebar-logo-icon">⧉</div>
       <div class="sidebar-logo-text">
         <div class="sidebar-logo-title">מרכיבי תשואה</div>
-        <div class="sidebar-logo-sub">Dashboard v3.9.0</div>
+        <div class="sidebar-logo-sub">Dashboard v4.0.0</div>
       </div>
     </div>
 
@@ -347,6 +357,19 @@
         <select id="f_year" multiple></select>
       </div>
 
+      <!-- ⏳ פילטר ציר זמן (שנה/רבעון) -->
+      <div class="field timeline-wrap" style="min-width: 340px;">
+        <label>ציר זמן (שנה/רבעון) – גרור ימין/שמאל</label>
+        <div class="timeline-controls">
+          <input id="tl_start" type="range" min="0" max="0" step="1" value="0" />
+          <input id="tl_end"   type="range" min="0" max="0" step="1" value="0" />
+        </div>
+        <div class="timeline-labels">
+          <span id="tl_label_start">-</span>
+          <span id="tl_label_end">-</span>
+        </div>
+      </div>
+
     </section>
 
     <!-- MATRIX TABLE -->
@@ -427,6 +450,13 @@ const state = {
   chartYield: null,
   chartWeight: null,
   chartLiquidity: null,
+
+  // Timeline
+  timeKeys: [],              // ["2022|1","2022|2",...]
+  timeLabels: [],            // ["2022 Q1", ...] לתצוגה
+  timeIndexMap: new Map(),   // "2022|1" -> idx
+  tlStart: 0,
+  tlEnd: 0
 };
 
 const FILTERS = {
@@ -499,6 +529,82 @@ function bestQuarterForYear(agg, track, year) {
   return null;
 }
 
+/* Build global time keys from RAW data (>=2022) */
+function buildGlobalTimeline() {
+  const set = new Set();
+  state.raw.forEach(r=>{
+    const y = Number(r.year), q = Number(r.quarter);
+    if (y>=2022 && q>=1 && q<=4) set.add(`${y}|${q}`);
+  });
+  const keys = Array.from(set).sort((a,b)=>{
+    const [ya,qa]=a.split("|").map(Number);
+    const [yb,qb]=b.split("|").map(Number);
+    return ya===yb ? qa-qb : ya-yb;
+  });
+  state.timeKeys = keys;
+  state.timeLabels = keys.map(k=>{
+    const [y,q]=k.split("|");
+    return `${y} Q${q}`;
+  });
+  state.timeIndexMap = new Map(keys.map((k,i)=>[k,i]));
+
+  const startEl = document.getElementById("tl_start");
+  const endEl   = document.getElementById("tl_end");
+  const lblS    = document.getElementById("tl_label_start");
+  const lblE    = document.getElementById("tl_label_end");
+
+  const max = Math.max(0, keys.length-1);
+  startEl.min = 0; startEl.max = String(max);
+  endEl.min   = 0; endEl.max   = String(max);
+
+  // ברירת מחדל – טווח מלא
+  state.tlStart = 0;
+  state.tlEnd   = max;
+  startEl.value = String(state.tlStart);
+  endEl.value   = String(state.tlEnd);
+  lblS.textContent = keys.length ? state.timeLabels[state.tlStart] : "-";
+  lblE.textContent = keys.length ? state.timeLabels[state.tlEnd]   : "-";
+}
+
+/* Timeline handlers */
+function hookTimelineEvents() {
+  const startEl = document.getElementById("tl_start");
+  const endEl   = document.getElementById("tl_end");
+  const lblS    = document.getElementById("tl_label_start");
+  const lblE    = document.getElementById("tl_label_end");
+
+  const clampUpdate = ()=>{
+    let s = Number(startEl.value);
+    let e = Number(endEl.value);
+    if (s > e) { // ודא שההתחלה לא גדולה מהסוף
+      // אם גררו את ההתחלה מעבר לסוף – הזז את הסוף יחד
+      if (s - state.tlStart > e - state.tlEnd) endEl.value = String(s);
+      else startEl.value = String(e);
+      s = Number(startEl.value);
+      e = Number(endEl.value);
+    }
+    state.tlStart = s;
+    state.tlEnd   = e;
+    lblS.textContent = state.timeLabels[s] ?? "-";
+    lblE.textContent = state.timeLabels[e] ?? "-";
+    // הטבלה ושני הגרפים העליונים יתעדכנו; הגרף האחרון (סחירות) לא
+    applyFilters();
+  };
+
+  startEl.addEventListener("input", clampUpdate);
+  endEl.addEventListener("input", clampUpdate);
+}
+
+/* בדיקה אם רשומה בטווח ציר הזמן */
+function inTimelineRange(row) {
+  const y = Number(row.year), q = Number(row.quarter);
+  if (!(y && q)) return false;
+  const key = `${y}|${q}`;
+  const idx = state.timeIndexMap.get(key);
+  if (idx===undefined) return false;
+  return idx >= state.tlStart && idx <= state.tlEnd;
+}
+
 /* ————————————————————————
    NAV
 ———————————————————————— */
@@ -528,6 +634,8 @@ async function reloadData() {
     document.getElementById("badge_file").textContent = "קובץ: " + (state.meta.file || "-");
     updateSidebarMeta();
     buildFilters();
+    buildGlobalTimeline();
+    hookTimelineEvents();
     refreshFilterOptions();
     applyFilters();
   } catch (err) {
@@ -568,7 +676,6 @@ function buildFilters() {
   const colsSel = document.getElementById("f_cols");
   const colOptions = TABLE_FIELDS.map(f => ({ value: f.key, text: f.label }));
   setSelectOptions(colsSel, colOptions, { includeAll:false });
-  // ברירת מחדל – לבחור את כולם
   Array.from(colsSel.options).forEach(o => o.selected = true);
 
   Object.values(FILTERS).forEach(({id})=>{
@@ -583,7 +690,7 @@ function buildFilters() {
   });
 
   colsSel.addEventListener("change", () => {
-    renderMatrixTable();    // הטבלה מתעדכנת לפי בחירת העמודות
+    renderMatrixTable();
   });
 
   const ly = document.getElementById("liq_year_filter");
@@ -671,7 +778,7 @@ function applyFilters() {
   const f = getCurrentFilters();
   const rows = state.raw.filter(r=>Number(r.year)>=2022);
 
-  // נתונים כלליים לטבלה ושני הגרפים העליונים
+  // נתונים לטבלה ושני הגרפים העליונים —כוללים את ציר הזמן
   state.filtered = rows.filter(r=>{
     if (f.saving_type && r.saving_type !== f.saving_type) return false;
     if (f.fund_type   && r.fund_type   !== f.fund_type)   return false;
@@ -679,10 +786,12 @@ function applyFilters() {
     if (f.liquidity   && r.liquidity   !== f.liquidity)   return false;
     if (Array.isArray(f.category) && f.category.length && !f.category.includes(r.category)) return false;
     if (Array.isArray(f.year) && f.year.length && !f.year.includes(String(r.year))) return false;
+    // Timeline filter (שנה/רבעון)
+    if (!inTimelineRange(r)) return false;
     return true;
   });
 
-  refreshLiquidityFilters();
+  refreshLiquidityFilters(); // הגרף האחרון עם המסננים הפרטיים שלו
   updateFiltersStatus();
   renderKPIs();
   renderMatrixTable();
@@ -713,6 +822,10 @@ function updateFiltersStatus() {
   if (f.liquidity)   parts.push("סחירות: "+f.liquidity);
   if (f.category.length) parts.push("אפיק: "+f.category.join(", "));
   if (f.year.length)     parts.push("שנים: "+f.year.join(", "));
+  // Timeline status
+  if (state.timeKeys.length) {
+    parts.push(`טווח זמן: ${state.timeLabels[state.tlStart]} → ${state.timeLabels[state.tlEnd]}`);
+  }
   if (f.table_cols.length) {
     const labels = TABLE_FIELDS.filter(x=>f.table_cols.includes(x.key)).map(x=>x.label);
     parts.push("שדות בטבלה: "+labels.join(", "));
@@ -753,11 +866,11 @@ function renderKPIs() {
 }
 
 /* ————————————————————————
-   MATRIX TABLE (כותרות דינמיות לפי בחירת שדות)
+   MATRIX TABLE (עם בחירת עמודות)
 ———————————————————————— */
 function selectedTableFields() {
   const f = getCurrentFilters();
-  if (!f.table_cols.length) return [...TABLE_FIELDS]; // אם לא נבחר כלום – להציג הכול
+  if (!f.table_cols.length) return [...TABLE_FIELDS];
   return TABLE_FIELDS.filter(x => f.table_cols.includes(x.key));
 }
 
@@ -769,7 +882,7 @@ function renderMatrixTable() {
 
   const mode = document.getElementById("col_mode").value || "quarter";
   const rows = state.filtered.filter(r => r.track_name && r.year);
-  const fields = selectedTableFields();  // העמודות שנבחרו להצגה
+  const fields = selectedTableFields();
 
   if (!rows.length) {
     table.innerHTML = "";
@@ -779,7 +892,7 @@ function renderMatrixTable() {
   }
   emptyEl.style.display = "none";
 
-  // מיפוי שנים←רבעונים
+  // years/quarters (descending for columns)
   const yearMap = new Map();
   rows.forEach(r => {
     const y = Number(r.year);
@@ -788,17 +901,13 @@ function renderMatrixTable() {
     if (!yearMap.has(y)) yearMap.set(y, new Set());
     if (q) yearMap.get(y).add(q);
   });
-
-  // שנים ורבעונים בסדר יורד
   const years = Array.from(yearMap.keys()).sort((a,b)=>b-a);
-  years.forEach(y => {
-    yearMap.set(y, Array.from(yearMap.get(y)).sort((a,b)=>b-a));
-  });
+  years.forEach(y => yearMap.set(y, Array.from(yearMap.get(y)).sort((a,b)=>b-a)));
 
   const tracks = Array.from(new Set(rows.map(r => r.track_name)))
     .sort((a,b)=>String(a).localeCompare(String(b),"he"));
 
-  // אגרגציה
+  // aggregate
   const agg = {};
   rows.forEach(r => {
     const t=r.track_name, y=Number(r.year), q=Number(r.quarter)||null;
@@ -811,7 +920,7 @@ function renderMatrixTable() {
     }
   });
 
-  // מסלולי "מנורה"
+  // menora tracks
   const menoraTracks = new Set();
   tracks.forEach(t => {
     const hasMenora = rows.some(r => r.track_name === t && String(r.company_short || "").includes("מנורה"));
@@ -834,7 +943,7 @@ function renderMatrixTable() {
     }));
     html += "</tr></thead><tbody>";
 
-    // דירוגים לפי רבעון
+    // ranks per quarter
     const rankReturnMap={}; const rankWeightMap={};
     years.forEach(y=>{
       rankReturnMap[y]={}; rankWeightMap[y]={};
@@ -864,7 +973,6 @@ function renderMatrixTable() {
         (yearMap.get(y)||[]).forEach(q=>{
           const cell=agg[t]?.[y]?.[q]||null;
 
-          // ערכים מחושבים
           const wDisp = (cell && Math.abs(cell.w)>1e-9) ? (cell.w*100).toFixed(2)+"%" : "-";
           let cDeltaDisp = "-";
           if (cell){
@@ -888,7 +996,6 @@ function renderMatrixTable() {
             if (infoW && infoW.total>0) rWei=`${infoW.rank}/${infoW.total}`;
           }
 
-          // הדפסה לפי בחירת עמודות
           fields.forEach(fld=>{
             if (fld.key==="weight")      html += `<td class="num">${wDisp}</td>`;
             else if (fld.key==="contrib")html += `<td class="num">${cDeltaDisp}</td>`;
@@ -1058,7 +1165,7 @@ function refreshLiquidityFilters() {
 }
 
 /* ————————————————————————
-   CHARTS
+   CHARTS (Timeline applied here)
 ———————————————————————— */
 function renderCharts() {
   const rows = state.filtered;
@@ -1210,11 +1317,12 @@ function renderCharts() {
     options:opt("אחזקה רבעונית ממוצעת לתצוגה (%)")
   });
 
+  // הגרף האחרון אינו מושפע מהטיימליין
   renderLiquidityChart();
 }
 
 /* ————————————————————————
-   LIQUIDITY CHART – TRACK VS LIQUID / ILLIQUID
+   LIQUIDITY CHART – TRACK VS LIQUID / ILLIQUID (NOT AFFECTED BY TIMELINE)
 ———————————————————————— */
 function renderLiquidityChart() {
   const canvas = document.getElementById("chart_liquidity");
