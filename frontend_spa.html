@@ -123,7 +123,7 @@
     select:focus, input[type="range"]:focus { border-color: var(--accent); box-shadow: 0 0 0 1px rgba(93,208,255,0.5); }
 
     /* Dual range visual */
-    .timeline-wrap { min-width: 280px; }
+    .timeline-wrap { min-width: 340px; }
     .timeline-controls {
       display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 6px;
       align-items: center;
@@ -175,6 +175,7 @@
       font-size: 0.78rem;
       text-align: center;
       width: max-content;
+      table-layout: auto; /* שלא יישמר רוחב לעמודות שנעלמות */
     }
     .matrix-table.table-wide { min-width: 100%; width: max-content; }
     .matrix-table.table-fit  { min-width: auto;  width: max-content; }
@@ -259,7 +260,7 @@
       <div class="sidebar-logo-icon">⧉</div>
       <div class="sidebar-logo-text">
         <div class="sidebar-logo-title">מרכיבי תשואה</div>
-        <div class="sidebar-logo-sub">Dashboard v4.0.0</div>
+        <div class="sidebar-logo-sub">Dashboard v4.0.1</div>
       </div>
     </div>
 
@@ -358,7 +359,7 @@
       </div>
 
       <!-- ⏳ פילטר ציר זמן (שנה/רבעון) -->
-      <div class="field timeline-wrap" style="min-width: 340px;">
+      <div class="field timeline-wrap">
         <label>ציר זמן (שנה/רבעון) – גרור ימין/שמאל</label>
         <div class="timeline-controls">
           <input id="tl_start" type="range" min="0" max="0" step="1" value="0" />
@@ -383,6 +384,9 @@
         </div>
         <div id="matrix_empty" class="status-text" style="margin-top:4px; display:none;">
           אין נתונים להצגה עבור המסננים הנוכחיים.
+        </div>
+        <div id="matrix_no_fields" class="status-text" style="margin-top:4px; display:none;">
+          בחר שדות להצגה מתוך “שדות לטבלה”.
         </div>
         <div class="matrix-scroll">
           <table id="matrix_table" class="matrix-table table-wide"></table>
@@ -452,9 +456,9 @@ const state = {
   chartLiquidity: null,
 
   // Timeline
-  timeKeys: [],              // ["2022|1","2022|2",...]
-  timeLabels: [],            // ["2022 Q1", ...] לתצוגה
-  timeIndexMap: new Map(),   // "2022|1" -> idx
+  timeKeys: [],
+  timeLabels: [],
+  timeIndexMap: new Map(),
   tlStart: 0,
   tlEnd: 0
 };
@@ -468,7 +472,7 @@ const FILTERS = {
   year:        { id: "f_year",        field: "year",          sort: "numeric", multi: true }
 };
 
-/* מפתח שדות אפשריים לטבלה */
+/* שדות אפשריים לטבלה */
 const TABLE_FIELDS = [
   { key: "weight",     label: "שיעור מסך התיק (%)" },
   { key: "contrib",    label: "תרומה (Δ) (%)" },
@@ -480,10 +484,7 @@ const TABLE_FIELDS = [
 /* ————————————————————————
    UTILITIES
 ———————————————————————— */
-function safeNumber(v) {
-  const x = Number(v);
-  return isNaN(x) ? null : x;
-}
+function safeNumber(v) { const x = Number(v); return isNaN(x) ? null : x; }
 function nz(v){ const x=safeNumber(v); return x==null?0:x; }
 
 function setSelectOptions(selectEl, values, { includeAll = true, allLabel = "הכול" } = {}) {
@@ -510,26 +511,21 @@ function setSelectOptions(selectEl, values, { includeAll = true, allLabel = "ה�
 }
 
 function uniqueSortedYears(rows) {
-  return Array.from(
-    new Set(rows.map(r => r.year).filter(v => Number(v) >= 2022))
-  ).sort((a,b)=>a-b);
+  return Array.from(new Set(rows.map(r => r.year).filter(v => Number(v) >= 2022)))
+    .sort((a,b)=>a-b);
 }
-
 function getSelectValues(sel, multi=false) {
   if (!multi) return sel.value || "";
   return Array.from(sel.selectedOptions).map(o=>o.value).filter(v=>v!=="");
 }
 
-/* Best quarter fallback: 4 → 3 → 2 → 1 if exists */
+/* עדיפות רבעון בשנה (4→3→2→1) */
 function bestQuarterForYear(agg, track, year) {
-  const order = [4,3,2,1];
-  for (const q of order) {
-    if (agg?.[track]?.[year]?.[q]) return q;
-  }
+  for (const q of [4,3,2,1]) if (agg?.[track]?.[year]?.[q]) return q;
   return null;
 }
 
-/* Build global time keys from RAW data (>=2022) */
+/* Timeline build */
 function buildGlobalTimeline() {
   const set = new Set();
   state.raw.forEach(r=>{
@@ -542,10 +538,7 @@ function buildGlobalTimeline() {
     return ya===yb ? qa-qb : ya-yb;
   });
   state.timeKeys = keys;
-  state.timeLabels = keys.map(k=>{
-    const [y,q]=k.split("|");
-    return `${y} Q${q}`;
-  });
+  state.timeLabels = keys.map(k=>{ const [y,q]=k.split("|"); return `${y} Q${q}`; });
   state.timeIndexMap = new Map(keys.map((k,i)=>[k,i]));
 
   const startEl = document.getElementById("tl_start");
@@ -557,16 +550,13 @@ function buildGlobalTimeline() {
   startEl.min = 0; startEl.max = String(max);
   endEl.min   = 0; endEl.max   = String(max);
 
-  // ברירת מחדל – טווח מלא
-  state.tlStart = 0;
-  state.tlEnd   = max;
+  state.tlStart = 0; state.tlEnd = max;
   startEl.value = String(state.tlStart);
   endEl.value   = String(state.tlEnd);
   lblS.textContent = keys.length ? state.timeLabels[state.tlStart] : "-";
   lblE.textContent = keys.length ? state.timeLabels[state.tlEnd]   : "-";
 }
 
-/* Timeline handlers */
 function hookTimelineEvents() {
   const startEl = document.getElementById("tl_start");
   const endEl   = document.getElementById("tl_end");
@@ -576,33 +566,27 @@ function hookTimelineEvents() {
   const clampUpdate = ()=>{
     let s = Number(startEl.value);
     let e = Number(endEl.value);
-    if (s > e) { // ודא שההתחלה לא גדולה מהסוף
-      // אם גררו את ההתחלה מעבר לסוף – הזז את הסוף יחד
+    if (s > e) { // שמור על סדר חוקי
       if (s - state.tlStart > e - state.tlEnd) endEl.value = String(s);
       else startEl.value = String(e);
-      s = Number(startEl.value);
-      e = Number(endEl.value);
+      s = Number(startEl.value); e = Number(endEl.value);
     }
-    state.tlStart = s;
-    state.tlEnd   = e;
+    state.tlStart = s; state.tlEnd = e;
     lblS.textContent = state.timeLabels[s] ?? "-";
     lblE.textContent = state.timeLabels[e] ?? "-";
-    // הטבלה ושני הגרפים העליונים יתעדכנו; הגרף האחרון (סחירות) לא
-    applyFilters();
+    applyFilters(); // מעדכן טבלה ו־2 הגרפים העליונים (השלישי לא מושפע)
   };
 
   startEl.addEventListener("input", clampUpdate);
   endEl.addEventListener("input", clampUpdate);
 }
 
-/* בדיקה אם רשומה בטווח ציר הזמן */
 function inTimelineRange(row) {
   const y = Number(row.year), q = Number(row.quarter);
   if (!(y && q)) return false;
   const key = `${y}|${q}`;
   const idx = state.timeIndexMap.get(key);
-  if (idx===undefined) return false;
-  return idx >= state.tlStart && idx <= state.tlEnd;
+  return idx!==undefined && idx>=state.tlStart && idx<=state.tlEnd;
 }
 
 /* ————————————————————————
@@ -638,9 +622,7 @@ async function reloadData() {
     hookTimelineEvents();
     refreshFilterOptions();
     applyFilters();
-  } catch (err) {
-    console.error(err);
-  }
+  } catch (err) { console.error(err); }
 }
 
 function updateSidebarMeta() {
@@ -665,67 +647,49 @@ function buildFilters() {
   const categories  = Array.from(new Set(rows.map(r=>r.category).filter(Boolean))).sort((a,b)=>a.localeCompare(b,"he"));
   const years       = uniqueSortedYears(rows);
 
-  setSelectOptions(document.getElementById(FILTERS.saving_type.id), savingTypes);
-  setSelectOptions(document.getElementById(FILTERS.fund_type.id),   fundTypes);
-  setSelectOptions(document.getElementById(FILTERS.track.id),       tracks);
-  setSelectOptions(document.getElementById(FILTERS.liquidity.id),   liquidities);
-  setSelectOptions(document.getElementById(FILTERS.category.id),    categories, { includeAll:false });
-  setSelectOptions(document.getElementById(FILTERS.year.id),        years,      { includeAll:false });
+  setSelectOptions(document.getElementById("f_saving_type"), savingTypes);
+  setSelectOptions(document.getElementById("f_fund_type"),   fundTypes);
+  setSelectOptions(document.getElementById("f_track"),       tracks);
+  setSelectOptions(document.getElementById("f_liquidity"),   liquidities);
+  setSelectOptions(document.getElementById("f_category"),    categories, { includeAll:false });
+  setSelectOptions(document.getElementById("f_year"),        years,      { includeAll:false });
 
-  /* פילטר שדות לטבלה (בחירה מרובה) */
+  // שדות לטבלה (בחירה מרובה)
   const colsSel = document.getElementById("f_cols");
   const colOptions = TABLE_FIELDS.map(f => ({ value: f.key, text: f.label }));
   setSelectOptions(colsSel, colOptions, { includeAll:false });
   Array.from(colsSel.options).forEach(o => o.selected = true);
 
-  Object.values(FILTERS).forEach(({id})=>{
-    const el = document.getElementById(id);
-    el.addEventListener("change", onFilterChange);
+  // אירועים
+  ["f_saving_type","f_fund_type","f_track","f_liquidity","f_category","f_year"].forEach(id=>{
+    document.getElementById(id).addEventListener("change", ()=>{ refreshFilterOptions(); applyFilters(); });
   });
-
   document.getElementById("col_mode").addEventListener("change", ()=>{
     toggleLiquidityQuarterVisibility();
     refreshLiquidityFilters();
     applyFilters();
   });
-
-  colsSel.addEventListener("change", () => {
-    renderMatrixTable();
-  });
+  colsSel.addEventListener("change", ()=>{ renderMatrixTable(); });
 
   const ly = document.getElementById("liq_year_filter");
   const lq = document.getElementById("liq_quarter_filter");
-  if (ly) {
-    ly.addEventListener("change", () => {
-      refreshLiquidityFilters();
-      renderLiquidityChart();
-    });
-  }
-  if (lq) {
-    lq.addEventListener("change", () => {
-      renderLiquidityChart();
-    });
-  }
+  if (ly) ly.addEventListener("change", ()=>{ refreshLiquidityFilters(); renderLiquidityChart(); });
+  if (lq) lq.addEventListener("change", ()=>{ renderLiquidityChart(); });
 
   toggleLiquidityQuarterVisibility();
 }
 
 function getCurrentFilters() {
   return {
-    saving_type: getSelectValues(document.getElementById(FILTERS.saving_type.id)),
-    fund_type:   getSelectValues(document.getElementById(FILTERS.fund_type.id)),
-    track:       getSelectValues(document.getElementById(FILTERS.track.id)),
-    liquidity:   getSelectValues(document.getElementById(FILTERS.liquidity.id)),
-    category:    getSelectValues(document.getElementById(FILTERS.category.id), true),
-    year:        getSelectValues(document.getElementById(FILTERS.year.id), true),
+    saving_type: getSelectValues(document.getElementById("f_saving_type")),
+    fund_type:   getSelectValues(document.getElementById("f_fund_type")),
+    track:       getSelectValues(document.getElementById("f_track")),
+    liquidity:   getSelectValues(document.getElementById("f_liquidity")),
+    category:    getSelectValues(document.getElementById("f_category"), true),
+    year:        getSelectValues(document.getElementById("f_year"), true),
     col_mode:    document.getElementById("col_mode").value || "quarter",
     table_cols:  getSelectValues(document.getElementById("f_cols"), true)
   };
-}
-
-function onFilterChange() {
-  refreshFilterOptions();
-  applyFilters();
 }
 
 function refreshFilterOptions() {
@@ -735,22 +699,15 @@ function refreshFilterOptions() {
   Object.entries(FILTERS).forEach(([key,meta])=>{
     const sel = document.getElementById(meta.id);
     const isMulti = !!meta.multi;
-    const prev = isMulti
-      ? Array.from(sel.selectedOptions).map(o=>o.value)
-      : [sel.value];
+    const prev = isMulti ? Array.from(sel.selectedOptions).map(o=>o.value) : [sel.value];
 
     const rowsForKey = rows.filter(r=>{
       if (key!=="saving_type" && filters.saving_type && r.saving_type !== filters.saving_type) return false;
       if (key!=="fund_type"   && filters.fund_type   && r.fund_type   !== filters.fund_type)   return false;
       if (key!=="track"       && filters.track       && r.track_name  !== filters.track)       return false;
       if (key!=="liquidity"   && filters.liquidity   && r.liquidity   !== filters.liquidity)   return false;
-
-      if (key!=="category" && Array.isArray(filters.category) && filters.category.length &&
-          !filters.category.includes(r.category)) return false;
-
-      if (key!=="year" && Array.isArray(filters.year) && filters.year.length &&
-          !filters.year.includes(String(r.year))) return false;
-
+      if (key!=="category" && Array.isArray(filters.category) && filters.category.length && !filters.category.includes(r.category)) return false;
+      if (key!=="year" && Array.isArray(filters.year) && filters.year.length && !filters.year.includes(String(r.year))) return false;
       return true;
     });
 
@@ -760,25 +717,18 @@ function refreshFilterOptions() {
 
     setSelectOptions(sel, vals, { includeAll:!isMulti });
 
-    if (isMulti) {
-      Array.from(sel.options).forEach(o=>{
-        o.selected = prev.includes(o.value);
-      });
-    } else {
-      const selected = prev.find(v => v !== "" && vals.includes(v)) || "";
-      sel.value = selected;
-    }
+    if (isMulti) Array.from(sel.options).forEach(o=> o.selected = prev.includes(o.value));
+    else sel.value = prev.find(v => v !== "" && vals.includes(v)) || "";
   });
 }
 
 /* ————————————————————————
-   FILTER APPLICATION
+   APPLY FILTERS
 ———————————————————————— */
 function applyFilters() {
   const f = getCurrentFilters();
   const rows = state.raw.filter(r=>Number(r.year)>=2022);
 
-  // נתונים לטבלה ושני הגרפים העליונים —כוללים את ציר הזמן
   state.filtered = rows.filter(r=>{
     if (f.saving_type && r.saving_type !== f.saving_type) return false;
     if (f.fund_type   && r.fund_type   !== f.fund_type)   return false;
@@ -786,28 +736,15 @@ function applyFilters() {
     if (f.liquidity   && r.liquidity   !== f.liquidity)   return false;
     if (Array.isArray(f.category) && f.category.length && !f.category.includes(r.category)) return false;
     if (Array.isArray(f.year) && f.year.length && !f.year.includes(String(r.year))) return false;
-    // Timeline filter (שנה/רבעון)
     if (!inTimelineRange(r)) return false;
     return true;
   });
 
-  refreshLiquidityFilters(); // הגרף האחרון עם המסננים הפרטיים שלו
+  refreshLiquidityFilters(); // הגרף האחרון – פילטרים פרטיים
   updateFiltersStatus();
   renderKPIs();
   renderMatrixTable();
   renderCharts();
-}
-
-/* ————————————————————————
-   MATRIX WIDTH MODE
-———————————————————————— */
-function applyMatrixTableWidthMode() {
-  const table = document.getElementById("matrix_table");
-  if (!table) return;
-  const mode = document.getElementById("col_mode").value || "quarter";
-  table.classList.remove("table-wide","table-fit");
-  if (mode === "quarter") table.classList.add("table-wide");
-  else                    table.classList.add("table-fit");
 }
 
 function updateFiltersStatus() {
@@ -822,10 +759,7 @@ function updateFiltersStatus() {
   if (f.liquidity)   parts.push("סחירות: "+f.liquidity);
   if (f.category.length) parts.push("אפיק: "+f.category.join(", "));
   if (f.year.length)     parts.push("שנים: "+f.year.join(", "));
-  // Timeline status
-  if (state.timeKeys.length) {
-    parts.push(`טווח זמן: ${state.timeLabels[state.tlStart]} → ${state.timeLabels[state.tlEnd]}`);
-  }
+  if (state.timeKeys.length) parts.push(`טווח זמן: ${state.timeLabels[state.tlStart]} → ${state.timeLabels[state.tlEnd]}`);
   if (f.table_cols.length) {
     const labels = TABLE_FIELDS.filter(x=>f.table_cols.includes(x.key)).map(x=>x.label);
     parts.push("שדות בטבלה: "+labels.join(", "));
@@ -866,31 +800,56 @@ function renderKPIs() {
 }
 
 /* ————————————————————————
-   MATRIX TABLE (עם בחירת עמודות)
+   TABLE – helper: get selected fields (no gaps when empty)
 ———————————————————————— */
 function selectedTableFields() {
   const f = getCurrentFilters();
-  if (!f.table_cols.length) return [...TABLE_FIELDS];
+  if (!f.table_cols.length) return [];
   return TABLE_FIELDS.filter(x => f.table_cols.includes(x.key));
 }
 
+function applyMatrixTableWidthMode() {
+  const table = document.getElementById("matrix_table");
+  if (!table) return;
+  const mode = document.getElementById("col_mode").value || "quarter";
+  table.classList.remove("table-wide","table-fit");
+  if (mode === "quarter") table.classList.add("table-wide");
+  else                    table.classList.add("table-fit");
+}
+
+/* ————————————————————————
+   RENDER MATRIX TABLE (rebuilds DOM – hidden columns removed entirely)
+———————————————————————— */
 function renderMatrixTable() {
   const table = document.getElementById("matrix_table");
   const emptyEl = document.getElementById("matrix_empty");
+  const noFieldsEl = document.getElementById("matrix_no_fields");
   const titleEl = document.getElementById("matrix_title");
-  if (!table || !emptyEl) return;
+  if (!table) return;
 
   const mode = document.getElementById("col_mode").value || "quarter";
   const rows = state.filtered.filter(r => r.track_name && r.year);
+
+  // שדות שנבחרו – אם אין, אל תייצר כותרות/תאים כלל
   const fields = selectedTableFields();
 
+  // נקה טבלה תמיד כדי שלא יישארו מרווחים היסטוריים
+  table.innerHTML = "";
+
   if (!rows.length) {
-    table.innerHTML = "";
     emptyEl.style.display = "block";
+    noFieldsEl.style.display = "none";
     applyMatrixTableWidthMode();
     return;
   }
   emptyEl.style.display = "none";
+
+  if (fields.length === 0) {
+    noFieldsEl.style.display = "block";
+    applyMatrixTableWidthMode();
+    return;
+  }
+  noFieldsEl.style.display = "none";
 
   // years/quarters (descending for columns)
   const yearMap = new Map();
@@ -1065,12 +1024,12 @@ function renderMatrixTable() {
     html += "</tbody>";
   }
 
-  table.innerHTML = html;
-  applyMatrixTableWidthMode();
+  table.innerHTML = html;      // נבנה מחדש – אין עמודות מוסתרות, אין רווחים
+  applyMatrixTableWidthMode();  // רוחב בהתאם למצב תצוגה
 }
 
 /* ————————————————————————
-   LIQUIDITY CHART BASE (IGNORE CATEGORY & LIQUIDITY FILTERS)
+   LIQUIDITY CHART (לא מושפע מהטיים־ליין)
 ———————————————————————— */
 function rowsForLiquidityBase() {
   const f = getCurrentFilters();
@@ -1084,20 +1043,12 @@ function rowsForLiquidityBase() {
   });
 }
 
-/* ————————————————————————
-   LIQUIDITY CHART PRIVATE FILTERS
-———————————————————————— */
 function toggleLiquidityQuarterVisibility() {
   const mode = document.getElementById("col_mode").value || "quarter";
   const qField = document.getElementById("liq_q_field");
   const title = document.getElementById("liq_chart_title");
-  if (mode === "year") {
-    qField.style.display = "none";
-    title.textContent = "אחזקה לפי מסלול וסחירות (%) – לפי שנים (רבעון 4/3/2/1 לפי זמינות)";
-  } else {
-    qField.style.display = "";
-    title.textContent = "אחזקה לפי מסלול וסחירות (%)";
-  }
+  if (mode === "year") { qField.style.display = "none"; title.textContent = "אחזקה לפי מסלול וסחירות (%) – לפי שנים (רבעון 4/3/2/1 לפי זמינות)"; }
+  else { qField.style.display = ""; title.textContent = "אחזקה לפי מסלול וסחירות (%)"; }
 }
 
 function refreshLiquidityFilters() {
@@ -1107,65 +1058,33 @@ function refreshLiquidityFilters() {
 
   const mode = document.getElementById("col_mode").value || "quarter";
   const rows = rowsForLiquidityBase().filter(r => r.year && r.quarter);
-  if (!rows.length) {
-    selYear.innerHTML = "";
-    selQuarter.innerHTML = "";
-    return;
-  }
+  if (!rows.length) { selYear.innerHTML=""; selQuarter.innerHTML=""; return; }
 
   const yearsArr = Array.from(new Set(rows.map(r=>Number(r.year)))).sort((a,b)=>a-b);
-
-  const prevYear = selYear.value;
-  const prevQuarter = selQuarter.value;
-
+  const prevYear = selYear.value, prevQuarter = selQuarter.value;
   const defaultYear = yearsArr[yearsArr.length - 1];
 
-  // fill years
   selYear.innerHTML = "";
   const fragYear = document.createDocumentFragment();
-  yearsArr.forEach(y=>{
-    const o=document.createElement("option");
-    o.value=String(y);
-    o.textContent=String(y);
-    fragYear.appendChild(o);
-  });
+  yearsArr.forEach(y=>{ const o=document.createElement("option"); o.value=String(y); o.textContent=String(y); fragYear.appendChild(o); });
   selYear.appendChild(fragYear);
+  selYear.value = yearsArr.includes(Number(prevYear)) ? prevYear : String(defaultYear);
 
-  let yearToUse = defaultYear;
-  if (prevYear && yearsArr.includes(Number(prevYear))) {
-    yearToUse = Number(prevYear);
-  }
-  selYear.value = String(yearToUse);
-
-  // quarters (only if mode=quarter)
   if (mode === "quarter") {
-    const quartersArr = Array.from(new Set(
-      rows.filter(r=>Number(r.year)===yearToUse).map(r=>Number(r.quarter))
-    )).sort((a,b)=>a-b);
-
+    const quartersArr = Array.from(new Set(rows.filter(r=>Number(r.year)===Number(selYear.value)).map(r=>Number(r.quarter)))).sort((a,b)=>a-b);
     selQuarter.innerHTML = "";
     const fragQ = document.createDocumentFragment();
-    quartersArr.forEach(q=>{
-      const o=document.createElement("option");
-      o.value=String(q);
-      o.textContent=String(q);
-      fragQ.appendChild(o);
-    });
+    quartersArr.forEach(q=>{ const o=document.createElement("option"); o.value=String(q); o.textContent=String(q); fragQ.appendChild(o); });
     selQuarter.appendChild(fragQ);
-
     const defaultQuarter = quartersArr[quartersArr.length - 1];
-    let quarterToUse = defaultQuarter;
-    if (prevQuarter && quartersArr.includes(Number(prevQuarter))) {
-      quarterToUse = Number(prevQuarter);
-    }
-    selQuarter.value = String(quarterToUse);
+    selQuarter.value = quartersArr.includes(Number(prevQuarter)) ? prevQuarter : String(defaultQuarter);
   } else {
     selQuarter.innerHTML = "";
   }
 }
 
 /* ————————————————————————
-   CHARTS (Timeline applied here)
+   CHARTS
 ———————————————————————— */
 function renderCharts() {
   const rows = state.filtered;
@@ -1180,9 +1099,7 @@ function renderCharts() {
   const f = getCurrentFilters();
 
   const timeSet = new Set();
-  rows.forEach(r=>{
-    if (r.year && r.quarter) timeSet.add(r.year+"|"+r.quarter);
-  });
+  rows.forEach(r=>{ if (r.year && r.quarter) timeSet.add(r.year+"|"+r.quarter); });
 
   const timeKeys = Array.from(timeSet).sort((a,b)=>{
     const [ya,qa]=a.split("|").map(Number);
@@ -1190,10 +1107,7 @@ function renderCharts() {
     return ya===yb ? qa-qb : ya-yb;
   });
 
-  const labels = timeKeys.map(k=>{
-    const [y,q]=k.split("|");
-    return y+" Q"+q;
-  });
+  const labels = timeKeys.map(k=>{ const [y,q]=k.split("|"); return y+" Q"+q; });
 
   const seriesKey = (r)=>{
     const c = r.company_short || "לא ידוע";
@@ -1205,14 +1119,13 @@ function renderCharts() {
   const seriesWeightSum = {};
   const seriesWeightN = {};
 
+  // קטגוריות לגרף האחזקה העליון – מושפע מסחירות (כפי שביקשת קודם)
   let allowedCategories = null;
   if (Array.isArray(f.category) && f.category.length) {
     allowedCategories = new Set(f.category);
   } else if (f.liquidity) {
     const catsUnderLiquidity = new Set(
-      rows.filter(r=>r.liquidity===f.liquidity)
-          .map(r=>r.category)
-          .filter(Boolean)
+      rows.filter(r=>r.liquidity===f.liquidity).map(r=>r.category).filter(Boolean)
     );
     allowedCategories = catsUnderLiquidity;
   }
@@ -1243,11 +1156,7 @@ function renderCharts() {
     }
   });
 
-  const palette = [
-    "#53d3ff","#ffb74d","#81c784","#ba68c8","#ff8a65",
-    "#4db6ac","#ce93d8","#f06292","#ffd54f","#7986cb",
-    "#90caf9","#a5d6a7","#ffe082","#ffab91","#b39ddb"
-  ];
+  const palette = ["#53d3ff","#ffb74d","#81c784","#ba68c8","#ff8a65","#4db6ac","#ce93d8","#f06292","#ffd54f","#7986cb","#90caf9","#a5d6a7","#ffe082","#ffab91","#b39ddb"];
   const keys = Object.keys(seriesYield).sort((a,b)=>a.localeCompare(b,"he"));
 
   const datasetsYield = keys.map((name,i)=>{
@@ -1257,15 +1166,7 @@ function renderCharts() {
       if (!cell||!cell.w) return null;
       return (cell.c/cell.w)*100;
     });
-    return {
-      label:name,
-      data,
-      type:"bar",
-      backgroundColor:color+"cc",
-      borderColor:color,
-      borderWidth:1,
-      skipNull:true
-    };
+    return { label:name, data, type:"bar", backgroundColor:color+"cc", borderColor:color, borderWidth:1, skipNull:true };
   });
 
   const datasetsWeight = keys.map((name,i)=>{
@@ -1276,15 +1177,7 @@ function renderCharts() {
       if (!n) return null;
       return (sum/n)*100;
     });
-    return {
-      label:name,
-      data,
-      type:"bar",
-      backgroundColor:color+"cc",
-      borderColor:color,
-      borderWidth:1,
-      skipNull:true
-    };
+    return { label:name, data, type:"bar", backgroundColor:color+"cc", borderColor:color, borderWidth:1, skipNull:true };
   });
 
   const ctxYield  = document.getElementById("chart_yield").getContext("2d");
@@ -1300,29 +1193,20 @@ function renderCharts() {
     },
     scales:{
       x:{ ticks:{color:"#a6b2c9"}, grid:{color:"rgba(255,255,255,0.06)"} },
-      y:{ ticks:{color:"#a6b2c9", callback:v=>v.toFixed(1)+"%"}, grid:{color:"rgba(255,255,255,0.04)"},
+      y:{ ticks:{color:"#a6b2c9", callback:v=>v.toFixed(1)+"%"},
+          grid:{color:"rgba(255,255,255,0.04)"},
           title:{display:true,text:title,color:"#e9eefb"} }
     }
   });
 
-  state.chartYield = new Chart(ctxYield,{
-    type:"bar",
-    data:{labels,datasets:datasetsYield},
-    options:opt("תשואה רבעונית (%)")
-  });
+  state.chartYield  = new Chart(ctxYield, { type:"bar", data:{labels,datasets:datasetsYield},  options:opt("תשואה רבעונית (%)") });
+  state.chartWeight = new Chart(ctxWeight,{ type:"bar", data:{labels,datasets:datasetsWeight}, options:opt("אחזקה רבעונית ממוצעת לתצוגה (%)") });
 
-  state.chartWeight = new Chart(ctxWeight,{
-    type:"bar",
-    data:{labels,datasets:datasetsWeight},
-    options:opt("אחזקה רבעונית ממוצעת לתצוגה (%)")
-  });
-
-  // הגרף האחרון אינו מושפע מהטיימליין
-  renderLiquidityChart();
+  renderLiquidityChart(); // הגרף האחרון לא מושפע מהטיים־ליין
 }
 
 /* ————————————————————————
-   LIQUIDITY CHART – TRACK VS LIQUID / ILLIQUID (NOT AFFECTED BY TIMELINE)
+   LIQUIDITY CHART
 ———————————————————————— */
 function renderLiquidityChart() {
   const canvas = document.getElementById("chart_liquidity");
@@ -1330,10 +1214,7 @@ function renderLiquidityChart() {
 
   const ctxLiquidity = canvas.getContext("2d");
 
-  if (state.chartLiquidity) {
-    state.chartLiquidity.destroy();
-    state.chartLiquidity = null;
-  }
+  if (state.chartLiquidity) { state.chartLiquidity.destroy(); state.chartLiquidity = null; }
 
   const selYear = document.getElementById("liq_year_filter");
   const selQuarter = document.getElementById("liq_quarter_filter");
@@ -1348,9 +1229,7 @@ function renderLiquidityChart() {
 
   let rows = [];
   if (mode==="quarter") {
-    rows = baseRows.filter(r =>
-      String(r.year) === yearSel && String(r.quarter) === quarterSel
-    );
+    rows = baseRows.filter(r => String(r.year) === yearSel && String(r.quarter) === quarterSel);
   } else {
     const rowsYear = baseRows.filter(r => String(r.year)===yearSel && r.quarter);
     const agg = {};
@@ -1363,14 +1242,11 @@ function renderLiquidityChart() {
     });
     const trackSet = new Set(rowsYear.map(r=>r.track_name).filter(Boolean));
     trackSet.forEach(t=>{
-      const qOrder=[4,3,2,1];
-      let chosenQ = null;
-      for (const q of qOrder) {
-        const has = Object.keys(agg).some(k=>k.startsWith(`${t}|${q}|`));
-        if (has) { chosenQ = q; break; }
-      }
-      if (chosenQ!==null) {
-        rows.push(...rowsYear.filter(r=>r.track_name===t && Number(r.quarter)===chosenQ));
+      for (const q of [4,3,2,1]) {
+        if (Object.keys(agg).some(k=>k.startsWith(`${t}|${q}|`))) {
+          rows.push(...rowsYear.filter(r=>r.track_name===t && Number(r.quarter)===q));
+          break;
+        }
       }
     });
   }
@@ -1379,47 +1255,23 @@ function renderLiquidityChart() {
 
   const trackSet = new Set();
   rows.forEach(r => { if (r.track_name) trackSet.add(r.track_name); });
+  const tracks = Array.from(trackSet).sort((a,b)=>String(a).localeCompare(String(b),"he"));
 
-  const tracks = Array.from(trackSet).sort(
-    (a,b)=>String(a).localeCompare(String(b),"he")
-  );
-
-  const dataLiquid = [];
-  const dataIlliquid = [];
-
+  const dataLiquid = []; const dataIlliquid = [];
   tracks.forEach(track=>{
-    let wLiquid = 0;
-    let wIlliquid = 0;
+    let wLiquid = 0, wIlliquid = 0;
     rows.forEach(r=>{
       if (r.track_name !== track) return;
       const w = nz(r.weight);
-      if (r.liquidity === "סחיר") {
-        wLiquid += w;
-      } else {
-        wIlliquid += w;
-      }
+      if (r.liquidity === "סחיר") wLiquid += w; else wIlliquid += w;
     });
     dataLiquid.push(wLiquid * 100);
     dataIlliquid.push(wIlliquid * 100);
   });
 
   const datasetsLiquidity = [
-    {
-      label: "סחיר",
-      data: dataLiquid,
-      type: "bar",
-      backgroundColor: "#53d3ff",
-      borderColor: "#53d3ff",
-      borderWidth: 1
-    },
-    {
-      label: "לא סחיר",
-      data: dataIlliquid,
-      type: "bar",
-      backgroundColor: "#ffb74d",
-      borderColor: "#ffb74d",
-      borderWidth: 1
-    }
+    { label: "סחיר",     data: dataLiquid,   type: "bar", backgroundColor: "#53d3ff", borderColor: "#53d3ff", borderWidth: 1 },
+    { label: "לא סחיר",  data: dataIlliquid, type: "bar", backgroundColor: "#ffb74d", borderColor: "#ffb74d", borderWidth: 1 }
   ];
 
   const options = {
@@ -1428,9 +1280,7 @@ function renderLiquidityChart() {
     interaction:{ mode:"index", intersect:false },
     plugins:{
       legend:{ position:"bottom", labels:{ color:"#e9eefb", font:{size:11} } },
-      tooltip:{
-        callbacks:{ label:(c)=>`${c.dataset.label}: ${c.parsed.y?.toFixed(2)||0}%` }
-      }
+      tooltip:{ callbacks:{ label:(c)=>`${c.dataset.label}: ${c.parsed.y?.toFixed(2)||0}%` } }
     },
     scales:{
       x:{ ticks:{color:"#a6b2c9"}, grid:{color:"rgba(255,255,255,0.06)"}, title:{display:true,text:"מסלול",color:"#e9eefb"} },
@@ -1440,11 +1290,7 @@ function renderLiquidityChart() {
     }
   };
 
-  state.chartLiquidity = new Chart(ctxLiquidity,{
-    type: "bar",
-    data: { labels: tracks, datasets: datasetsLiquidity },
-    options
-  });
+  state.chartLiquidity = new Chart(ctxLiquidity,{ type: "bar", data: { labels: tracks, datasets: datasetsLiquidity }, options });
 }
 
 /* ————————————————————————
