@@ -133,19 +133,17 @@
       border-collapse: collapse;
       font-size: 0.78rem;
       text-align: center;
-      /* כברירת מחדל לא נמתח */
-      width: max-content;          /* תופס את רוחב התוכן בפועל */
+      width: max-content;          /* ברירת מחדל: לפי התוכן */
     }
-    /* מצב רבעוני: הרבה עמודות – נרצה שהטבלה לא תהיה צרה מדי
-       ותוכל גם להתגלגל אופקית אם צריך */
+    /* מצב רבעוני – הרבה עמודות: */
     .matrix-table.table-wide {
-      min-width: 100%;             /* לא פחות מרוחב הפאנל */
-      width: max-content;          /* אבל עדיין על בסיס התוכן */
+      min-width: 100%;             /* שלא תהיה צרה מדי */
+      width: max-content;
     }
-    /* מצב שנתי: מעט עמודות – שלא תתמתח לרוחב מלא, תשאר קומפקטית */
+    /* מצב שנתי – מעט עמודות: */
     .matrix-table.table-fit {
-      min-width: auto;             /* ביטול המתח המינימלי */
-      width: max-content;          /* קומפקטי לפי תוכן */
+      min-width: auto;
+      width: max-content;          /* קומפקטי ונוח לקריאה */
     }
     .matrix-table th,
     .matrix-table td {
@@ -242,7 +240,7 @@
       <div class="sidebar-logo-icon">⧉</div>
       <div class="sidebar-logo-text">
         <div class="sidebar-logo-title">מרכיבי תשואה</div>
-        <div class="sidebar-logo-sub">Dashboard v3.3</div>
+        <div class="sidebar-logo-sub">Dashboard v3.4</div>
       </div>
     </div>
 
@@ -661,23 +659,15 @@ function applyFilters() {
 }
 
 /* ————————————————————————
-   MATRIX WIDTH MODE (חדש): מתאים רוחב טבלה למצב עמודות
+   MATRIX WIDTH MODE – מתאים רוחב טבלה למצב עמודות
 ———————————————————————— */
 function applyMatrixTableWidthMode() {
   const table = document.getElementById("matrix_table");
   if (!table) return;
   const mode = document.getElementById("col_mode").value || "quarter";
-
-  // איפוס המחלקות
   table.classList.remove("table-wide","table-fit");
-
-  // ברבעון – בדרך כלל הרבה עמודות → נבטיח min-width:100% + גלילה אופקית
-  // בשנים – מעט עמודות → נשאיר קומפקטי לפי התוכן בלבד
-  if (mode === "quarter") {
-    table.classList.add("table-wide");
-  } else {
-    table.classList.add("table-fit");
-  }
+  if (mode === "quarter") table.classList.add("table-wide");
+  else                    table.classList.add("table-fit");
 }
 
 function updateFiltersStatus() {
@@ -858,7 +848,7 @@ function renderMatrixTable() {
           if (cell) {
             let cDelta = null;
             if (q===1) {
-              cDelta = cell.c; // ללא שינוי לרבעון 1
+              cDelta = cell.c; // לרבעון 1 ללא שינוי
             } else {
               const prev = agg[track]?.[y]?.[q-1] || null;
               cDelta = prev ? (cell.c - prev.c) : null;
@@ -963,22 +953,23 @@ function renderMatrixTable() {
     table.innerHTML = html;
   }
 
-  // לאחר בניית הטבלה – להתאים את רוחבה לפי מצב העמודות
+  // להתאים את רוחב הטבלה לפי מצב העמודות
   applyMatrixTableWidthMode();
 }
 
 /* ————————————————————————
-   LIQUIDITY CHART DATA (IGNORE CATEGORY FILTER)
+   LIQUIDITY CHART DATA (IGNORE CATEGORY & IGNORE TOP 'LIQUIDITY' FILTER)
+   👉 שינוי מרכזי: הגרף התחתון לא מושפע מהסנן הראשי "סחירות"
 ———————————————————————— */
 function rowsForLiquidityBase() {
-  // לוקח נתונים לגרף התחתון *ללא* category, עם שאר המסננים
+  // *ללא* category וללא liquidity — כדי שתמיד יופיעו שתי העמודות (סחיר/לא סחיר)
   const f = getCurrentFilters();
   const rows = state.raw.filter(r=>Number(r.year)>=2022);
   return rows.filter(r=>{
     if (f.saving_type && r.saving_type !== f.saving_type) return false;
     if (f.fund_type   && r.fund_type   !== f.fund_type)   return false;
     if (f.track       && r.track_name  !== f.track)       return false;
-    if (f.liquidity   && r.liquidity   !== f.liquidity)   return false;
+    // ❌ בכוונה לא מסננים לפי f.liquidity
     if (Array.isArray(f.year) && f.year.length &&
         !f.year.includes(String(r.year))) return false;
     return true;
@@ -1061,8 +1052,7 @@ function refreshLiquidityFilters() {
     }
     selQuarter.value = String(quarterToUse);
   } else {
-    // yearly mode: ensure quarter list exists but will be hidden
-    selQuarter.innerHTML = "";
+    selQuarter.innerHTML = ""; // yearly mode: לא מוצגים רבעונים
   }
 }
 
@@ -1129,8 +1119,8 @@ function renderCharts() {
   });
 
   const palette = [
-    "#53d3ff","#ffb74d","#81c784","#ba68c8","#ff8a65",
-    "#4db6ac","#ce93ד8","#f06292","#ffd54f","#7986cb",
+    "#53d3ff","#ffb74ד","#81c784","#ba68c8","#ff8a65",
+    "#4db6ac","#ce93d8","#f06292","#ffd54f","#7986cb",
     "#90caf9","#a5d6a7","#ffe082","#ffab91","#b39ddb"
   ];
   const keys = Object.keys(seriesYield).sort((a,b)=>a.localeCompare(b,"he"));
@@ -1209,7 +1199,7 @@ function renderCharts() {
 }
 
 /* ————————————————————————
-   LIQUIDITY CHART – TRACK VS LIQUID / ILLIQUID (IGNORE CATEGORY)
+   LIQUIDITY CHART – TRACK VS LIQUID / ILLIQUID (IGNORE CATEGORY & LIQUIDITY FILTERS)
 ———————————————————————— */
 function renderLiquidityChart() {
   const canvas = document.getElementById("chart_liquidity");
@@ -1281,8 +1271,11 @@ function renderLiquidityChart() {
     rows.forEach(r=>{
       if (r.track_name !== track) return;
       const w = safeNumber(r.weight) || 0;
-      if (r.liquidity === "סחיר") wLiquid += w;
-      else                         wIlliquid += w;
+      if (r.liquidity === "סחיר") {
+        wLiquid += w;
+      } else {
+        wIlliquid += w;
+      }
     });
     dataLiquid.push(wLiquid * 100);
     dataIlliquid.push(wIlliquid * 100);
@@ -1302,7 +1295,7 @@ function renderLiquidityChart() {
       data: dataIlliquid,
       type: "bar",
       backgroundColor: "#ffb74d",
-      borderColor: "#ffb74ד",
+      borderColor: "#ffb74d",
       borderWidth: 1
     }
   ];
@@ -1318,7 +1311,7 @@ function renderLiquidityChart() {
       }
     },
     scales:{
-      x:{ ticks:{color:"#a6b2c9"}, grid:{color:"rgba(255,255,255,0.06)"}, title:{display:true,text:"מסלול",color:"#e9eefב"} },
+      x:{ ticks:{color:"#a6b2c9"}, grid:{color:"rgba(255,255,255,0.06)"}, title:{display:true,text:"מסלול",color:"#e9eefb"} },
       y:{ ticks:{color:"#a6b2c9", callback:v=>v.toFixed(1)+"%"},
           grid:{color:"rgba(255,255,255,0.04)"},
           title:{display:true,text:"אחזקה מהתיק (%)",color:"#e9eefb"} }
