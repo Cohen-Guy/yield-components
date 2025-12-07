@@ -4,7 +4,9 @@
   <meta charset="utf-8" />
   <title>דשבורד מרכיבי תשואה</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
+
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
   <style>
     :root {
       --bg-main: #050816;
@@ -21,6 +23,7 @@
       --success: #7ce38b;
       --warning: #ffc773;
     }
+
     * { box-sizing: border-box; }
     body {
       margin: 0;
@@ -32,6 +35,7 @@
       align-items: stretch;
       justify-content: center;
     }
+
     .app-shell {
       width: 100%;
       max-width: 1440px;
@@ -42,6 +46,7 @@
       border-left: 1px solid rgba(255,255,255,0.05);
       border-right: 1px solid rgba(255,255,255,0.05);
     }
+
     /* Sidebar */
     .sidebar {
       background: radial-gradient(circle at top, #141b3d 0, #050a18 58%);
@@ -52,80 +57,205 @@
       gap: 16px;
     }
     .sidebar-logo { display: flex; align-items: center; gap: 8px; padding: 6px 4px 12px; border-bottom: 1px solid rgba(255,255,255,0.07); }
-    .sidebar-logo-icon { width: 32px; height: 32px; border-radius: 10px; background: radial-gradient(circle at 30% 20%, #5dd0ff, #4a63ff); display: flex; align-items: center; justify-content: center; font-size: 1.1rem; }
+    .sidebar-logo-icon {
+      width: 32px; height: 32px; border-radius: 10px;
+      background: radial-gradient(circle at 30% 20%, #5dd0ff, #4a63ff);
+      display: flex; align-items: center; justify-content: center; font-size: 1.1rem;
+    }
     .sidebar-logo-text { display: flex; flex-direction: column; gap: 2px; }
     .sidebar-logo-title { font-size: 0.95rem; font-weight: 600; letter-spacing: 0.03em; }
     .sidebar-logo-sub { font-size: 0.7rem; color: var(--text-muted); }
+
     .sidebar-nav { display: flex; flex-direction: column; gap: 4px; margin-top: 6px; }
-    .nav-item { border-radius: 999px; padding: 7px 10px; font-size: 0.86rem; display: flex; align-items: center; gap: 8px; color: var(--text-muted); cursor: pointer; border: 1px solid transparent; transition: background 0.15s, transform 0.08s, border-color 0.15s, color 0.15s; }
+    .nav-item {
+      border-radius: 999px; padding: 7px 10px; font-size: 0.86rem;
+      display: flex; align-items: center; gap: 8px; color: var(--text-muted);
+      cursor: pointer; border: 1px solid transparent;
+      transition: background 0.15s, transform 0.08s, border-color 0.15s, color 0.15s;
+    }
     .nav-item span.icon { font-size: 1rem; width: 18px; text-align: center; }
     .nav-item:hover { background: rgba(93,208,255,0.08); color: var(--text-main); border-color: rgba(93,208,255,0.4); transform: translateY(-1px); }
     .nav-item.active { background: linear-gradient(120deg, rgba(93,208,255,0.25), rgba(116,127,255,0.25)); color: #f8fbff; border-color: rgba(93,208,255,0.6); }
-    .sidebar-meta { margin-top: auto; padding-top: 8px; border-top: 1px dashed rgba(255,255,255,0.12); font-size: 0.7rem; color: var(--text-muted); display: flex; flex-direction: column; gap: 4px; }
+
+    .sidebar-meta {
+      margin-top: auto; padding-top: 8px; border-top: 1px dashed rgba(255,255,255,0.12);
+      font-size: 0.7rem; color: var(--text-muted); display: flex; flex-direction: column; gap: 4px;
+    }
     .sidebar-meta span { display: flex; justify-content: space-between; }
+
     /* Main area */
     .main { padding: 16px 18px 18px; display: flex; flex-direction: column; gap: 12px; }
+
     .main-header { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 6px 6px 8px; }
     .main-title-block { display: flex; flex-direction: column; gap: 2px; }
     .main-title { font-size: 1.4rem; letter-spacing: 0.02em; display: flex; align-items: center; gap: 6px; }
     .main-subtitle { font-size: 0.82rem; color: var(--text-muted); }
-    .badge-file { font-size: 0.75rem; padding: 3px 8px; border-radius: 999px; background: rgba(0,0,0,0.35); border: 1px solid rgba(255,255,255,0.16); color: var(--text-muted); }
+
+    .badge-file {
+      font-size: 0.75rem; padding: 3px 8px; border-radius: 999px;
+      background: rgba(0,0,0,0.35); border: 1px solid rgba(255,255,255,0.16); color: var(--text-muted);
+    }
+
     .main-header-actions { display: flex; align-items: center; gap: 8px; }
-    .btn-ghost { border-radius: 999px; border: 1px solid rgba(255,255,255,0.18); background: rgba(5,8,25,0.9); color: var(--text-main); padding: 6px 10px; font-size: 0.8rem; display: flex; align-items: center; gap: 6px; cursor: pointer; transition: background 0.15s, transform 0.08s, box-shadow 0.15s; }
+    .btn-ghost {
+      border-radius: 999px; border: 1px solid rgba(255,255,255,0.18);
+      background: rgba(5,8,25,0.9); color: var(--text-main);
+      padding: 6px 10px; font-size: 0.8rem; display: flex; align-items: center; gap: 6px;
+      cursor: pointer; transition: background 0.15s, transform 0.08s, box-shadow 0.15s;
+    }
     .btn-ghost:hover { background: rgba(18,25,60,0.95); box-shadow: 0 4px 12px rgba(0,0,0,0.4); transform: translateY(-1px); }
+
     .status-text { font-size: 0.8rem; color: var(--text-muted); }
+
     /* Filters bar */
     .filters-bar {
       background: radial-gradient(circle at left, rgba(93,208,255,0.15), rgba(10,15,45,0.98));
-      border-radius: 14px;
-      padding: 10px 12px;
-      border: 1px solid rgba(93,208,255,0.35);
+      border-radius: 14px; padding: 10px 12px; border: 1px solid rgba(93,208,255,0.35);
       display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end;
       box-shadow: 0 12px 28px rgba(0,0,0,0.55);
     }
     .field { display: flex; flex-direction: column; gap: 3px; min-width: 140px; }
     .field label { font-size: 0.78rem; color: var(--text-muted); }
-    select, input[type="range"] { background: #050816; border-radius: 10px; border: 1px solid rgba(255,255,255,0.25); color: var(--text-main); font-size: 0.8rem; padding: 5px 9px; outline: none; min-height: 30px; }
+    select, input[type="range"] {
+      background: #050816; border-radius: 10px; border: 1px solid rgba(255,255,255,0.25);
+      color: var(--text-main); font-size: 0.8rem; padding: 5px 9px; outline: none; min-height: 30px;
+    }
     select:focus, input[type="range"]:focus { border-color: var(--accent); box-shadow: 0 0 0 1px rgba(93,208,255,0.5); }
+
     /* Dual range visual */
     .timeline-wrap { min-width: 340px; }
-    .timeline-controls { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 6px; align-items: center; }
-    .timeline-labels { display: flex; justify-content: space-between; font-size: 0.76rem; color: var(--text-muted); margin-top: 2px; }
+    .timeline-controls {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 6px;
+      align-items: center;
+    }
+    .timeline-labels {
+      display: flex; justify-content: space-between; font-size: 0.76rem; color: var(--text-muted); margin-top: 2px;
+    }
+
     /* KPI panels */
     .panels-row { display: grid; grid-template-columns: 2fr 1.8fr; gap: 10px; margin-top: 8px; margin-bottom: 10px; }
-    .panel { background: linear-gradient(135deg, rgba(14,18,40,0.98), rgba(10,12,30,0.98)); border-radius: 14px; padding: 10px 12px; border: 1px solid var(--border-subtle); box-shadow: 0 14px 32px rgba(0,0,0,0.5); display: flex; flex-direction: column; gap: 6px; min-height: 200px; }
+    .panel {
+      background: linear-gradient(135deg, rgba(14,18,40,0.98), rgba(10,12,30,0.98));
+      border-radius: 14px; padding: 10px 12px; border: 1px solid var(--border-subtle);
+      box-shadow: 0 14px 32px rgba(0,0,0,0.5); display: flex; flex-direction: column; gap: 6px; min-height: 200px;
+    }
     .panel-header { display: flex; align-items: center; justify-content: space-between; font-size: 0.9rem; }
     .panel-header-title { display: flex; align-items: center; gap: 6px; }
     .panel-header-title span.icon { font-size: 1.1rem; }
-    .kpi-row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-top: 4px; }
-    .kpi-card { background: radial-gradient(circle at top, rgba(93,208,255,0.2), rgba(10,15,40,0.95)); border-radius: 12px; padding: 7px 9px; border: 1px solid rgba(93,208,255,0.4); display: flex; flex-direction: column; gap: 2px; font-size: 0.8rem; }
+
+    .kpi-row {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 8px;
+      margin-top: 4px;
+    }
+    .kpi-card {
+      background: radial-gradient(circle at top, rgba(93,208,255,0.2), rgba(10,15,40,0.95));
+      border-radius: 12px;
+      padding: 7px 9px;
+      border: 1px solid rgba(93,208,255,0.4);
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      font-size: 0.8rem;
+    }
     .kpi-label { color: var(--text-muted); font-size: 0.75rem; }
     .kpi-value { font-size: 1rem; font-weight: 600; }
     .kpi-badge { font-size: 0.7rem; color: var(--accent); }
+
     /* MATRIX TABLE */
     .matrix-wrapper { margin-top: 10px; }
-    .matrix-scroll { margin-top: 6px; max-height: 260px; overflow: auto; }
-    .matrix-table { border-collapse: collapse; font-size: 0.78rem; text-align: center; width: max-content; table-layout: auto; }
+    .matrix-scroll {
+      margin-top: 6px;
+      max-height: 260px;
+      overflow: auto;
+    }
+
+    .matrix-table {
+      border-collapse: collapse;
+      font-size: 0.78rem;
+      text-align: center;
+      width: max-content;
+      table-layout: auto;
+    }
     .matrix-table.table-wide { min-width: unset; width: max-content; }
-    .matrix-table.table-fit { min-width: unset; width: max-content; }
-    .matrix-table th, .matrix-table td { border: 1px solid var(--border-subtle); padding: 4px 6px; white-space: nowrap; }
-    .matrix-table thead th { background: radial-gradient(circle at top, rgba(93,208,255,0.18), rgba(10,12,30,0.96)); position: sticky; top: 0; z-index: 1; }
+    .matrix-table.table-fit  { min-width: unset; width: max-content; }
+
+    .matrix-table th,
+    .matrix-table td {
+      border: 1px solid var(--border-subtle);
+      padding: 4px 6px;
+      white-space: nowrap;
+    }
+    .matrix-table thead th {
+      background: radial-gradient(circle at top, rgba(93,208,255,0.18), rgba(10,12,30,0.96));
+      position: sticky;
+      top: 0;
+      z-index: 1;
+    }
+
     /* clickable sortable headers */
-    .matrix-table th.sortable { cursor: pointer; user-select: none; }
-    .matrix-table th.sortable .sort-caret { opacity: 0.75; margin-inline-start: 6px; font-size: 0.8em; }
-    .matrix-table th.sortable:hover { filter: brightness(1.08); }
-    .matrix-row-header { text-align: right; font-weight: 600; background: rgba(255,255,255,0.02); position: sticky; right: 0; z-index: 1; }
-    .num { direction: ltr; unicode-bidi: isolate; font-variant-numeric: tabular-nums; text-align: center; display: inline-block; min-width: 4.8ch; }
-    tr.row-menora td, tr.row-menora .matrix-row-header { background: rgba(34, 60, 140, 0.22) !important; }
+    .matrix-table th.sortable {
+      cursor: pointer;
+      user-select: none;
+    }
+    .matrix-table th.sortable .sort-caret {
+      opacity: 0.75;
+      margin-inline-start: 6px;
+      font-size: 0.8em;
+    }
+    .matrix-table th.sortable:hover {
+      filter: brightness(1.08);
+    }
+
+    .matrix-row-header {
+      text-align: right;
+      font-weight: 600;
+      background: rgba(255,255,255,0.02);
+      position: sticky;
+      right: 0;
+      z-index: 1;
+    }
+
+    .num {
+      direction: ltr;
+      unicode-bidi: isolate;
+      font-variant-numeric: tabular-nums;
+      text-align: center;
+      display: inline-block;
+      min-width: 4.8ch;
+    }
+
+    tr.row-menora td,
+    tr.row-menora .matrix-row-header {
+      background: rgba(34, 60, 140, 0.22) !important;
+    }
+
     /* Views */
     .views-wrapper { margin-top: 4px; display: flex; flex-direction: column; gap: 10px; }
     .view { display: none; }
     .view.active { display: block; }
+
     /* Chart panel */
-    .chart-title { margin: 6px 0 4px; font-size: 0.9rem; color: var(--text-main); display: flex; align-items: center; gap: 6px; }
+    .chart-title {
+      margin: 6px 0 4px;
+      font-size: 0.9rem;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
     .chart-container { position: relative; width: 100%; height: 260px; }
     .chart-container.narrow-right { max-width: 1100px; margin-left: auto; margin-right: 0; }
-    .chart-filters-row { margin-top: 6px; display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; }
+
+    .chart-filters-row {
+      margin-top: 6px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: flex-end;
+    }
+
     @media (max-width: 840px) {
       .app-shell { grid-template-columns: 1fr; }
       .sidebar { display: none; }
@@ -135,22 +265,26 @@
     }
   </style>
 </head>
+
 <body>
 <div class="app-shell">
+
   <!-- SIDEBAR -->
   <aside class="sidebar">
     <div class="sidebar-logo">
       <div class="sidebar-logo-icon">⧉</div>
       <div class="sidebar-logo-text">
         <div class="sidebar-logo-title">מרכיבי תשואה</div>
-        <div class="sidebar-logo-sub">Dashboard v4.7.0</div>
+        <div class="sidebar-logo-sub">Dashboard v4.6.0</div>
       </div>
     </div>
+
     <div class="sidebar-nav">
       <div class="nav-item active" data-view="charts">
         <span class="icon">📈</span><span class="label">גרפים</span>
       </div>
     </div>
+
     <div class="sidebar-meta" id="sidebar_meta">
       <span><span>חברות:</span><span>-</span></span>
       <span><span>מסלולים:</span><span>-</span></span>
@@ -161,11 +295,14 @@
 
   <!-- MAIN -->
   <main class="main">
+
     <!-- HEADER -->
     <header class="main-header">
       <div class="main-title-block">
         <div class="main-title">דשבורד מרכיבי תשואה</div>
-        <div class="main-subtitle"> גרפים + טבלת מטריצה לפי מסלול / שנה / רבעון </div>
+        <div class="main-subtitle">
+          גרפים + טבלת מטריצה לפי מסלול / שנה / רבעון
+        </div>
       </div>
       <div class="main-header-actions">
         <div class="badge-file" id="badge_file">קובץ: -</div>
@@ -181,6 +318,7 @@
         </div>
         <div class="kpi-row" id="kpi_row"></div>
       </div>
+
       <div class="panel">
         <div class="panel-header">
           <div class="panel-header-title"><span class="icon">ℹ️</span><span>סטטוס פילטרים</span></div>
@@ -191,6 +329,7 @@
 
     <!-- FILTERS -->
     <section class="filters-bar">
+
       <div class="field">
         <label>תצוגת עמודות</label>
         <select id="col_mode">
@@ -198,45 +337,54 @@
           <option value="year">לפי שנים</option>
         </select>
       </div>
+
       <div class="field">
         <label>שדות לטבלה</label>
         <select id="f_cols" multiple></select>
       </div>
+
       <div class="field">
         <label>סוג חיסכון</label>
         <select id="f_saving_type"></select>
       </div>
+
       <div class="field">
         <label>סוג קופה</label>
         <select id="f_fund_type"></select>
       </div>
+
       <div class="field">
         <label>מסלול</label>
         <select id="f_track" multiple></select>
       </div>
+
       <div class="field">
         <label>סחירות</label>
         <select id="f_liquidity"></select>
       </div>
+
       <div class="field">
         <label>אפיק השקעה</label>
         <select id="f_category" multiple></select>
       </div>
+
       <div class="field">
         <label>שנת דיווח</label>
         <select id="f_year" multiple></select>
       </div>
+
       <div class="field timeline-wrap">
         <label>ציר זמן (שנה/רבעון) – גרור ימין/שמאל</label>
         <div class="timeline-controls">
           <input id="tl_start" type="range" min="0" max="0" step="1" value="0" />
-          <input id="tl_end" type="range" min="0" max="0" step="1" value="0" />
+          <input id="tl_end"   type="range" min="0" max="0" step="1" value="0" />
         </div>
         <div class="timeline-labels">
           <span id="tl_label_start">-</span>
           <span id="tl_label_end">-</span>
         </div>
       </div>
+
     </section>
 
     <!-- MATRIX TABLE -->
@@ -248,14 +396,12 @@
             <span id="matrix_title">מטריצת שיעור מסך התיק, תשואה, דירוגים וסיכום תקופה</span>
           </div>
         </div>
-
         <div id="matrix_empty" class="status-text" style="margin-top:4px; display:none;">
           אין נתונים להצגה עבור המסננים הנוכחיים.
         </div>
         <div id="matrix_no_fields" class="status-text" style="margin-top:4px; display:none;">
           בחר שדות להצגה מתוך “שדות לטבלה”.
         </div>
-
         <div class="matrix-scroll">
           <table id="matrix_table" class="matrix-table table-wide"></table>
         </div>
@@ -265,6 +411,7 @@
     <!-- CHARTS VIEW -->
     <section class="views-wrapper">
       <section class="view active" id="view_charts">
+
         <div class="panel">
           <div class="panel-header">
             <div class="panel-header-title"><span class="icon">📈</span><span>גרפים</span></div>
@@ -303,13 +450,17 @@
             </div>
           </div>
         </div>
+
       </section>
     </section>
+
   </main>
 </div>
 
 <script>
-/* ———————————————————————— STATE ———————————————————————— */
+/* ————————————————————————
+   STATE
+———————————————————————— */
 const state = {
   raw: [],
   filtered: [],
@@ -323,39 +474,35 @@ const state = {
   tlStart: 0,
   tlEnd: 0,
   /* sorting state */
-  // type: 'track' | 'cum' (deprecated for compatibility) | 'cell' | 'sum'
-  // fieldKey for 'cell': 'yield' | 'weight' | 'rank_yield' | 'rank_weight'
-  // fieldKey for 'sum':  'sum_cum_return' | 'sum_avg_weight' | 'sum_rank_cum_return' | 'sum_rank_avg_weight'
-  sort: null
+  sort: null // { type:'track'|'cum'|'cell', dir:'asc'|'desc', year?:number, quarter?:number|null, fieldKey?:'yield'|'weight'|'rank_yield'|'rank_weight' }
 };
 
 /* Filters metadata */
 const FILTERS = {
-  saving_type: { id: "f_saving_type", field: "saving_type", sort: "locale" },
-  fund_type:   { id: "f_fund_type", field: "fund_type",   sort: "locale" },
-  track:       { id: "f_track",      field: "track_name",  sort: "locale", multi: true },
-  liquidity:   { id: "f_liquidity",  field: "liquidity",   sort: "locale" },
-  category:    { id: "f_category",   field: "category",    sort: "locale", multi: true },
-  year:        { id: "f_year",       field: "year",        sort: "numeric", multi: true }
+  saving_type: { id: "f_saving_type", field: "saving_type",   sort: "locale" },
+  fund_type:   { id: "f_fund_type",   field: "fund_type",     sort: "locale" },
+  track:       { id: "f_track",       field: "track_name",    sort: "locale",  multi: true },
+  liquidity:   { id: "f_liquidity",   field: "liquidity",     sort: "locale" },
+  category:    { id: "f_category",    field: "category",      sort: "locale",  multi: true },
+  year:        { id: "f_year",        field: "year",          sort: "numeric", multi: true }
 };
 
 /* Cell-level fields shown inside each period */
 const TABLE_FIELDS = [
-  { key: "weight",      label: "שיעור מסך התיק (%)" },
-  { key: "yield",       label: "תשואה (%)" },
-  { key: "rank_yield",  label: "דירוג תשואה" },
-  { key: "rank_weight", label: "דירוג מסך התיק" }
+  { key: "weight",     label: "שיעור מסך התיק (%)" },
+  { key: "yield",      label: "תשואה (%)" },
+  { key: "rank_yield", label: "דירוג תשואה" },
+  { key: "rank_weight",label: "דירוג מסך התיק" }
 ];
 
 /* Summary columns (controlled via “שדות לטבלה”) */
 const SUMMARY_FIELDS = [
-  { key: "sum_cum_return",        label: "סיכומים: תשואה מצטברת" },
-  { key: "sum_rank_cum_return",   label: "סיכומים: דירוג תשואה" },
-  { key: "sum_avg_weight",        label: "סיכומים: אחזקה ממוצעת (%)" },
-  { key: "sum_rank_avg_weight",   label: "סיכומים: דירוג אחזקה" }
+  { key: "sum_cum_return", label: "סיכומים: תשואה מצטברת" }
 ];
 
-/* ———————————————————————— UTILITIES ———————————————————————— */
+/* ————————————————————————
+   UTILITIES
+———————————————————————— */
 function safeNumber(v) { const x = Number(v); return isNaN(x) ? null : x; }
 function nz(v){ const x=safeNumber(v); return x==null?0:x; }
 
@@ -402,34 +549,30 @@ function buildGlobalTimeline() {
     const [yb,qb]=b.split("|").map(Number);
     return ya===yb ? qa-qb : ya-yb;
   });
-
   state.timeKeys = keys;
-  state.timeLabels = keys.map(k=>{
-    const [y,q]=k.split("|");
-    return `${y} Q${q}`;
-  });
+  state.timeLabels = keys.map(k=>{ const [y,q]=k.split("|"); return `${y} Q${q}`; });
   state.timeIndexMap = new Map(keys.map((k,i)=>[k,i]));
 
   const startEl = document.getElementById("tl_start");
-  const endEl = document.getElementById("tl_end");
-  const lblS = document.getElementById("tl_label_start");
-  const lblE = document.getElementById("tl_label_end");
+  const endEl   = document.getElementById("tl_end");
+  const lblS    = document.getElementById("tl_label_start");
+  const lblE    = document.getElementById("tl_label_end");
 
   const max = Math.max(0, keys.length-1);
   startEl.min = 0; startEl.max = String(max);
-  endEl.min = 0;   endEl.max   = String(max);
+  endEl.min   = 0; endEl.max   = String(max);
+
   state.tlStart = 0; state.tlEnd = max;
   startEl.value = String(state.tlStart);
   endEl.value   = String(state.tlEnd);
   lblS.textContent = keys.length ? state.timeLabels[state.tlStart] : "-";
   lblE.textContent = keys.length ? state.timeLabels[state.tlEnd]   : "-";
 }
-
 function hookTimelineEvents() {
   const startEl = document.getElementById("tl_start");
-  const endEl = document.getElementById("tl_end");
-  const lblS = document.getElementById("tl_label_start");
-  const lblE = document.getElementById("tl_label_end");
+  const endEl   = document.getElementById("tl_end");
+  const lblS    = document.getElementById("tl_label_start");
+  const lblE    = document.getElementById("tl_label_end");
 
   const clampUpdate = ()=>{
     let s = Number(startEl.value);
@@ -444,11 +587,9 @@ function hookTimelineEvents() {
     lblE.textContent = state.timeLabels[state.tlEnd]   ?? "-";
     applyFilters();
   };
-
   startEl.addEventListener("input", clampUpdate);
   endEl.addEventListener("input", clampUpdate);
 }
-
 function inTimelineRange(row) {
   const y = Number(row.year), q = Number(row.quarter);
   if (!(y && q)) return false;
@@ -484,11 +625,8 @@ async function reloadData() {
     hookTimelineEvents();
     refreshFilterOptions();
     applyFilters();
-  } catch (err) {
-    console.error(err);
-  }
+  } catch (err) { console.error(err); }
 }
-
 function updateSidebarMeta() {
   const m = state.meta || {};
   document.getElementById("sidebar_meta").innerHTML = `
@@ -511,36 +649,35 @@ function buildFilters() {
 
   setSelectOptions(document.getElementById("f_saving_type"), savingTypes);
   setSelectOptions(document.getElementById("f_fund_type"),   fundTypes);
-  setSelectOptions(document.getElementById("f_track"),       tracks,     { includeAll:false });
+  setSelectOptions(document.getElementById("f_track"),       tracks, { includeAll:false });
   setSelectOptions(document.getElementById("f_liquidity"),   liquidities);
   setSelectOptions(document.getElementById("f_category"),    categories, { includeAll:false });
   setSelectOptions(document.getElementById("f_year"),        years,      { includeAll:false });
 
   /* DEFAULTS (טעינה ראשונה) */
-  const defaultSaving = "השתלמות";
+  const defaultSaving   = "השתלמות";
   const defaultFundType = "כללי";
-  const defaultTrack = "כללי";
+  const defaultTrack    = "כללי";
+
   const selSaving = document.getElementById("f_saving_type");
   const selFund   = document.getElementById("f_fund_type");
   const selTrack  = document.getElementById("f_track");
-  if ([...selSaving.options].some(o=>o.value===defaultSaving))  selSaving.value = defaultSaving;
-  if ([...selFund.options].some(o=>o.value===defaultFundType))  selFund.value   = defaultFundType;
-  if ([...selTrack.options].some(o=>o.value===defaultTrack))    selTrack.value  = defaultTrack;
+
+  if ([...selSaving.options].some(o=>o.value===defaultSaving))   selSaving.value = defaultSaving;
+  if ([...selFund.options].some(o=>o.value===defaultFundType))   selFund.value   = defaultFundType;
+  if ([...selTrack.options].some(o=>o.value===defaultTrack))     selTrack.value  = defaultTrack;
 
   /* Columns selector */
   const colsSel = document.getElementById("f_cols");
   const allOptions = [
     ...SUMMARY_FIELDS.map(f => ({ value: f.key, text: f.label })),
-    ...TABLE_FIELDS.map(f   => ({ value: f.key, text: f.label }))
+    ...TABLE_FIELDS.map(f => ({ value: f.key, text: f.label }))
   ];
   setSelectOptions(colsSel, allOptions, { includeAll:false });
   Array.from(colsSel.options).forEach(o => o.selected = true);
 
   ["f_saving_type","f_fund_type","f_track","f_liquidity","f_category","f_year"].forEach(id=>{
-    document.getElementById(id).addEventListener("change", ()=>{
-      refreshFilterOptions();
-      applyFilters();
-    });
+    document.getElementById(id).addEventListener("change", ()=>{ refreshFilterOptions(); applyFilters(); });
   });
   document.getElementById("col_mode").addEventListener("change", ()=>{
     toggleLiquidityQuarterVisibility();
@@ -556,7 +693,6 @@ function buildFilters() {
 
   toggleLiquidityQuarterVisibility();
 }
-
 function getCurrentFilters() {
   return {
     saving_type: getSelectValues(document.getElementById("f_saving_type")),
@@ -569,10 +705,10 @@ function getCurrentFilters() {
     table_cols:  getSelectValues(document.getElementById("f_cols"), true)
   };
 }
-
 function refreshFilterOptions() {
   const filters = getCurrentFilters();
   const rows = state.raw;
+
   Object.entries(FILTERS).forEach(([key,meta])=>{
     const sel = document.getElementById(meta.id);
     const isMulti = !!meta.multi;
@@ -582,15 +718,16 @@ function refreshFilterOptions() {
       if (key!=="saving_type" && filters.saving_type && r.saving_type !== filters.saving_type) return false;
       if (key!=="fund_type"   && filters.fund_type   && r.fund_type   !== filters.fund_type)   return false;
       if (key!=="track"       && Array.isArray(filters.track) && filters.track.length && !filters.track.includes(r.track_name)) return false;
-      if (key!=="liquidity"   && filters.liquidity && r.liquidity !== filters.liquidity) return false;
-      if (key!=="category"    && Array.isArray(filters.category) && filters.category.length && !filters.category.includes(r.category)) return false;
-      if (key!=="year"        && Array.isArray(filters.year) && filters.year.length && !filters.year.includes(String(r.year))) return false;
+      if (key!=="liquidity"   && filters.liquidity   && r.liquidity   !== filters.liquidity)   return false;
+      if (key!=="category" && Array.isArray(filters.category) && filters.category.length && !filters.category.includes(r.category)) return false;
+      if (key!=="year" && Array.isArray(filters.year) && filters.year.length && !filters.year.includes(String(r.year))) return false;
       return true;
     });
 
     let vals = Array.from(new Set(rowsForKey.map(r=>r[meta.field]).filter(Boolean)));
     if (meta.sort==="numeric") vals.sort((a,b)=>a-b);
     else vals.sort((a,b)=>String(a).localeCompare(String(b),"he"));
+
     setSelectOptions(sel, vals, { includeAll:!isMulti });
 
     if (isMulti) {
@@ -606,54 +743,63 @@ function refreshFilterOptions() {
 function applyFilters() {
   const f = getCurrentFilters();
   const rows = state.raw.filter(r=>Number(r.year)>=2022);
+
   state.filtered = rows.filter(r=>{
     if (f.saving_type && r.saving_type !== f.saving_type) return false;
     if (f.fund_type   && r.fund_type   !== f.fund_type)   return false;
     if (Array.isArray(f.track) && f.track.length && !f.track.includes(r.track_name)) return false;
-    if (f.liquidity && r.liquidity !== f.liquidity) return false;
+    if (f.liquidity   && r.liquidity   !== f.liquidity)   return false;
     if (Array.isArray(f.category) && f.category.length && !f.category.includes(r.category)) return false;
     if (Array.isArray(f.year) && f.year.length && !f.year.includes(String(r.year))) return false;
     if (!inTimelineRange(r)) return false;
     return true;
   });
+
   refreshLiquidityFilters();
   updateFiltersStatus();
   renderKPIs();
   renderMatrixTable();
   renderCharts();
 }
-
 function updateFiltersStatus() {
   const f = getCurrentFilters();
   const cnt = state.filtered.length;
+
   const labelByKey = new Map([
     ...SUMMARY_FIELDS.map(x=>[x.key,x.label]),
     ...TABLE_FIELDS.map(x=>[x.key,x.label]),
   ]);
   const selectedLabels = (f.table_cols||[]).map(k=>labelByKey.get(k)).filter(Boolean);
+
   const parts = [];
   parts.push("תצוגת עמודות: " + (f.col_mode==="quarter" ? "לפי רבעון" : "לפי שנים"));
   if (f.saving_type) parts.push("סוג חיסכון: "+f.saving_type);
   if (f.fund_type)   parts.push("סוג קופה: "+f.fund_type);
   if (Array.isArray(f.track) && f.track.length) parts.push("מסלול: "+f.track.join(", "));
-  if (f.liquidity) parts.push("סחירות: "+f.liquidity);
+  if (f.liquidity)   parts.push("סחירות: "+f.liquidity);
   if (f.category.length) parts.push("אפיק: "+f.category.join(", "));
-  if (f.year.length) parts.push("שנים: "+f.year.join(", "));
+  if (f.year.length)     parts.push("שנים: "+f.year.join(", "));
   if (state.timeKeys.length) parts.push(`טווח זמן: ${state.timeLabels[state.tlStart]} → ${state.timeLabels[state.tlEnd]}`);
   if (selectedLabels.length) parts.push("שדות בטבלה: "+selectedLabels.join(", "));
-  document.getElementById("status_filters").textContent = (parts.length ? parts.join(" • ") : "ללא סינון") + ` • רשומות לאחר סינון: ${cnt}`;
+
+  document.getElementById("status_filters").textContent =
+    (parts.length ? parts.join(" • ") : "ללא סינון") +
+    ` • רשומות לאחר סינון: ${cnt}`;
 }
 
 /* KPI */
 function renderKPIs() {
   const rows = state.filtered;
   const kpi = document.getElementById("kpi_row");
+
   if (!rows.length) {
     kpi.innerHTML = `<div class="kpi-card"><div class="kpi-label">אין נתונים</div><div class="kpi-value">0</div></div>`;
     return;
   }
+
   const companies = new Set(rows.map(r=>r.company_short));
   const tracks    = new Set(rows.map(r=>r.track_name));
+
   kpi.innerHTML = `
     <div class="kpi-card">
       <div class="kpi-label">חברות בפילטר</div>
@@ -668,12 +814,18 @@ function renderKPIs() {
   `;
 }
 
-/* ———————————————————————— RETURNS LOGIC ————————————————————————
-   מקבלים פרוקסי מצטבר לרבעון: R_q ≈ contribution / weight
-   מפרקים לתשואה רבעונית אמיתית ולשנתית:
-   r1 = R1; r2 = (1+R2)/(1+R1) - 1; ...
-   Annual = Π(1+r_q) - 1
+/* ————————————————————————
+   RETURNS LOGIC (NEW)
+   We receive cumulative return proxy per period: R_q ≈ contribution/weight.
+   We convert to true per-quarter returns:
+   r1 = R1
+   r2 = (1+R2)/(1+R1) - 1
+   r3 = (1+R3)/(1+R2) - 1
+   r4 = (1+R4)/(1+R3) - 1
+   Annual return per year = Π(1+r_q) - 1
 ———————————————————————— */
+
+/* Build aggregated map by track/year/quarter (sum weights & contributions) */
 function buildAgg(rows){
   const agg = {};
   rows.forEach(r => {
@@ -683,25 +835,28 @@ function buildAgg(rows){
     if (!agg[t]) agg[t]={};
     if (!agg[t][y]) agg[t][y]={};
     if (!agg[t][y][q]) agg[t][y][q]={w:0,c:0};
-    agg[t][y][q].w += w;
-    agg[t][y][q].c += c;
+    agg[t][y][q].w += w; agg[t][y][q].c += c;
   });
   return agg;
 }
+
+/* From agg with cumulative R=c/w per period, compute per-quarter r and annual */
 function derivePeriodAndAnnual(agg){
-  const period = {};
-  const annual = {};
+  const period = {};   // period[track][year][q] = r_q (number)
+  const annual = {};   // annual[track][year]     = R_year (number)
   Object.keys(agg).forEach(t=>{
     period[t]={}; annual[t]={};
     Object.keys(agg[t]).map(Number).sort((a,b)=>a-b).forEach(y=>{
       const qs = Object.keys(agg[t][y]).map(Number).filter(Boolean).sort((a,b)=>a-b);
-      let prevR = null; let prod = 1.0; period[t][y]={};
+      let prevR = null;
+      let prod = 1.0;
+      period[t][y]={};
       qs.forEach(q=>{
         const cell = agg[t][y][q];
         const Rq = (cell && Math.abs(cell.w)>1e-12) ? (cell.c/cell.w) : null;
         let rq = null;
         if (Rq==null) rq=null;
-        else if (prevR==null) rq = Rq;
+        else if (prevR==null) rq = Rq; // r1 = R1
         else rq = (1+Rq)/(1+prevR) - 1;
         period[t][y][q] = rq;
         if (rq!=null) prod *= (1+rq);
@@ -711,22 +866,6 @@ function derivePeriodAndAnnual(agg){
     });
   });
   return { period, annual };
-}
-
-/* ======= חישוב r_q תמיד על בסיס נתונים לא-מסונני-זמן ======= */
-function rowsForQuarterReturnsBase() {
-  const f = getCurrentFilters();
-  return state.raw.filter(r => {
-    if (Number(r.year) < 2022) return false;
-    if (f.saving_type && r.saving_type !== f.saving_type) return false;
-    if (f.fund_type   && r.fund_type   !== f.fund_type)   return false;
-    if (Array.isArray(f.track) && f.track.length && !f.track.includes(r.track_name)) return false;
-    if (f.liquidity && r.liquidity !== f.liquidity) return false;
-    if (Array.isArray(f.category) && f.category.length && !f.category.includes(r.category)) return false;
-    if (Array.isArray(f.year) && f.year.length && !f.year.includes(String(r.year))) return false;
-    // בכוונה לא מסננים לפי ציר זמן/רבעון
-    return true;
-  });
 }
 
 /* Helpers for table width */
@@ -745,47 +884,39 @@ function applyMatrixTableWidthMode() {
   const mode = document.getElementById("col_mode").value || "quarter";
   table.classList.remove("table-wide","table-fit");
   if (mode === "quarter") table.classList.add("table-wide");
-  else table.classList.add("table-fit");
+  else                    table.classList.add("table-fit");
 }
-function isActiveCell(cell){ if (!cell) return false; return (Math.abs(cell.w||0)>1e-9) || (Math.abs(cell.c||0)>1e-9); }
-function bestQuarterForYear(agg, track, year) { for (const q of [4,3,2,1]) if (agg?.[track]?.[year]?.[q]) return q; return null; }
+function isActiveCell(cell){
+  if (!cell) return false;
+  return (Math.abs(cell.w||0)>1e-9) || (Math.abs(cell.c||0)>1e-9);
+}
+function bestQuarterForYear(agg, track, year) {
+  for (const q of [4,3,2,1]) if (agg?.[track]?.[year]?.[q]) return q;
+  return null;
+}
 
-/* ——— Coverage & summaries (STRICT) ——— */
-function expectedPeriodsMap(activeQuartersByYear, years, mode){
-  if (mode==="quarter"){
-    return new Map(years.map(y => [y, (activeQuartersByYear.get(y)||[]).slice() ]));
+/* summary (updated to use period/annual) */
+function computeTrackSummaryCum_fromPeriod(periodMap, annualMap, track, yearsDesc, yearMap, mode) {
+  let product = 1.0;
+  let touched = false;
+
+  if (mode === "quarter") {
+    yearsDesc.forEach(y=>{
+      (yearMap.get(y)||[]).slice().reverse().forEach(qDesc=>{
+        // yearMap holds quarters DESC (later), but we just multiply irrespective of order
+        const rq = periodMap?.[track]?.[y]?.[qDesc];
+        if (rq!=null) { product *= (1+rq); touched = true; }
+      });
+    });
   } else {
-    return new Map(years.map(y => [y, null]));
+    yearsDesc.forEach(y=>{
+      const Ry = annualMap?.[track]?.[y];
+      if (Ry!=null) { product *= (1+Ry); touched = true; }
+    });
   }
-}
-function computeSummaryPkg(track, years, activeQuartersByYear, agg, periodR, annualR, mode){
-  let covered = true, product = 1.0, sumW = 0, count = 0;
-  if (mode==="quarter"){
-    for (const y of years){
-      const qs = (activeQuartersByYear.get(y)||[]);
-      for (const q of qs){
-        const cell = agg?.[track]?.[y]?.[q] || null;
-        const rq   = periodR?.[track]?.[y]?.[q];
-        const hasW = cell && Math.abs(cell.w)>1e-12;
-        if (rq==null || !hasW){ covered = false; break; }
-        product *= (1+rq);
-        sumW += cell.w; count += 1;
-      }
-      if (!covered) break;
-    }
-  } else {
-    for (const y of years){
-      const Ry = annualR?.[track]?.[y];
-      const bq = bestQuarterForYear(agg, track, y);
-      const cell = bq ? (agg?.[track]?.[y]?.[bq] || null) : null;
-      const hasW = cell && Math.abs(cell.w)>1e-12;
-      if (Ry==null || !hasW){ covered = false; break; }
-      product *= (1+Ry);
-      sumW += cell.w; count += 1;
-    }
-  }
-  if (!covered || count===0) return { covered:false, cum:null, avgW:null };
-  return { covered:true, cum: product - 1, avgW: (sumW / count) };
+
+  const cumReturn = touched ? (product - 1) : null;
+  return cumReturn==null ? "-" : (cumReturn*100).toFixed(2)+"%";
 }
 
 /* sorting helpers */
@@ -803,7 +934,9 @@ function compareValues(a,b,dir){
   return String(a).localeCompare(String(b),"he") * mul;
 }
 function flipDir(dir){ return dir==='asc' ? 'desc' : 'asc'; }
-function clearHeaderCarets(thead){ thead.querySelectorAll('.sort-caret').forEach(el=> el.textContent=""); }
+function clearHeaderCarets(thead){
+  thead.querySelectorAll('.sort-caret').forEach(el=> el.textContent="");
+}
 function setCaret(el,dir){
   let caret = el.querySelector(".sort-caret");
   if (!caret){ caret = document.createElement("span"); caret.className="sort-caret"; el.appendChild(caret); }
@@ -823,11 +956,7 @@ function renderMatrixTable() {
 
   const cellFields = selectedTableFields();
   const summaryKeys = selectedSummaryKeys();
-
-  const includeSumCum     = summaryKeys.includes("sum_cum_return");
-  const includeSumCumRank = summaryKeys.includes("sum_rank_cum_return");
-  const includeSumAvgW    = summaryKeys.includes("sum_avg_weight");
-  const includeSumAvgWRnk = summaryKeys.includes("sum_rank_avg_weight");
+  const includeCum  = summaryKeys.includes("sum_cum_return");
 
   table.replaceChildren();
 
@@ -838,14 +967,15 @@ function renderMatrixTable() {
     return;
   }
   emptyEl.style.display = "none";
-  if (cellFields.length === 0 && !(includeSumCum||includeSumCumRank||includeSumAvgW||includeSumAvgWRnk)) {
+
+  if (cellFields.length === 0 && !includeCum) {
     noFieldsEl.style.display = "block";
     applyMatrixTableWidthMode();
     return;
   }
   noFieldsEl.style.display = "none";
 
-  // Build years/tracks and aggregate (לתצוגה)
+  // Build years/tracks and aggregate (cumulative), then derive period and annual
   const yearMap = new Map();
   rows.forEach(r => {
     const y = Number(r.year);
@@ -855,33 +985,28 @@ function renderMatrixTable() {
     if (q) yearMap.get(y).add(q);
   });
   const yearsAll = Array.from(yearMap.keys()).sort((a,b)=>b-a);
-  yearsAll.forEach(y => yearMap.set(y, Array.from(yearMap.get(y)).sort((a,b)=>b-a)));
+  yearsAll.forEach(y => yearMap.set(y, Array.from(yearMap.get(y)).sort((a,b)=>b-a))); // store DESC for header
 
-  const trackNames = Array.from(new Set(rows.map(r => r.track_name))).sort((a,b)=>String(a).localeCompare(String(b),"he"));
+  const trackNames = Array.from(new Set(rows.map(r => r.track_name)))
+    .sort((a,b)=>String(a).localeCompare(String(b),"he"));
 
-  const aggDisplay = buildAgg(rows);
+  const agg = buildAgg(rows);
+  const { period:periodR, annual:annualR } = derivePeriodAndAnnual(agg);
 
-  // === חישוב תשואות רבעוניות/שנתיות על בסיס נתוני מקור לא מסוננים בזמן ===
-  const rowsForReturns = rowsForQuarterReturnsBase();
-  const aggFull = buildAgg(rowsForReturns);
-  const { period: periodR_full, annual: annualR_full } = derivePeriodAndAnnual(aggFull);
-
-  // בחירת שנים/רבעונים להצגה לפי זמינות נתונים (בתצוגה)
   let years = [];
   const activeQuartersByYear = new Map();
-
   if (mode === "quarter") {
     years = yearsAll.filter(y=>{
       const qs = yearMap.get(y)||[];
       const activeQs = qs.filter(q=>{
-        return trackNames.some(t => (periodR_full?.[t]?.[y]?.[q]!=null) || (aggDisplay?.[t]?.[y]?.[q]));
+        return trackNames.some(t => periodR?.[t]?.[y]?.[q]!=null);
       });
       if (activeQs.length) activeQuartersByYear.set(y, activeQs);
       return activeQs.length>0;
     });
   } else {
     years = yearsAll.filter(y=>{
-      return trackNames.some(t=> annualR_full?.[t]?.[y]!=null );
+      return trackNames.some(t=> annualR?.[t]?.[y]!=null );
     });
   }
 
@@ -891,21 +1016,16 @@ function renderMatrixTable() {
     return;
   }
 
-  // סיכומי STRICT על בסיס periodR_full/annualR_full
-  const sumPkgByTrack = {};
-  trackNames.forEach(t=>{
-    sumPkgByTrack[t] = computeSummaryPkg(t, years, activeQuartersByYear, aggDisplay, periodR_full, annualR_full, mode);
-  });
-
+  // pre-compute ranks
   function buildRankMapsQuarter(){
-    const rankReturnMap={}, rankWeightMap={};
+    const rankReturnMap={}; const rankWeightMap={};
     years.forEach(y=>{
       rankReturnMap[y]={}; rankWeightMap[y]={};
       (activeQuartersByYear.get(y)||[]).forEach(q=>{
         const arrR=[], arrW=[];
         trackNames.forEach(t=>{
-          const cell = aggDisplay?.[t]?.[y]?.[q];
-          const rq   = periodR_full?.[t]?.[y]?.[q];
+          const cell = agg?.[t]?.[y]?.[q];
+          const rq = periodR?.[t]?.[y]?.[q];
           if (rq!=null) arrR.push({t,val:rq});
           if (cell && Math.abs(cell.w)>1e-12) arrW.push({t,val:cell.w});
         });
@@ -918,15 +1038,13 @@ function renderMatrixTable() {
     });
     return {rankReturnMap,rankWeightMap};
   }
-
   function buildRankMapsYear(){
     const rankReturnYear={}, rankWeightYear={};
     years.forEach(y=>{
       const arrR=[], arrW=[];
       trackNames.forEach(t=>{
-        const Ry = annualR_full?.[t]?.[y];
-        const bq=bestQuarterForYear(aggDisplay,t,y);
-        const cell=bq? aggDisplay[t]?.[y]?.[bq]:null;
+        const Ry = annualR?.[t]?.[y];
+        const bq=bestQuarterForYear(agg,t,y); const cell=bq? agg[t]?.[y]?.[bq]:null;
         if (Ry!=null) arrR.push({t,val:Ry});
         if (cell && Math.abs(cell.w)>1e-12) arrW.push({t,val:cell.w});
       });
@@ -939,40 +1057,27 @@ function renderMatrixTable() {
     return {rankReturnYear,rankWeightYear};
   }
 
-  function buildSummaryRanks(){
-    const arrCum = [], arrAvgW = [];
-    trackNames.forEach(t=>{
-      const pkg = sumPkgByTrack[t];
-      if (pkg.covered && pkg.cum!=null)  arrCum.push({t,val:pkg.cum});
-      if (pkg.covered && pkg.avgW!=null) arrAvgW.push({t,val:pkg.avgW});
-    });
-    arrCum.sort((a,b)=>b.val-a.val);
-    arrAvgW.sort((a,b)=>b.val-a.val);
-    const cumMap={}, wMap={};
-    arrCum.forEach((o,i)=> cumMap[o.t] = { rank:i+1, total:arrCum.length });
-    arrAvgW.forEach((o,i)=> wMap[o.t]  = { rank:i+1, total:arrAvgW.length });
-    return { cumMap, wMap };
-  }
-  const summaryRanks = buildSummaryRanks();
-
+  // helpers for header/td
   function makeSortable(th, sortSpec){
     th.classList.add("sortable");
     th.addEventListener("click", ()=>{
-      const same = state.sort
-        && state.sort.type === sortSpec.type
-        && state.sort.year === sortSpec.year
-        && (state.sort.quarter ?? null) === (sortSpec.quarter ?? null)
-        && state.sort.fieldKey === sortSpec.fieldKey;
+      const same =
+        state.sort &&
+        state.sort.type === sortSpec.type &&
+        state.sort.year === sortSpec.year &&
+        (state.sort.quarter ?? null) === (sortSpec.quarter ?? null) &&
+        state.sort.fieldKey === sortSpec.fieldKey;
       const dir = same ? flipDir(state.sort.dir) : 'desc';
       state.sort = {...sortSpec, dir};
       renderMatrixTable();
       renderCharts();
     });
-    const isActive = state.sort
-      && state.sort.type === sortSpec.type
-      && state.sort.year === sortSpec.year
-      && (state.sort.quarter ?? null) === (sortSpec.quarter ?? null)
-      && state.sort.fieldKey === sortSpec.fieldKey;
+    const isActive =
+      state.sort &&
+      state.sort.type === sortSpec.type &&
+      state.sort.year === sortSpec.year &&
+      (state.sort.quarter ?? null) === (sortSpec.quarter ?? null) &&
+      state.sort.fieldKey === sortSpec.fieldKey;
     if (isActive) setCaret(th, state.sort.dir);
   }
   function thWith({text="", attrs={}, html=""}) {
@@ -985,8 +1090,7 @@ function renderMatrixTable() {
   function tdWith({text="", html="", cls=""}) {
     const td = document.createElement("td");
     if (cls) td.className = cls;
-    if (html) td.innerHTML = html;
-    else td.textContent = text;
+    if (html) td.innerHTML = html; else td.textContent = text;
     return td;
   }
 
@@ -999,13 +1103,8 @@ function renderMatrixTable() {
     const tr1 = document.createElement("tr");
     const thTrack = thWith({text:"מסלול", attrs:{rowspan:3}});
     tr1.appendChild(thTrack);
-
-    const sumCount = (includeSumCum?1:0) + (includeSumCumRank?1:0) + (includeSumAvgW?1:0) + (includeSumAvgWRnk?1:0);
-    if (sumCount>0){
-      const thSum = thWith({text:"סיכומים", attrs:{colspan:sumCount, rowspan:1}});
-      tr1.appendChild(thSum);
-    }
-
+    const thCum = selectedSummaryKeys().includes("sum_cum_return") ? thWith({text:"תשואה מצטברת", attrs:{rowspan:3}}) : null;
+    if (thCum) tr1.appendChild(thCum);
     years.forEach(y=>{
       const qs = (activeQuartersByYear.get(y)||[]);
       if (qs.length===0) return;
@@ -1014,26 +1113,6 @@ function renderMatrixTable() {
     thead.appendChild(tr1);
 
     const tr2 = document.createElement("tr");
-    if (includeSumCum){
-      const th = thWith({text:"תשואה מצטברת"});
-      makeSortable(th, { type:'sum', fieldKey:'sum_cum_return' });
-      tr2.appendChild(th);
-    }
-    if (includeSumCumRank){
-      const th = thWith({text:"דירוג תשואה"});
-      makeSortable(th, { type:'sum', fieldKey:'sum_rank_cum_return' });
-      tr2.appendChild(th);
-    }
-    if (includeSumAvgW){
-      const th = thWith({text:"אחזקה ממוצעת (%)"});
-      makeSortable(th, { type:'sum', fieldKey:'sum_avg_weight' });
-      tr2.appendChild(th);
-    }
-    if (includeSumAvgWRnk){
-      const th = thWith({text:"דירוג אחזקה"});
-      makeSortable(th, { type:'sum', fieldKey:'sum_rank_avg_weight' });
-      tr2.appendChild(th);
-    }
     years.forEach(y=>{
       (activeQuartersByYear.get(y)||[]).forEach(q=>{
         tr2.appendChild(thWith({text:`רבעון ${q}`, attrs:{colspan: selectedTableFields().length}}));
@@ -1055,93 +1134,75 @@ function renderMatrixTable() {
 
     clearHeaderCarets(thead);
     makeSortable(thTrack, { type:'track' });
+    if (thCum) makeSortable(thCum, { type:'cum' });
 
     const {rankReturnMap,rankWeightMap} = buildRankMapsQuarter();
 
+    // model for sorting
     const model = trackNames.map(t=>{
-      const pkg = sumPkgByTrack[t];
-      const sum = {
-        cumStr: (pkg.covered && pkg.cum!=null) ? ((pkg.cum*100).toFixed(2)+"%") : "-",
-        cumRank: summaryRanks.cumMap[t] ? `${summaryRanks.cumMap[t].rank}/${summaryRanks.cumMap[t].total}` : "",
-        avgWStr: (pkg.covered && pkg.avgW!=null) ? ((pkg.avgW*100).toFixed(2)+"%") : "-",
-        avgWRnk: summaryRanks.wMap[t]  ? `${summaryRanks.wMap[t].rank}/${summaryRanks.wMap[t].total}` : ""
-      };
+      const cumStr = includeCum ? computeTrackSummaryCum_fromPeriod(periodR, annualR, t, years, activeQuartersByYear, "quarter") : "-";
       const values = {};
       years.forEach(y=>{
         (activeQuartersByYear.get(y)||[]).forEach(q=>{
-          const cell = aggDisplay?.[t]?.[y]?.[q] || null;
+          const cell = agg?.[t]?.[y]?.[q] || null;
           const w = (cell && Math.abs(cell.w)>1e-9)? (cell.w*100) : null;
-          const rq = periodR_full?.[t]?.[y]?.[q];
+          const rq = periodR?.[t]?.[y]?.[q];
           const yv = (rq!=null) ? (rq*100) : null;
           const rRet = rankReturnMap[y]?.[q]?.[t] ? rankReturnMap[y][q][t].rank : null;
           const rWei = rankWeightMap[y]?.[q]?.[t] ? rankWeightMap[y][q][t].rank : null;
-          values[`w|${y}|${q}`]  = w;
-          values[`y|${y}|${q}`]  = yv;
+          values[`w|${y}|${q}`] = w;
+          values[`y|${y}|${q}`] = yv;
           values[`ry|${y}|${q}`] = rRet;
           values[`rw|${y}|${q}`] = rWei;
         });
       });
-      return { track:t, sum, values };
+      return { track:t, cumStr, values };
     });
 
     if (state.sort){
       const s = state.sort;
       if (s.type==='track'){
         model.sort((a,b)=>compareValues(a.track,b.track,s.dir));
-      } else if (s.type==='sum'){
-        model.sort((a,b)=>{
-          if (s.fieldKey==='sum_cum_return'){
-            return compareValues(parsePercentText(a.sum.cumStr), parsePercentText(b.sum.cumStr), s.dir);
-          } else if (s.fieldKey==='sum_avg_weight'){
-            return compareValues(parsePercentText(a.sum.avgWStr), parsePercentText(b.sum.avgWStr), s.dir);
-          } else if (s.fieldKey==='sum_rank_cum_return'){
-            const av = summaryRanks.cumMap[a.track]?.rank ?? null;
-            const bv = summaryRanks.cumMap[b.track]?.rank ?? null;
-            return compareValues(-av, -bv, s.dir);
-          } else if (s.fieldKey==='sum_rank_avg_weight'){
-            const av = summaryRanks.wMap[a.track]?.rank ?? null;
-            const bv = summaryRanks.wMap[b.track]?.rank ?? null;
-            return compareValues(-av, -bv, s.dir);
-          }
-          return 0;
-        });
+      } else if (s.type==='cum' && includeCum){
+        model.sort((a,b)=>compareValues(parsePercentText(a.cumStr), parsePercentText(b.cumStr), s.dir));
       } else if (s.type==='cell'){
-        const key = (s.fieldKey==='weight' ? `w|${s.year}|${s.quarter}`
-                   : s.fieldKey==='yield'  ? `y|${s.year}|${s.quarter}`
-                   : s.fieldKey==='rank_yield'  ? `ry|${s.year}|${s.quarter}`
-                   : `rw|${s.year}|${s.quarter}`);
+        const key = (s.fieldKey==='weight' ? `w|${s.year}|${s.quarter}` :
+                    s.fieldKey==='yield' ? `y|${s.year}|${s.quarter}` :
+                    s.fieldKey==='rank_yield' ? `ry|${s.year}|${s.quarter}` :
+                    `rw|${s.year}|${s.quarter}`);
         model.sort((a,b)=>compareValues(a.values[key], b.values[key], s.dir));
       }
     }
 
-    model.forEach(({track:t, sum})=>{
+    model.forEach(({track:t, cumStr})=>{
       const tr = document.createElement("tr");
       if (rows.some(r=>r.track_name===t && String(r.company_short||"").includes("מנורה"))) tr.className = "row-menora";
       tr.appendChild(tdWith({html:`${t}`, cls:"matrix-row-header"}));
-      if (includeSumCum)     tr.appendChild(tdWith({html:`<span class="num">${sum.cumStr}</span>`}));
-      if (includeSumCumRank) tr.appendChild(tdWith({text: sum.cumRank}));
-      if (includeSumAvgW)    tr.appendChild(tdWith({html:`<span class="num">${sum.avgWStr}</span>`}));
-      if (includeSumAvgWRnk) tr.appendChild(tdWith({text: sum.avgWRnk}));
+
+      if (includeCum) tr.appendChild(tdWith({html:`<span class="num">${cumStr}</span>`}));
 
       years.forEach(y=>{
         (activeQuartersByYear.get(y)||[]).forEach(q=>{
-          const cell=aggDisplay[t]?.[y]?.[q]||null;
+          const cell=agg[t]?.[y]?.[q]||null;
+
           const wDisp = (cell && Math.abs(cell.w)>1e-9) ? (cell.w*100).toFixed(2)+"%" : "-";
           let yDisp="-", rRet="", rWei="";
-          const rq = periodR_full?.[t]?.[y]?.[q];
+          const rq = periodR?.[t]?.[y]?.[q];
           if (rq!=null) yDisp = (rq*100).toFixed(2)+"%";
           const infoR=rankReturnMap[y]?.[q]?.[t];
           const infoW=rankWeightMap[y]?.[q]?.[t];
           if (infoR && infoR.total>0) rRet=`${infoR.rank}/${infoR.total}`;
           if (infoW && infoW.total>0) rWei=`${infoW.rank}/${infoW.total}`;
+
           selectedTableFields().forEach(fld=>{
-            if (fld.key==="weight")       tr.appendChild(tdWith({html:`<span class="num">${wDisp}</span>`}));
-            else if (fld.key==="yield")   tr.appendChild(tdWith({html:`<span class="num">${yDisp}</span>`}));
-            else if (fld.key==="rank_yield")  tr.appendChild(tdWith({text:rRet}));
-            else if (fld.key==="rank_weight") tr.appendChild(tdWith({text:rWei}));
+            if (fld.key==="weight")            tr.appendChild(tdWith({html:`<span class="num">${wDisp}</span>`}));
+            else if (fld.key==="yield")        tr.appendChild(tdWith({html:`<span class="num">${yDisp}</span>`}));
+            else if (fld.key==="rank_yield")   tr.appendChild(tdWith({text:rRet}));
+            else if (fld.key==="rank_weight")  tr.appendChild(tdWith({text:rWei}));
           });
         });
       });
+
       tbody.appendChild(tr);
     });
 
@@ -1151,39 +1212,14 @@ function renderMatrixTable() {
     const tr1 = document.createElement("tr");
     const thTrack = thWith({text:"מסלול", attrs:{rowspan:2}});
     tr1.appendChild(thTrack);
-
-    const sumCount = (includeSumCum?1:0) + (includeSumCumRank?1:0) + (includeSumAvgW?1:0) + (includeSumAvgWRnk?1:0);
-    if (sumCount>0){
-      const thSum = thWith({text:"סיכומים", attrs:{colspan:sumCount, rowspan:1}});
-      tr1.appendChild(thSum);
-    }
-
+    const thCum = includeCum ? thWith({text:"תשואה מצטברת", attrs:{rowspan:2}}) : null;
+    if (thCum) tr1.appendChild(thCum);
     years.forEach(y=>{
       tr1.appendChild(thWith({text:String(y), attrs:{colspan: selectedTableFields().length}}));
     });
     thead.appendChild(tr1);
 
     const tr2 = document.createElement("tr");
-    if (includeSumCum){
-      const th = thWith({text:"תשואה מצטברת"});
-      makeSortable(th, { type:'sum', fieldKey:'sum_cum_return' });
-      tr2.appendChild(th);
-    }
-    if (includeSumCumRank){
-      const th = thWith({text:"דירוג תשואה"});
-      makeSortable(th, { type:'sum', fieldKey:'sum_rank_cum_return' });
-      tr2.appendChild(th);
-    }
-    if (includeSumAvgW){
-      const th = thWith({text:"אחזקה ממוצעת (%)"});
-      makeSortable(th, { type:'sum', fieldKey:'sum_avg_weight' });
-      tr2.appendChild(th);
-    }
-    if (includeSumAvgWRnk){
-      const th = thWith({text:"דירוג אחזקה"});
-      makeSortable(th, { type:'sum', fieldKey:'sum_rank_avg_weight' });
-      tr2.appendChild(th);
-    }
     years.forEach(y=>{
       selectedTableFields().forEach(fld=>{
         const th = thWith({text: fld.label});
@@ -1195,15 +1231,15 @@ function renderMatrixTable() {
 
     clearHeaderCarets(thead);
     makeSortable(thTrack, { type:'track' });
+    if (thCum) makeSortable(thCum, { type:'cum' });
 
     const {rankReturnYear,rankWeightYear} = (function(){
       const rY={}, wY={};
       years.forEach(y=>{
         const arrR=[], arrW=[];
         trackNames.forEach(t=>{
-          const Ry = annualR_full?.[t]?.[y];
-          const bq=bestQuarterForYear(aggDisplay,t,y);
-          const cell=bq? aggDisplay[t]?.[y]?.[bq]:null;
+          const Ry = annualR?.[t]?.[y];
+          const bq=bestQuarterForYear(agg,t,y); const cell=bq? agg[t]?.[y]?.[bq]:null;
           if (Ry!=null) arrR.push({t,val:Ry});
           if (cell && Math.abs(cell.w)>1e-12) arrW.push({t,val:cell.w});
         });
@@ -1217,79 +1253,55 @@ function renderMatrixTable() {
     })();
 
     const model = trackNames.map(t=>{
-      const pkg = sumPkgByTrack[t];
-      const sum = {
-        cumStr: (pkg.covered && pkg.cum!=null) ? ((pkg.cum*100).toFixed(2)+"%") : "-",
-        cumRank: summaryRanks.cumMap[t] ? `${summaryRanks.cumMap[t].rank}/${summaryRanks.cumMap[t].total}` : "",
-        avgWStr: (pkg.covered && pkg.avgW!=null) ? ((pkg.avgW*100).toFixed(2)+"%") : "-",
-        avgWRnk: summaryRanks.wMap[t]  ? `${summaryRanks.wMap[t].rank}/${summaryRanks.wMap[t].total}` : ""
-      };
+      const cumStr = includeCum ? computeTrackSummaryCum_fromPeriod(periodR, annualR, t, years, null, "year") : "-";
       const values = {};
       years.forEach(y=>{
-        const bq=bestQuarterForYear(aggDisplay,t,y);
-        const cell=bq? aggDisplay[t]?.[y]?.[bq]:null;
-        const w   = (cell && Math.abs(cell.w)>1e-9)? (cell.w*100) : null;
-        const Ry  = annualR_full?.[t]?.[y];
-        const yv  = (Ry!=null)? (Ry*100) : null;
+        const bq=bestQuarterForYear(agg,t,y); const cell=bq? agg[t]?.[y]?.[bq]:null;
+        const w = (cell && Math.abs(cell.w)>1e-9)? (cell.w*100) : null;
+        const Ry = annualR?.[t]?.[y];
+        const yv = (Ry!=null)? (Ry*100) : null;
         const rRet = rankReturnYear[y]?.[t] ? rankReturnYear[y][t].rank : null;
         const rWei = rankWeightYear[y]?.[t] ? rankWeightYear[y][t].rank : null;
-        values[`w|${y}`]  = w;
-        values[`y|${y}`]  = yv;
+        values[`w|${y}`] = w;
+        values[`y|${y}`] = yv;
         values[`ry|${y}`] = rRet;
         values[`rw|${y}`] = rWei;
       });
-      return { track:t, sum, values };
+      return { track:t, cumStr, values };
     });
 
     if (state.sort){
       const s = state.sort;
       if (s.type==='track'){
         model.sort((a,b)=>compareValues(a.track,b.track,s.dir));
-      } else if (s.type==='sum'){
-        model.sort((a,b)=>{
-          if (s.fieldKey==='sum_cum_return'){
-            return compareValues(parsePercentText(a.sum.cumStr), parsePercentText(b.sum.cumStr), s.dir);
-          } else if (s.fieldKey==='sum_avg_weight'){
-            return compareValues(parsePercentText(a.sum.avgWStr), parsePercentText(b.sum.avgWStr), s.dir);
-          } else if (s.fieldKey==='sum_rank_cum_return'){
-            const av = summaryRanks.cumMap[a.track]?.rank ?? null;
-            const bv = summaryRanks.cumMap[b.track]?.rank ?? null;
-            return compareValues(-av, -bv, s.dir);
-          } else if (s.fieldKey==='sum_rank_avg_weight'){
-            const av = summaryRanks.wMap[a.track]?.rank ?? null;
-            const bv = summaryRanks.wMap[b.track]?.rank ?? null;
-            return compareValues(-av, -bv, s.dir);
-          }
-          return 0;
-        });
+      } else if (s.type==='cum' && includeCum){
+        model.sort((a,b)=>compareValues(parsePercentText(a.cumStr), parsePercentText(b.cumStr), s.dir));
       } else if (s.type==='cell'){
-        const key = (s.fieldKey==='weight' ? `w|${s.year}`
-                   : s.fieldKey==='yield'  ? `y|${s.year}`
-                   : s.fieldKey==='rank_yield'  ? `ry|${s.year}`
-                   : `rw|${s.year}`);
+        const key = (s.fieldKey==='weight' ? `w|${s.year}` :
+                    s.fieldKey==='yield' ? `y|${s.year}` :
+                    s.fieldKey==='rank_yield' ? `ry|${s.year}` :
+                    `rw|${s.year}`);
         model.sort((a,b)=>compareValues(a.values[key], b.values[key], s.dir));
       }
     }
 
-    model.forEach(({track:t, sum})=>{
+    model.forEach(({track:t, cumStr})=>{
       const tr = document.createElement("tr");
       if (rows.some(r=>r.track_name===t && String(r.company_short||"").includes("מנורה"))) tr.className = "row-menora";
       tr.appendChild(tdWith({html:`${t}`, cls:"matrix-row-header"}));
-      if (includeSumCum)     tr.appendChild(tdWith({html:`<span class="num">${sum.cumStr}</span>`}));
-      if (includeSumCumRank) tr.appendChild(tdWith({text: sum.cumRank}));
-      if (includeSumAvgW)    tr.appendChild(tdWith({html:`<span class="num">${sum.avgWStr}</span>`}));
-      if (includeSumAvgWRnk) tr.appendChild(tdWith({text: sum.avgWRnk}));
+      if (includeCum) tr.appendChild(tdWith({html:`<span class="num">${cumStr}</span>`}));
 
       years.forEach(y=>{
-        const bq=bestQuarterForYear(aggDisplay,t,y);
-        const cell=bq? aggDisplay[t]?.[y]?.[bq]:null;
+        const bq=bestQuarterForYear(agg,t,y); const cell=bq? agg[t]?.[y]?.[bq]:null;
+
         const wDisp = (cell && Math.abs(cell.w)>1e-9)? (cell.w*100).toFixed(2)+"%" : "-";
-        const Ry = annualR_full?.[t]?.[y];
+        const Ry = annualR?.[t]?.[y];
         const yDisp = (Ry!=null)? (Ry*100).toFixed(2)+"%" : "-";
-        const RR=rankReturnYear[y]?.[t];
-        const RW=rankWeightYear[y]?.[t];
+
+        const RR=rankReturnYear[y]?.[t]; const RW=rankWeightYear[y]?.[t];
         const rRet = RR? `${RR.rank}/${RR.total}` : "";
         const rWei = RW? `${RW.rank}/${RW.total}` : "";
+
         selectedTableFields().forEach(fld=>{
           if (fld.key==="weight")            tr.appendChild(tdWith({html:`<span class="num">${wDisp}</span>`}));
           else if (fld.key==="yield")        tr.appendChild(tdWith({html:`<span class="num">${yDisp}</span>`}));
@@ -1297,12 +1309,14 @@ function renderMatrixTable() {
           else if (fld.key==="rank_weight")  tr.appendChild(tdWith({text:rWei}));
         });
       });
+
       tbody.appendChild(tr);
     });
   }
 
   table.appendChild(thead);
   table.appendChild(tbody);
+
   table.style.tableLayout = "auto";
   table.style.width = "max-content";
   applyMatrixTableWidthMode();
@@ -1324,16 +1338,11 @@ function toggleLiquidityQuarterVisibility() {
   const mode = document.getElementById("col_mode").value || "quarter";
   const qField = document.getElementById("liq_q_field");
   const title = document.getElementById("liq_chart_title");
-  if (mode === "year") {
-    qField.style.display = "none";
-    title.textContent = "אחזקה לפי מסלול וסחירות (%) – לפי שנים (רבעון 4/3/2/1 לפי זמינות)";
-  } else {
-    qField.style.display = "";
-    title.textContent = "אחזקה לפי מסלול וסחירות (%)";
-  }
+  if (mode === "year") { qField.style.display = "none"; title.textContent = "אחזקה לפי מסלול וסחירות (%) – לפי שנים (רבעון 4/3/2/1 לפי זמינות)"; }
+  else { qField.style.display = ""; title.textContent = "אחזקה לפי מסלול וסחירות (%)"; }
 }
 
-/* סדר להצגה בגרפים לפי המיון הנוכחי */
+/* For charts ordering by current sort – now fed by PERIOD returns map */
 function bestQuarterForSeries(seriesObj, year){
   for (const q of [4,3,2,1]) {
     const key = `${year}|${q}`;
@@ -1345,11 +1354,15 @@ function orderedKeysByCurrentSort(keys, rSeries, seriesWeight){
   const s = state.sort;
   if (!s || s.type!=='cell') return keys.slice();
   if (s.fieldKey!=='yield' && s.fieldKey!=='weight') return keys.slice();
+
   const dir = s.dir || 'desc';
   const withVal = keys.map(name=>{
     let periodKey = null;
-    if (s.quarter==null){ periodKey = bestQuarterForSeries(rSeries[name], s.year); }
-    else { periodKey = `${s.year}|${s.quarter}`; }
+    if (s.quarter==null){
+      periodKey = bestQuarterForSeries(rSeries[name], s.year);
+    } else {
+      periodKey = `${s.year}|${s.quarter}`;
+    }
     let val = null;
     if (s.fieldKey==='yield'){
       const rq = rSeries[name]?.[periodKey];
@@ -1360,44 +1373,96 @@ function orderedKeysByCurrentSort(keys, rSeries, seriesWeight){
     }
     return {name, val};
   });
+
   withVal.sort((a,b)=>compareValues(a.val, b.val, dir));
   return withVal.map(x=>x.name);
 }
 
-/* בניית סדרות לגרפים: תשואה מהרבעונים המפורקים המלאים, משקל מהתצוגה */
-function buildSeriesMapsUsingReturns(rowsDisplay, periodR_full) {
-  const seriesKey = (r) => {
+/* Build per-series period returns from cumulative R=c/w */
+function buildSeriesMaps(rows){
+  const seriesKey = (r)=>{
     const c = r.company_short || "לא ידוע";
     const t = r.track_name || "";
     return t ? `${c} – ${t}` : c;
   };
-
-  const seriesW = {};
-  rowsDisplay.forEach(r => {
+  const seriesCum = {};   // cumulative: {name: { "Y|Q": {w,c} }}
+  const seriesW   = {};   // weight only: {name: { "Y|Q": w }}
+  rows.forEach(r=>{
     if (!r.year || !r.quarter) return;
     const tk = `${r.year}|${r.quarter}`;
     const sk = seriesKey(r);
-    if (!seriesW[sk]) seriesW[sk] = {};
-    if (!seriesW[sk][tk]) seriesW[sk][tk] = 0;
-    seriesW[sk][tk] += nz(r.weight);
+    const wAll = nz(r.weight);
+    const cAll = nz(r.contribution);
+
+    if (!seriesCum[sk]) seriesCum[sk]={};
+    if (!seriesCum[sk][tk]) seriesCum[sk][tk]={w:0,c:0};
+    seriesCum[sk][tk].w += wAll;
+    seriesCum[sk][tk].c += cAll;
+
+    if (!seriesW[sk]) seriesW[sk]={};
+    if (!seriesW[sk][tk]) seriesW[sk][tk]=0;
+    seriesW[sk][tk] += wAll;
   });
 
-  const rSeries = {};
-  rowsDisplay.forEach(r => {
-    const y = Number(r.year), q = Number(r.quarter);
-    if (!y || !q) return;
-    const sk = seriesKey(r);
-    const tk = `${y}|${q}`;
-    const rq = periodR_full?.[r.track_name]?.[y]?.[q] ?? null;
-    if (!rSeries[sk]) rSeries[sk] = {};
-    if (rSeries[sk][tk] == null) rSeries[sk][tk] = rq;
+  // derive per-period r for each series across time ascending
+  const rSeries = {}; // {name:{ "Y|Q": r }}
+  Object.keys(seriesCum).forEach(name=>{
+    const keys = Object.keys(seriesCum[name]).sort((a,b)=>{
+      const [ya,qa]=a.split("|").map(Number); const [yb,qb]=b.split("|").map(Number);
+      return ya===yb? qa-qb : ya-yb;
+    });
+    rSeries[name]={};
+    let prevR = null;
+    keys.forEach(k=>{
+      const cell = seriesCum[name][k];
+      const Rq = (cell && Math.abs(cell.w)>1e-12) ? (cell.c/cell.w) : null;
+      let rq = null;
+      if (Rq==null) rq=null;
+      else if (prevR==null) rq = Rq;
+      else rq = (1+Rq)/(1+prevR) - 1;
+      rSeries[name][k] = rq;
+      prevR = Rq;
+    });
   });
 
-  return { seriesW, rSeries };
+  return { seriesCum, seriesW, rSeries };
+}
+
+function refreshLiquidityFilters() {
+  const selYear = document.getElementById("liq_year_filter");
+  const selQuarter = document.getElementById("liq_quarter_filter");
+  if (!selYear || !selQuarter) return;
+
+  const mode = document.getElementById("col_mode").value || "quarter";
+  const rows = rowsForLiquidityBase().filter(r => r.year && r.quarter);
+  if (!rows.length) { selYear.innerHTML=""; selQuarter.innerHTML=""; return; }
+
+  const yearsArr = Array.from(new Set(rows.map(r=>Number(r.year)))).sort((a,b)=>a-b);
+  const prevYear = selYear.value, prevQuarter = selQuarter.value;
+  const defaultYear = yearsArr[yearsArr.length - 1];
+
+  selYear.innerHTML = "";
+  const fragYear = document.createDocumentFragment();
+  yearsArr.forEach(y=>{ const o=document.createElement("option"); o.value=String(y); o.textContent=String(y); fragYear.appendChild(o); });
+  selYear.appendChild(fragYear);
+  selYear.value = yearsArr.includes(Number(prevYear)) ? prevYear : String(defaultYear);
+
+  if (mode === "quarter") {
+    const quartersArr = Array.from(new Set(rows.filter(r=>Number(r.year)===Number(selYear.value)).map(r=>Number(r.quarter)))).sort((a,b)=>a-b);
+    selQuarter.innerHTML = "";
+    const fragQ = document.createDocumentFragment();
+    quartersArr.forEach(q=>{ const o=document.createElement("option"); o.value=String(q); o.textContent=String(q); fragQ.appendChild(o); });
+    selQuarter.appendChild(fragQ);
+    const defaultQuarter = quartersArr[quartersArr.length - 1];
+    selQuarter.value = quartersArr.includes(Number(prevQuarter)) ? prevQuarter : String(defaultQuarter);
+  } else {
+    selQuarter.innerHTML = "";
+  }
 }
 
 function renderCharts() {
   const rows = state.filtered;
+
   if (state.chartYield)  { state.chartYield.destroy();  state.chartYield=null; }
   if (state.chartWeight) { state.chartWeight.destroy(); state.chartWeight=null; }
   if (!rows.length) {
@@ -1405,12 +1470,8 @@ function renderCharts() {
     return;
   }
 
-  // מפה מלאה של תשואות רבעוניות שאינה תלויה בסינון זמן
-  const rowsForReturns = rowsForQuarterReturnsBase();
-  const { period: periodR_full } = derivePeriodAndAnnual(buildAgg(rowsForReturns));
-
-  // סדרות לגרפים: משקל לפי התצוגה, תשואה מהרבעונים המפורקים המלאים
-  const { seriesW, rSeries } = buildSeriesMapsUsingReturns(rows, periodR_full);
+  // Build series maps
+  const { seriesCum, seriesW, rSeries } = buildSeriesMaps(rows);
 
   const timeSet = new Set();
   rows.forEach(r=>{ if (r.year && r.quarter) timeSet.add(r.year+"|"+r.quarter); });
@@ -1422,7 +1483,9 @@ function renderCharts() {
   const labels = timeKeys.map(k=>{ const [y,q]=k.split("|"); return y+" Q"+q; });
 
   const palette = ["#53d3ff","#ffb74d","#81c784","#ba68c8","#ff8a65","#4db6ac","#ce93d8","#f06292","#ffd54f","#7986cb","#90caf9","#a5d6a7","#ffe082","#ffab91","#b39ddb"];
-  let keys = Object.keys(seriesW);
+  let keys = Object.keys(seriesCum);
+
+  // Order datasets by current sort (yield uses rSeries, weight uses seriesW)
   keys = orderedKeysByCurrentSort(keys, rSeries, seriesW);
 
   const datasetsYield = keys.map((name,i)=>{
@@ -1433,19 +1496,23 @@ function renderCharts() {
     });
     return { label:name, data, type:"bar", backgroundColor:color+"cc", borderColor:color, borderWidth:1, skipNull:true };
   });
+
   const datasetsWeight = keys.map((name,i)=>{
     const color=palette[i%palette.length];
     const data=timeKeys.map(k=>{
       const w = seriesW[name]?.[k];
-      return (w==null) ? null : (w*100);
+      if (w==null) return null;
+      return w*100;
     });
     return { label:name, data, type:"bar", backgroundColor:color+"cc", borderColor:color, borderWidth:1, skipNull:true };
   });
 
   const ctxYield  = document.getElementById("chart_yield").getContext("2d");
   const ctxWeight = document.getElementById("chart_weight").getContext("2d");
+
   const opt=(title)=>({
-    responsive:true, maintainAspectRatio:false,
+    responsive:true,
+    maintainAspectRatio:false,
     interaction:{ mode:"index", intersect:false },
     plugins:{
       legend:{ position:"bottom", labels:{ color:"#e9eefb", font:{size:11} } },
@@ -1453,12 +1520,14 @@ function renderCharts() {
     },
     scales:{
       x:{ ticks:{color:"#a6b2c9"}, grid:{color:"rgba(255,255,255,0.06)"} },
-      y:{ ticks:{color:"#a6b2c9", callback:v=>v.toFixed(1)+"%"}, grid:{color:"rgba(255,255,255,0.04)"}, title:{display:true,text:title,color:"#e9eefb"} }
+      y:{ ticks:{color:"#a6b2c9", callback:v=>v.toFixed(1)+"%"},
+          grid:{color:"rgba(255,255,255,0.04)"},
+          title:{display:true,text:title,color:"#e9eefb"} }
     }
   });
 
-  state.chartYield  = new Chart(ctxYield,  { type:"bar", data:{labels,datasets:datasetsYield},  options:opt("תשואה רבעונית מפורקת (%)") });
-  state.chartWeight = new Chart(ctxWeight, { type:"bar", data:{labels,datasets:datasetsWeight}, options:opt("אחזקה רבעונית ממוצעת לתצוגה (%)") });
+  state.chartYield  = new Chart(ctxYield, { type:"bar", data:{labels,datasets:datasetsYield},  options:opt("תשואה רבעונית מפורקת (%)") });
+  state.chartWeight = new Chart(ctxWeight,{ type:"bar", data:{labels,datasets:datasetsWeight}, options:opt("אחזקה רבעונית ממוצעת לתצוגה (%)") });
 
   renderLiquidityChart();
 }
@@ -1478,6 +1547,7 @@ function renderLiquidityChart() {
 
   const yearSel = selYear.value;
   const quarterSel = selQuarter?.value;
+
   const baseRows = rowsForLiquidityBase();
 
   let rows = [];
@@ -1487,8 +1557,7 @@ function renderLiquidityChart() {
     const rowsYear = baseRows.filter(r => String(r.year)===yearSel && r.quarter);
     const agg = {};
     rowsYear.forEach(r=>{
-      const t=r.track_name;
-      const q=Number(r.quarter);
+      const t=r.track_name; const q=Number(r.quarter);
       const w=nz(r.weight);
       const key = `${t}|${q}|${r.liquidity||""}`;
       if (!agg[key]) agg[key]=0;
@@ -1504,6 +1573,7 @@ function renderLiquidityChart() {
       }
     });
   }
+
   if (!rows.length) return;
 
   const trackSet = new Set();
@@ -1532,6 +1602,7 @@ function renderLiquidityChart() {
           const w = relevant.reduce((acc,r)=>acc + nz(r.weight), 0);
           val = w*100;
         } else if (s.fieldKey==='yield'){
+          // estimate period return for that track/period using cumulative proxy per rows (aggregate then decompose)
           const aggTmp = {};
           relevant.forEach(r=>{
             const y=Number(r.year), q=Number(r.quarter);
@@ -1560,25 +1631,27 @@ function renderLiquidityChart() {
     tracks.sort((a,b)=>String(a).localeCompare(String(b),"he"));
   }
 
-  let dataLiquid = [], dataIlliquid = [];
+  let dataLiquid = []; let dataIlliquid = [];
   tracks.forEach(track=>{
     let wLiquid = 0, wIlliquid = 0;
     rows.forEach(r=>{
       if (r.track_name !== track) return;
       const w = nz(r.weight);
-      if (r.liquidity === "סחיר") wLiquid += w;
-      else wIlliquid += w;
+      if (r.liquidity === "סחיר") wLiquid += w; else wIlliquid += w;
     });
     dataLiquid.push(wLiquid * 100);
     dataIlliquid.push(wIlliquid * 100);
   });
 
   const datasetsLiquidity = [
-    { label: "סחיר",    data: dataLiquid,   type: "bar", backgroundColor: "#53d3ff", borderColor: "#53d3ff", borderWidth: 1, maxBarThickness: 28 },
-    { label: "לא סחיר", data: dataIlliquid, type: "bar", backgroundColor: "#ffb74d", borderColor: "#ffb74d", borderWidth: 1, maxBarThickness: 28 }
+    { label: "סחיר",     data: dataLiquid,   type: "bar", backgroundColor: "#53d3ff", borderColor: "#53d3ff", borderWidth: 1, maxBarThickness: 28 },
+    { label: "לא סחיר",  data: dataIlliquid, type: "bar", backgroundColor: "#ffb74d", borderColor: "#ffb74d", borderWidth: 1, maxBarThickness: 28 }
   ];
+
   const options = {
-    responsive:true, maintainAspectRatio:false, interaction:{ mode:"index", intersect:false },
+    responsive:true,
+    maintainAspectRatio:false,
+    interaction:{ mode:"index", intersect:false },
     plugins:{
       legend:{ position:"bottom", labels:{ color:"#e9eefb", font:{size:11} } },
       tooltip:{ callbacks:{ label:(c)=>`${c.dataset.label}: ${c.parsed.y?.toFixed(2)||0}%` } }
@@ -1586,17 +1659,22 @@ function renderLiquidityChart() {
     elements: { bar: { maxBarThickness: 28, barPercentage: 0.85, categoryPercentage: 0.6 } },
     scales:{
       x:{ ticks:{color:"#a6b2c9"}, grid:{color:"rgba(255,255,255,0.06)"}, title:{display:true,text:"מסלול",color:"#e9eefb"} },
-      y:{ ticks:{color:"#a6b2c9", callback:v=>v.toFixed(1)+"%"}, grid:{color:"rgba(255,255,255,0.04)"}, title:{display:true,text:"אחזקה מהתיק (%)",color:"#e9eefb"} }
+      y:{ ticks:{color:"#a6b2c9", callback:v=>v.toFixed(1)+"%"},
+          grid:{color:"rgba(255,255,255,0.04)"},
+          title:{display:true,text:"אחזקה מהתיק (%)",color:"#e9eefb"} }
     },
     layout: { padding: { left: 8, right: 8 } }
   };
+
   state.chartLiquidity = new Chart(ctxLiquidity,{ type: "bar", data: { labels: tracks, datasets: datasetsLiquidity }, options });
 }
 
 /* INIT */
 document.getElementById("btn_reload").addEventListener("click", reloadData);
+
 reloadData();
 renderCharts();
 </script>
+
 </body>
 </html>
