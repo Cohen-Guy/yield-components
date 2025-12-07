@@ -1764,47 +1764,44 @@ function renderLiquidityChart() {
   const yearSel = selYear.value;
   const quarterSel = selQuarter?.value;
 
+  // בסיס הנתונים לגרף הסחירות (שומר על סינון ברמת הדשבורד, אבל בלי סינון "סחירות")
   const baseRows = rowsForLiquidityBase();
 
+  // בחירת רשומות לפי מצב "רבעון" או "שנים" (בשנים – נלקח הרבעון האחרון הזמין לכל מסלול)
   let rows = [];
   if (mode==="quarter") {
     rows = baseRows.filter(r => String(r.year) === yearSel && String(r.quarter) === quarterSel);
   } else {
     const rowsYear = baseRows.filter(r => String(r.year)===yearSel && r.quarter);
-    const agg = {};
+    // מאתרים לכל מסלול את הרבעון האחרון הזמין בשנה
+    const latestByTrack = new Map();
     rowsYear.forEach(r=>{
       const t=r.track_name; const q=Number(r.quarter);
-      const w=nz(r.weight);
-      const key = `${t}|${q}|${r.liquidity||""}`;
-      if (!agg[key]) agg[key]=0;
-      agg[key]+=w;
+      if (!t) return;
+      if (!latestByTrack.has(t) || q > latestByTrack.get(t)) latestByTrack.set(t, q);
     });
-    const trackSet = new Set(rowsYear.map(r=>r.track_name).filter(Boolean));
-    trackSet.forEach(t=>{
-      for (const q of [4,3,2,1]) {
-        if (Object.keys(agg).some(k=>k.startsWith(`${t}|${q}|`))) {
-          rows.push(...rowsYear.filter(r=>r.track_name===t && Number(r.quarter)===q));
-          break;
-        }
-      }
-    });
+    rows = rowsYear.filter(r => latestByTrack.get(r.track_name) === Number(r.quarter));
   }
 
   if (!rows.length) return;
 
+  // אוסף מסלולים
   const trackSet = new Set();
   rows.forEach(r => { if (r.track_name) trackSet.add(r.track_name); });
   let tracks = Array.from(trackSet);
 
+  // מיון המסלולים לפי מיון פעיל בטבלה (אם יש), אחרת אלפביתי
   const s = state.sort;
   if (s && s.type==='cell' && (s.fieldKey==='weight' || s.fieldKey==='yield')) {
     const dir = s.dir || 'desc';
     const scoreByTrack = new Map();
     const yTarget = s.year;
     const qTarget = s.quarter==null ? null : Number(s.quarter);
+
     tracks.forEach(t=>{
       let relevant = [];
       if (qTarget==null){
+        // אם המיון הוא "לפי שנה" – קח את הרבעון האחרון הזמין לאותה שנה
         for (const q of [4,3,2,1]) {
           const subset = rows.filter(r=>r.track_name===t && Number(r.year)===Number(yTarget) && Number(r.quarter)===q);
           if (subset.length){ relevant = subset; break; }
@@ -1818,7 +1815,7 @@ function renderLiquidityChart() {
           const w = relevant.reduce((acc,r)=>acc + nz(r.weight), 0);
           val = w*100;
         } else if (s.fieldKey==='yield'){
-          // estimate period return for that track/period using cumulative proxy per rows (aggregate then decompose)
+          // הערכת תשואה רבעונית ממאגר מצטבר (contribution/weight) – כמו ביתר הקוד
           const aggTmp = {};
           relevant.forEach(r=>{
             const y=Number(r.year), q=Number(r.quarter);
@@ -1842,48 +1839,98 @@ function renderLiquidityChart() {
       }
       scoreByTrack.set(t, val);
     });
-    tracks.sort((a,b)=>compareValues(scoreByTrack.get(a), scoreByTrack.get(b), dir));
+    tracks.sort((a,b)=>{
+      const av = scoreByTrack.get(a), bv = scoreByTrack.get(b);
+      return compareValues(av, bv, dir);
+    });
   } else {
     tracks.sort((a,b)=>String(a).localeCompare(String(b),"he"));
   }
 
-  let dataLiquid = []; let dataIlliquid = [];
-  tracks.forEach(track=>{
-    let wLiquid = 0, wIlliquid = 0;
-    rows.forEach(r=>{
-      if (r.track_name !== track) return;
-      const w = nz(r.weight);
-      if (r.liquidity === "סחיר") wLiquid += w; else wIlliquid += w;
-    });
-    dataLiquid.push(wLiquid * 100);
-    dataIlliquid.push(wIlliquid * 100);
+  // חישוב משקלים "סחיר" ו"לא סחיר" לכל מסלול
+  const liqByTrack = new Map(tracks.map(t => [t, { liquid: 0, illiquid: 0 }]));
+  rows.forEach(r=>{
+    const t = r.track_name;
+    const w = nz(r.weight);
+    if (!liqByTrack.has(t)) liqByTrack.set(t, { liquid: 0, illiquid: 0 });
+    if (r.liquidity === "סחיר") liqByTrack.get(t).liquid  += w;
+    else                        liqByTrack.get(t).illiquid += w;
   });
 
-  const datasetsLiquidity = [
-    { label: "סחיר",     data: dataLiquid,   type: "bar", backgroundColor: "#53d3ff", borderColor: "#53d3ff", borderWidth: 1, maxBarThickness: 28 },
-    { label: "לא סחיר",  data: dataIlliquid, type: "bar", backgroundColor: "#ffb74d", borderColor: "#ffb74d", borderWidth: 1, maxBarThickness: 28 }
+  // בניית שני מקטעים רציפים: קודם סחירים לכל המסלולים, אחר כך לא-סחירים לכל המסלולים
+  const labels = [
+    ...tracks.map(t => `${t} • סחיר`),
+    ...tracks.map(t => `${t} • לא סחיר`)
   ];
+
+  const data = [
+    ...tracks.map(t => (liqByTrack.get(t)?.liquid  ?? 0) * 100),
+    ...tracks.map(t => (liqByTrack.get(t)?.illiquid ?? 0) * 100)
+  ];
+
+  const splitIndex = tracks.length; // נקודת המעבר בין המקטעים
 
   const options = {
     responsive:true,
     maintainAspectRatio:false,
     interaction:{ mode:"index", intersect:false },
     plugins:{
-      legend:{ position:"bottom", labels:{ color:"#e9eefb", font:{size:11} } },
-      tooltip:{ callbacks:{ label:(c)=>`${c.dataset.label}: ${c.parsed.y?.toFixed(2)||0}%` } }
+      legend:{ display:false },
+      tooltip:{
+        callbacks:{
+          label:(c)=>{
+            const idx = c.dataIndex;
+            const type = idx < splitIndex ? "סחיר" : "לא סחיר";
+            const track = idx < splitIndex ? tracks[idx] : tracks[idx - splitIndex];
+            const val = (c.parsed.y ?? 0).toFixed(2);
+            return `${track} – ${type}: ${val}%`;
+          }
+        }
+      },
+      // קו מפריד ותיוג המקטעים
+      annotation: undefined
     },
-    elements: { bar: { maxBarThickness: 28, barPercentage: 0.85, categoryPercentage: 0.6 } },
+    elements: { bar: { maxBarThickness: 28, barPercentage: 0.9, categoryPercentage: 0.7 } },
     scales:{
-      x:{ ticks:{color:"#a6b2c9"}, grid:{color:"rgba(255,255,255,0.06)"}, title:{display:true,text:"מסלול",color:"#e9eefb"} },
-      y:{ ticks:{color:"#a6b2c9", callback:v=>v.toFixed(1)+"%"},
-          grid:{color:"rgba(255,255,255,0.04)"},
-          title:{display:true,text:"אחזקה מהתיק (%)",color:"#e9eefb"} }
+      x:{
+        ticks:{ color:"#a6b2c9" },
+        grid:{ color:"rgba(255,255,255,0.06)" },
+        title:{ display:true, text:"מסלול (סחיר → לא סחיר)", color:"#e9eefb" }
+      },
+      y:{
+        ticks:{ color:"#a6b2c9", callback:v=>v.toFixed(1)+"%" },
+        grid:{ color:"rgba(255,255,255,0.04)" },
+        title:{ display:true, text:"אחזקה מהתיק (%)", color:"#e9eefb" }
+      }
     },
     layout: { padding: { left: 8, right: 8 } }
   };
 
-  state.chartLiquidity = new Chart(ctxLiquidity,{ type: "bar", data: { labels: tracks, datasets: datasetsLiquidity }, options });
+  // צבע לפי מקטע: סחיר (כחול) ואז לא-סחיר (כתום)
+  const dataset = {
+    label: "אחזקה מהתיק (%)",
+    data,
+    type: "bar",
+    borderWidth: 1,
+    borderColor: (ctx) => (ctx.dataIndex < splitIndex ? "#53d3ff" : "#ffb74d"),
+    backgroundColor: (ctx) => (ctx.dataIndex < splitIndex ? "#53d3ff" : "#ffb74d")
+  };
+
+  // כותרת גרף מעודכנת
+  const titleEl = document.getElementById("liq_chart_title");
+  if (mode === "year") {
+    titleEl.textContent = "אחזקה לפי מסלול – סחיר (כולם) ואז לא-סחיר (כולם) – לפי שנים (רבעון אחרון זמין)";
+  } else {
+    titleEl.textContent = "אחזקה לפי מסלול – קודם סחיר לכל המסלולים, אחריו לא-סחיר לכל המסלולים";
+  }
+
+  state.chartLiquidity = new Chart(ctxLiquidity,{
+    type: "bar",
+    data: { labels, datasets: [dataset] },
+    options
+  });
 }
+
 
 /* INIT */
 document.getElementById("btn_reload").addEventListener("click", reloadData);
