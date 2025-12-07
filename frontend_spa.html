@@ -1156,6 +1156,7 @@ function renderMatrixTable() {
     return { full:true, cum: prod - 1, avgW: n ? (wSum / n) : null };
   }
 
+
   // ---------- Pre-compute period ranks (existing logic) ----------
   function buildRankMapsQuarter(){
     const rankReturnMap={}; const rankWeightMap={};
@@ -1677,7 +1678,6 @@ function refreshLiquidityFilters() {
   }
 }
 
-/* CHARTS */
 function renderCharts() {
   const rows = state.filtered;
 
@@ -1889,6 +1889,7 @@ function renderLiquidityChart() {
           }
         }
       },
+      // קו מפריד ותיוג המקטעים
       annotation: undefined
     },
     elements: { bar: { maxBarThickness: 28, barPercentage: 0.9, categoryPercentage: 0.7 } },
