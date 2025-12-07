@@ -1153,11 +1153,7 @@ function renderMatrixTable() {
     }
     return { full:true, cum: prod - 1, avgW: n ? (wSum / n) : null };
   }
-  function parsePercentText(txt){
-    if (txt==null || txt==="-" || txt==="") return null;
-    const v = Number(String(txt).replace("%","").trim());
-    return Number.isFinite(v) ? v : null;
-  }
+
 
   // ---------- Pre-compute period ranks (existing logic) ----------
   function buildRankMapsQuarter(){
