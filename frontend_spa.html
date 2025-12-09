@@ -4,9 +4,9 @@
   <meta charset="utf-8" />
   <title>דשבורד מרכיבי תשואה</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
+  <!-- תוסף תוויות מעל העמודות -->
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
   <style>
     :root {
       --bg-main: #050816;
@@ -23,7 +23,6 @@
       --success: #7ce38b;
       --warning: #ffc773;
     }
-
     * { box-sizing: border-box; }
     body {
       margin: 0;
@@ -35,7 +34,6 @@
       align-items: stretch;
       justify-content: center;
     }
-
     .app-shell {
       width: 100%;
       max-width: 1440px;
@@ -46,7 +44,6 @@
       border-left: 1px solid rgba(255,255,255,0.05);
       border-right: 1px solid rgba(255,255,255,0.05);
     }
-
     /* Sidebar */
     .sidebar {
       background: radial-gradient(circle at top, #141b3d 0, #050a18 58%);
@@ -57,54 +54,28 @@
       gap: 16px;
     }
     .sidebar-logo { display: flex; align-items: center; gap: 8px; padding: 6px 4px 12px; border-bottom: 1px solid rgba(255,255,255,0.07); }
-    .sidebar-logo-icon {
-      width: 32px; height: 32px; border-radius: 10px;
-      background: radial-gradient(circle at 30% 20%, #5dd0ff, #4a63ff);
-      display: flex; align-items: center; justify-content: center; font-size: 1.1rem;
-    }
+    .sidebar-logo-icon { width: 32px; height: 32px; border-radius: 10px; background: radial-gradient(circle at 30% 20%, #5dd0ff, #4a63ff); display: flex; align-items: center; justify-content: center; font-size: 1.1rem; }
     .sidebar-logo-text { display: flex; flex-direction: column; gap: 2px; }
     .sidebar-logo-title { font-size: 0.95rem; font-weight: 600; letter-spacing: 0.03em; }
     .sidebar-logo-sub { font-size: 0.7rem; color: var(--text-muted); }
-
     .sidebar-nav { display: flex; flex-direction: column; gap: 4px; margin-top: 6px; }
-    .nav-item {
-      border-radius: 999px; padding: 7px 10px; font-size: 0.86rem;
-      display: flex; align-items: center; gap: 8px; color: var(--text-muted);
-      cursor: pointer; border: 1px solid transparent;
-      transition: background 0.15s, transform 0.08s, border-color 0.15s, color 0.15s;
-    }
+    .nav-item { border-radius: 999px; padding: 7px 10px; font-size: 0.86rem; display: flex; align-items: center; gap: 8px; color: var(--text-muted); cursor: pointer; border: 1px solid transparent; transition: background 0.15s, transform 0.08s, border-color 0.15s, color 0.15s; }
     .nav-item span.icon { font-size: 1rem; width: 18px; text-align: center; }
     .nav-item:hover { background: rgba(93,208,255,0.08); color: var(--text-main); border-color: rgba(93,208,255,0.4); transform: translateY(-1px); }
     .nav-item.active { background: linear-gradient(120deg, rgba(93,208,255,0.25), rgba(116,127,255,0.25)); color: #f8fbff; border-color: rgba(93,208,255,0.6); }
-
-    .sidebar-meta {
-      margin-top: auto; padding-top: 8px; border-top: 1px dashed rgba(255,255,255,0.12);
-      font-size: 0.7rem; color: var(--text-muted); display: flex; flex-direction: column; gap: 4px;
-    }
+    .sidebar-meta { margin-top: auto; padding-top: 8px; border-top: 1px dashed rgba(255,255,255,0.12); font-size: 0.7rem; color: var(--text-muted); display: flex; flex-direction: column; gap: 4px; }
     .sidebar-meta span { display: flex; justify-content: space-between; }
 
     /* Main area */
     .main { padding: 16px 18px 18px; display: flex; flex-direction: column; gap: 12px; }
-
     .main-header { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 6px 6px 8px; }
     .main-title-block { display: flex; flex-direction: column; gap: 2px; }
     .main-title { font-size: 1.4rem; letter-spacing: 0.02em; display: flex; align-items: center; gap: 6px; }
     .main-subtitle { font-size: 0.82rem; color: var(--text-muted); }
-
-    .badge-file {
-      font-size: 0.75rem; padding: 3px 8px; border-radius: 999px;
-      background: rgba(0,0,0,0.35); border: 1px solid rgba(255,255,255,0.16); color: var(--text-muted);
-    }
-
+    .badge-file { font-size: 0.75rem; padding: 3px 8px; border-radius: 999px; background: rgba(0,0,0,0.35); border: 1px solid rgba(255,255,255,0.16); color: var(--text-muted); }
     .main-header-actions { display: flex; align-items: center; gap: 8px; }
-    .btn-ghost {
-      border-radius: 999px; border: 1px solid rgba(255,255,255,0.18);
-      background: rgba(5,8,25,0.9); color: var(--text-main);
-      padding: 6px 10px; font-size: 0.8rem; display: flex; align-items: center; gap: 6px;
-      cursor: pointer; transition: background 0.15s, transform 0.08s, box-shadow 0.15s;
-    }
+    .btn-ghost { border-radius: 999px; border: 1px solid rgba(255,255,255,0.18); background: rgba(5,8,25,0.9); color: var(--text-main); padding: 6px 10px; font-size: 0.8rem; display: flex; align-items: center; gap: 6px; cursor: pointer; transition: background 0.15s, transform 0.08s, box-shadow 0.15s; }
     .btn-ghost:hover { background: rgba(18,25,60,0.95); box-shadow: 0 4px 12px rgba(0,0,0,0.4); transform: translateY(-1px); }
-
     .status-text { font-size: 0.8rem; color: var(--text-muted); }
 
     /* Filters bar */
@@ -124,13 +95,8 @@
 
     /* Dual range visual */
     .timeline-wrap { min-width: 340px; }
-    .timeline-controls {
-      display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 6px;
-      align-items: center;
-    }
-    .timeline-labels {
-      display: flex; justify-content: space-between; font-size: 0.76rem; color: var(--text-muted); margin-top: 2px;
-    }
+    .timeline-controls { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 6px; align-items: center; }
+    .timeline-labels { display: flex; justify-content: space-between; font-size: 0.76rem; color: var(--text-muted); margin-top: 2px; }
 
     /* KPI panels */
     .panels-row { display: grid; grid-template-columns: 2fr 1.8fr; gap: 10px; margin-top: 8px; margin-bottom: 10px; }
@@ -142,22 +108,10 @@
     .panel-header { display: flex; align-items: center; justify-content: space-between; font-size: 0.9rem; }
     .panel-header-title { display: flex; align-items: center; gap: 6px; }
     .panel-header-title span.icon { font-size: 1.1rem; }
-
-    .kpi-row {
-      display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 8px;
-      margin-top: 4px;
-    }
+    .kpi-row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-top: 4px; }
     .kpi-card {
       background: radial-gradient(circle at top, rgba(93,208,255,0.2), rgba(10,15,40,0.95));
-      border-radius: 12px;
-      padding: 7px 9px;
-      border: 1px solid rgba(93,208,255,0.4);
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-      font-size: 0.8rem;
+      border-radius: 12px; padding: 7px 9px; border: 1px solid rgba(93,208,255,0.4); display: flex; flex-direction: column; gap: 2px; font-size: 0.8rem;
     }
     .kpi-label { color: var(--text-muted); font-size: 0.75rem; }
     .kpi-value { font-size: 1rem; font-weight: 600; }
@@ -165,71 +119,18 @@
 
     /* MATRIX TABLE */
     .matrix-wrapper { margin-top: 10px; }
-    .matrix-scroll {
-      margin-top: 6px;
-      max-height: 260px;
-      overflow: auto;
-    }
-
-    .matrix-table {
-      border-collapse: collapse;
-      font-size: 0.78rem;
-      text-align: center;
-      width: max-content;
-      table-layout: auto;
-    }
+    .matrix-scroll { margin-top: 6px; max-height: 260px; overflow: auto; }
+    .matrix-table { border-collapse: collapse; font-size: 0.78rem; text-align: center; width: max-content; table-layout: auto; }
     .matrix-table.table-wide { min-width: unset; width: max-content; }
-    .matrix-table.table-fit  { min-width: unset; width: max-content; }
-
-    .matrix-table th,
-    .matrix-table td {
-      border: 1px solid var(--border-subtle);
-      padding: 4px 6px;
-      white-space: nowrap;
-    }
-    .matrix-table thead th {
-      background: radial-gradient(circle at top, rgba(93,208,255,0.18), rgba(10,12,30,0.96));
-      position: sticky;
-      top: 0;
-      z-index: 1;
-    }
-
-    /* clickable sortable headers */
-    .matrix-table th.sortable {
-      cursor: pointer;
-      user-select: none;
-    }
-    .matrix-table th.sortable .sort-caret {
-      opacity: 0.75;
-      margin-inline-start: 6px;
-      font-size: 0.8em;
-    }
-    .matrix-table th.sortable:hover {
-      filter: brightness(1.08);
-    }
-
-    .matrix-row-header {
-      text-align: right;
-      font-weight: 600;
-      background: rgba(255,255,255,0.02);
-      position: sticky;
-      right: 0;
-      z-index: 1;
-    }
-
-    .num {
-      direction: ltr;
-      unicode-bidi: isolate;
-      font-variant-numeric: tabular-nums;
-      text-align: center;
-      display: inline-block;
-      min-width: 4.8ch;
-    }
-
-    tr.row-menora td,
-    tr.row-menora .matrix-row-header {
-      background: rgba(34, 60, 140, 0.22) !important;
-    }
+    .matrix-table.table-fit { min-width: unset; width: max-content; }
+    .matrix-table th, .matrix-table td { border: 1px solid var(--border-subtle); padding: 4px 6px; white-space: nowrap; }
+    .matrix-table thead th { background: radial-gradient(circle at top, rgba(93,208,255,0.18), rgba(10,12,30,0.96)); position: sticky; top: 0; z-index: 1; }
+    .matrix-table th.sortable { cursor: pointer; user-select: none; }
+    .matrix-table th.sortable .sort-caret { opacity: 0.75; margin-inline-start: 6px; font-size: 0.8em; }
+    .matrix-table th.sortable:hover { filter: brightness(1.08); }
+    .matrix-row-header { text-align: right; font-weight: 600; background: rgba(255,255,255,0.02); position: sticky; right: 0; z-index: 1; }
+    .num { direction: ltr; unicode-bidi: isolate; font-variant-numeric: tabular-nums; text-align: center; display: inline-block; min-width: 4.8ch; }
+    tr.row-menora td, tr.row-menora .matrix-row-header { background: rgba(34, 60, 140, 0.22) !important; }
 
     /* Views */
     .views-wrapper { margin-top: 4px; display: flex; flex-direction: column; gap: 10px; }
@@ -237,24 +138,13 @@
     .view.active { display: block; }
 
     /* Chart panel */
-    .chart-title {
-      margin: 6px 0 4px;
-      font-size: 0.9rem;
-      color: var(--text-main);
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
+    .chart-title { margin: 6px 0 4px; font-size: 0.9rem; color: var(--text-main); display: flex; align-items: center; gap: 6px; }
     .chart-container { position: relative; width: 100%; height: 260px; }
     .chart-container.narrow-right { max-width: 1100px; margin-left: auto; margin-right: 0; }
+    .chart-filters-row { margin-top: 6px; display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; }
 
-    .chart-filters-row {
-      margin-top: 6px;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      align-items: flex-end;
-    }
+    /* two charts on same row */
+    .chart-row-two { margin-top: 8px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-items: stretch; }
 
     @media (max-width: 840px) {
       .app-shell { grid-template-columns: 1fr; }
@@ -262,1419 +152,1429 @@
       .main { padding: 12px; }
       .panels-row { grid-template-columns: 1fr; }
       .kpi-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .chart-row-two { grid-template-columns: 1fr; }
     }
   </style>
 </head>
-
 <body>
-<div class="app-shell">
-
-  <!-- SIDEBAR -->
-  <aside class="sidebar">
-    <div class="sidebar-logo">
-      <div class="sidebar-logo-icon">⧉</div>
-      <div class="sidebar-logo-text">
-        <div class="sidebar-logo-title">מרכיבי תשואה</div>
-        <div class="sidebar-logo-sub">Dashboard v4.6.0</div>
-      </div>
-    </div>
-
-    <div class="sidebar-nav">
-      <div class="nav-item active" data-view="charts">
-        <span class="icon">📈</span><span class="label">גרפים</span>
-      </div>
-    </div>
-
-    <div class="sidebar-meta" id="sidebar_meta">
-      <span><span>חברות:</span><span>-</span></span>
-      <span><span>מסלולים:</span><span>-</span></span>
-      <span><span>שנים:</span><span>-</span></span>
-      <span><span>סה״כ רשומות:</span><span>-</span></span>
-    </div>
-  </aside>
-
-  <!-- MAIN -->
-  <main class="main">
-
-    <!-- HEADER -->
-    <header class="main-header">
-      <div class="main-title-block">
-        <div class="main-title">דשבורד מרכיבי תשואה</div>
-        <div class="main-subtitle">
-          גרפים + טבלת מטריצה לפי מסלול / שנה / רבעון
+  <div class="app-shell">
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <div class="sidebar-logo">
+        <div class="sidebar-logo-icon">⧉</div>
+        <div class="sidebar-logo-text">
+          <div class="sidebar-logo-title">מרכיבי תשואה</div>
+          <div class="sidebar-logo-sub">Dashboard v4.9.0</div>
         </div>
       </div>
-      <div class="main-header-actions">
-        <div class="badge-file" id="badge_file">קובץ: -</div>
-        <button class="btn-ghost" type="button" id="btn_reload">↻ רענון נתונים</button>
-      </div>
-    </header>
-
-    <!-- KPI ABOVE FILTERS -->
-    <section class="panels-row">
-      <div class="panel">
-        <div class="panel-header">
-          <div class="panel-header-title"><span class="icon">📊</span><span>מדדי מפתח – סיכום</span></div>
-        </div>
-        <div class="kpi-row" id="kpi_row"></div>
-      </div>
-
-      <div class="panel">
-        <div class="panel-header">
-          <div class="panel-header-title"><span class="icon">ℹ️</span><span>סטטוס פילטרים</span></div>
-        </div>
-        <div class="status-text" id="status_filters">טוען נתונים...</div>
-      </div>
-    </section>
-
-    <!-- FILTERS -->
-    <section class="filters-bar">
-
-      <div class="field">
-        <label>תצוגת עמודות</label>
-        <select id="col_mode">
-          <option value="quarter">לפי רבעון</option>
-          <option value="year">לפי שנים</option>
-        </select>
-      </div>
-
-      <div class="field">
-        <label>שדות לטבלה</label>
-        <select id="f_cols" multiple></select>
-      </div>
-
-      <div class="field">
-        <label>סוג חיסכון</label>
-        <select id="f_saving_type"></select>
-      </div>
-
-      <div class="field">
-        <label>סוג קופה</label>
-        <select id="f_fund_type"></select>
-      </div>
-
-      <div class="field">
-        <label>מסלול</label>
-        <select id="f_track" multiple></select>
-      </div>
-
-      <div class="field">
-        <label>סחירות</label>
-        <select id="f_liquidity"></select>
-      </div>
-
-      <div class="field">
-        <label>אפיק השקעה</label>
-        <select id="f_category" multiple></select>
-      </div>
-
-      <div class="field">
-        <label>שנת דיווח</label>
-        <select id="f_year" multiple></select>
-      </div>
-
-      <div class="field timeline-wrap">
-        <label>ציר זמן (שנה/רבעון) – גרור ימין/שמאל</label>
-        <div class="timeline-controls">
-          <input id="tl_start" type="range" min="0" max="0" step="1" value="0" />
-          <input id="tl_end"   type="range" min="0" max="0" step="1" value="0" />
-        </div>
-        <div class="timeline-labels">
-          <span id="tl_label_start">-</span>
-          <span id="tl_label_end">-</span>
+      <div class="sidebar-nav">
+        <div class="nav-item active" data-view="charts">
+          <span class="icon">📈</span><span class="label">גרפים</span>
         </div>
       </div>
+      <div class="sidebar-meta" id="sidebar_meta">
+        <span><span>חברות:</span><span>-</span></span>
+        <span><span>מסלולים:</span><span>-</span></span>
+        <span><span>שנים:</span><span>-</span></span>
+        <span><span>סה״כ רשומות:</span><span>-</span></span>
+      </div>
+    </aside>
 
-    </section>
+    <!-- MAIN -->
+    <main class="main">
+      <!-- HEADER -->
+      <header class="main-header">
+        <div class="main-title-block">
+          <div class="main-title">דשבורד מרכיבי תשואה</div>
+          <div class="main-subtitle"> גרפים + טבלת מטריצה לפי מסלול / שנה / רבעון </div>
+        </div>
+        <div class="main-header-actions">
+          <div class="badge-file" id="badge_file">קובץ: -</div>
+          <button class="btn-ghost" type="button" id="btn_reload">↻ רענון נתונים</button>
+        </div>
+      </header>
 
-    <!-- MATRIX TABLE -->
-    <section class="matrix-wrapper">
-      <div class="panel">
-        <div class="panel-header">
-          <div class="panel-header-title">
-            <span class="icon">🧮</span>
-            <span id="matrix_title">מטריצת שיעור מסך התיק, תשואה, דירוגים וסיכום תקופה</span>
+      <!-- KPI ABOVE FILTERS -->
+      <section class="panels-row">
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-header-title"><span class="icon">📊</span><span>מדדי מפתח – סיכום</span></div>
           </div>
+          <div class="kpi-row" id="kpi_row"></div>
         </div>
-        <div id="matrix_empty" class="status-text" style="margin-top:4px; display:none;">
-          אין נתונים להצגה עבור המסננים הנוכחיים.
-        </div>
-        <div id="matrix_no_fields" class="status-text" style="margin-top:4px; display:none;">
-          בחר שדות להצגה מתוך “שדות לטבלה”.
-        </div>
-        <div class="matrix-scroll">
-          <table id="matrix_table" class="matrix-table table-wide"></table>
-        </div>
-      </div>
-    </section>
-
-    <!-- CHARTS VIEW -->
-    <section class="views-wrapper">
-      <section class="view active" id="view_charts">
 
         <div class="panel">
           <div class="panel-header">
-            <div class="panel-header-title"><span class="icon">📈</span><span>גרפים</span></div>
-            <div class="panel-header-sub">שני הגרפים העליונים רבעוניים • ציר Y באחוזים</div>
+            <div class="panel-header-title"><span class="icon">ℹ️</span><span>סטטוס פילטרים</span></div>
           </div>
+          <div class="status-text" id="status_filters">טוען נתונים...</div>
+        </div>
+      </section>
 
-          <div class="chart-block">
-            <div class="chart-title">תשואה רבעונית (%)</div>
-            <div class="chart-container">
-              <canvas id="chart_yield"></canvas>
-            </div>
+      <!-- FILTERS -->
+      <section class="filters-bar">
+        <div class="field">
+          <label>תצוגת עמודות</label>
+          <select id="col_mode">
+            <option value="quarter">לפי רבעון</option>
+            <option value="year">לפי שנים</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>סוג חיסכון</label>
+          <select id="f_saving_type"></select>
+        </div>
+
+        <div class="field">
+          <label>סוג קופה</label>
+          <select id="f_fund_type"></select>
+        </div>
+
+        <div class="field">
+          <label>מסלול</label>
+          <select id="f_track" multiple></select>
+        </div>
+
+        <div class="field">
+          <label>סחירות</label>
+          <select id="f_liquidity"></select>
+        </div>
+
+        <div class="field">
+          <label>אפיק השקעה</label>
+          <select id="f_category" multiple></select>
+        </div>
+
+        <div class="field">
+          <label>שנת דיווח</label>
+          <select id="f_year" multiple></select>
+        </div>
+
+        <div class="field timeline-wrap">
+          <label>ציר זמן (שנה/רבעון) – גרור ימין/שמאל</label>
+          <div class="timeline-controls">
+            <input id="tl_start" type="range" min="0" max="0" step="1" value="0" />
+            <input id="tl_end" type="range" min="0" max="0" step="1" value="0" />
           </div>
-
-          <div class="chart-block">
-            <div class="chart-title">אחזקה רבעונית ממוצעת לתצוגה (%)</div>
-            <div class="chart-container">
-              <canvas id="chart_weight"></canvas>
-            </div>
-          </div>
-
-          <div class="chart-filters-row">
-            <div class="field">
-              <label>שנה (גרף אחזקה לפי מסלול וסחירות)</label>
-              <select id="liq_year_filter"></select>
-            </div>
-            <div class="field" id="liq_q_field">
-              <label>רבעון</label>
-              <select id="liq_quarter_filter"></select>
-            </div>
-          </div>
-
-          <div class="chart-block">
-            <div class="chart-title" id="liq_chart_title">אחזקה לפי מסלול וסחירות (%)</div>
-            <div class="chart-container narrow-right">
-              <canvas id="chart_liquidity"></canvas>
-            </div>
+          <div class="timeline-labels">
+            <span id="tl_label_start">-</span>
+            <span id="tl_label_end">-</span>
           </div>
         </div>
 
+        <!-- שדות לטבלה בסוף -->
+        <div class="field" style="min-width:260px">
+          <label>שדות לטבלה</label>
+          <select id="f_cols" multiple></select>
+        </div>
       </section>
-    </section>
 
-  </main>
-</div>
+      <!-- MATRIX TABLE -->
+      <section class="matrix-wrapper">
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-header-title">
+              <span class="icon">🧮</span>
+              <span id="matrix_title">מטריצת שיעור מסך התיק, תשואה, דירוגים וסיכום תקופה</span>
+            </div>
+          </div>
 
-<script>
-/* ————————————————————————
-   STATE
-———————————————————————— */
-const state = {
-  raw: [],
-  filtered: [],
-  meta: {},
-  chartYield: null,
-  chartWeight: null,
-  chartLiquidity: null,
-  timeKeys: [],
-  timeLabels: [],
-  timeIndexMap: new Map(),
-  tlStart: 0,
-  tlEnd: 0,
-  /* sorting state */
-  sort: null // { type:'track'|'cum'|'cell', dir:'asc'|'desc', year?:number, quarter?:number|null, fieldKey?:'yield'|'weight'|'rank_yield'|'rank_weight' }
-};
+          <div id="matrix_empty" class="status-text" style="margin-top:4px; display:none;">
+            אין נתונים להצגה עבור המסננים הנוכחיים.
+          </div>
+          <div id="matrix_no_fields" class="status-text" style="margin-top:4px; display:none;">
+            בחר שדות להצגה מתוך “שדות לטבלה”.
+          </div>
 
-/* Filters metadata */
-const FILTERS = {
-  saving_type: { id: "f_saving_type", field: "saving_type",   sort: "locale" },
-  fund_type:   { id: "f_fund_type",   field: "fund_type",     sort: "locale" },
-  track:       { id: "f_track",       field: "track_name",    sort: "locale",  multi: true },
-  liquidity:   { id: "f_liquidity",   field: "liquidity",     sort: "locale" },
-  category:    { id: "f_category",    field: "category",      sort: "locale",  multi: true },
-  year:        { id: "f_year",        field: "year",          sort: "numeric", multi: true }
-};
+          <div class="matrix-scroll">
+            <table id="matrix_table" class="matrix-table table-wide"></table>
+          </div>
+        </div>
+      </section>
 
-/* Cell-level fields shown inside each period */
-const TABLE_FIELDS = [
-  { key: "weight",     label: "שיעור מסך התיק (%)" },
-  { key: "yield",      label: "תשואה (%)" },
-  { key: "rank_yield", label: "דירוג תשואה" },
-  { key: "rank_weight",label: "דירוג מסך התיק" }
-];
+      <!-- CHARTS VIEW -->
+      <section class="views-wrapper">
+        <section class="view active" id="view_charts">
+          <div class="panel">
+            <div class="panel-header">
+              <div class="panel-header-title"><span class="icon">📈</span><span>גרפים</span></div>
+              <div class="panel-header-sub">שני הגרפים העליונים רבעוניים • ציר Y באחוזים</div>
+            </div>
 
-/* Summary columns (controlled via “שדות לטבלה”) */
-const SUMMARY_FIELDS = [
-  { key: "sum_cum_return", label: "סיכומים: תשואה מצטברת" }
-];
+            <div class="chart-block">
+              <div class="chart-title">תשואה רבעונית (מפורקת) (%)</div>
+              <div class="chart-container">
+                <canvas id="chart_yield"></canvas>
+              </div>
+            </div>
 
-/* ————————————————————————
-   UTILITIES
-———————————————————————— */
-function safeNumber(v) { const x = Number(v); return isNaN(x) ? null : x; }
-function nz(v){ const x=safeNumber(v); return x==null?0:x; }
+            <div class="chart-block">
+              <div class="chart-title">אחזקה רבעונית ממוצעת לתצוגה (%)</div>
+              <div class="chart-container">
+                <canvas id="chart_weight"></canvas>
+              </div>
+            </div>
 
-function setSelectOptions(selectEl, values, { includeAll = true, allLabel = "הכול" } = {}) {
-  const frag = document.createDocumentFragment();
-  selectEl.innerHTML = "";
-  if (includeAll) {
-    const o = document.createElement("option");
-    o.value = "";
-    o.textContent = allLabel;
-    frag.appendChild(o);
-  }
-  values.forEach(v => {
-    const o = document.createElement("option");
-    if (typeof v === "object" && v.value !== undefined) {
-      o.value = String(v.value);
-      o.textContent = String(v.text);
-    } else {
-      o.value = String(v);
-      o.textContent = String(v);
-    }
-    frag.appendChild(o);
-  });
-  selectEl.appendChild(frag);
-}
+            <div class="chart-filters-row">
+              <div class="field">
+                <label>שנה (גרף אחזקה לפי מסלול וסחירות)</label>
+                <select id="liq_year_filter"></select>
+              </div>
+              <div class="field" id="liq_q_field">
+                <label>רבעון</label>
+                <select id="liq_quarter_filter"></select>
+              </div>
+            </div>
 
-function uniqueSortedYears(rows) {
-  return Array.from(new Set(rows.map(r => r.year).filter(v => Number(v) >= 2022)))
-    .sort((a,b)=>a-b);
-}
-function getSelectValues(sel, multi=false) {
-  return multi ? Array.from(sel.selectedOptions).map(o=>o.value).filter(v=>v!=="") : (sel.value || "");
-}
+            <!-- שתי עמודות: לא-סחיר וסחיר, באותה שורה -->
+            <div class="chart-row-two">
+              <div>
+                <div class="chart-title">אחזקה לא סחיר לפי מסלול (%)</div>
+                <div class="chart-container narrow-right">
+                  <canvas id="chart_liquidity_illiquid"></canvas>
+                </div>
+              </div>
+              <div>
+                <div class="chart-title">אחזקה סחיר לפי מסלול (%)</div>
+                <div class="chart-container narrow-right">
+                  <canvas id="chart_liquidity_liquid"></canvas>
+                </div>
+              </div>
+            </div>
 
-/* timeline */
-function buildGlobalTimeline() {
-  const set = new Set();
-  state.raw.forEach(r=>{
-    const y = Number(r.year), q = Number(r.quarter);
-    if (y>=2022 && q>=1 && q<=4) set.add(`${y}|${q}`);
-  });
-  const keys = Array.from(set).sort((a,b)=>{
-    const [ya,qa]=a.split("|").map(Number);
-    const [yb,qb]=b.split("|").map(Number);
-    return ya===yb ? qa-qb : ya-yb;
-  });
-  state.timeKeys = keys;
-  state.timeLabels = keys.map(k=>{ const [y,q]=k.split("|"); return `${y} Q${q}`; });
-  state.timeIndexMap = new Map(keys.map((k,i)=>[k,i]));
+          </div>
+        </section>
+      </section>
+    </main>
+  </div>
 
-  const startEl = document.getElementById("tl_start");
-  const endEl   = document.getElementById("tl_end");
-  const lblS    = document.getElementById("tl_label_start");
-  const lblE    = document.getElementById("tl_label_end");
+  <script>
+    /* =============== רישום תוסף תוויות =============== */
+    Chart.register(ChartDataLabels);
 
-  const max = Math.max(0, keys.length-1);
-  startEl.min = 0; startEl.max = String(max);
-  endEl.min   = 0; endEl.max   = String(max);
+    /* ———————————————————————— STATE ———————————————————————— */
+    const state = {
+      raw: [],
+      filtered: [],
+      meta: {},
+      chartYield: null,
+      chartWeight: null,
+      chartLiquidityIlliquid: null,
+      chartLiquidityLiquid: null,
+      timeKeys: [],
+      timeLabels: [],
+      timeIndexMap: new Map(),
+      tlStart: 0,
+      tlEnd: 0,
+      periodCalc: {},
+      annualCalc: {},
+      sort: null
+    };
 
-  state.tlStart = 0; state.tlEnd = max;
-  startEl.value = String(state.tlStart);
-  endEl.value   = String(state.tlEnd);
-  lblS.textContent = keys.length ? state.timeLabels[state.tlStart] : "-";
-  lblE.textContent = keys.length ? state.timeLabels[state.tlEnd]   : "-";
-}
-function hookTimelineEvents() {
-  const startEl = document.getElementById("tl_start");
-  const endEl   = document.getElementById("tl_end");
-  const lblS    = document.getElementById("tl_label_start");
-  const lblE    = document.getElementById("tl_label_end");
+    /* Filters metadata */
+    const FILTERS = {
+      saving_type: { id: "f_saving_type", field: "saving_type", sort: "locale" },
+      fund_type: { id: "f_fund_type", field: "fund_type", sort: "locale" },
+      track: { id: "f_track", field: "track_name", sort: "locale", multi: true },
+      liquidity: { id: "f_liquidity", field: "liquidity", sort: "locale" },
+      category: { id: "f_category", field: "category", sort: "locale", multi: true },
+      year: { id: "f_year", field: "year", sort: "numeric", multi: true }
+    };
 
-  const clampUpdate = ()=>{
-    let s = Number(startEl.value);
-    let e = Number(endEl.value);
-    if (s > e) {
-      if (s - state.tlStart > e - state.tlEnd) endEl.value = String(s);
-      else startEl.value = String(e);
-    }
-    state.tlStart = Number(startEl.value);
-    state.tlEnd   = Number(endEl.value);
-    lblS.textContent = state.timeLabels[state.tlStart] ?? "-";
-    lblE.textContent = state.timeLabels[state.tlEnd]   ?? "-";
-    applyFilters();
-  };
-  startEl.addEventListener("input", clampUpdate);
-  endEl.addEventListener("input", clampUpdate);
-}
-function inTimelineRange(row) {
-  const y = Number(row.year), q = Number(row.quarter);
-  if (!(y && q)) return false;
-  const key = `${y}|${q}`;
-  const idx = state.timeIndexMap.get(key);
-  return idx!==undefined && idx>=state.tlStart && idx<=state.tlEnd;
-}
+    /* Cell-level fields */
+    const TABLE_FIELDS = [
+      { key: "weight", label: "שיעור מסך התיק (%)" },
+      { key: "yield", label: "תשואה (%)" },
+      { key: "rank_yield", label: "דירוג תשואה" },
+      { key: "rank_weight",label: "דירוג מסך התיק" }
+    ];
 
-/* NAV */
-document.querySelectorAll(".nav-item").forEach(item => {
-  item.addEventListener("click", () => {
-    document.querySelectorAll(".nav-item").forEach(n=>n.classList.remove("active"));
-    item.classList.add("active");
-    document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
-    const name = item.dataset.view;
-    document.getElementById("view_"+name).classList.add("active");
-    if (name === "charts") renderCharts();
-  });
-});
+    /* Summary columns */
+    const SUMMARY_FIELDS = [
+      { key: "sum_cum_return", label: "סיכומים: תשואה מצטברת" }
+    ];
 
-/* LOAD DATA */
-async function reloadData() {
-  document.getElementById("status_filters").textContent = "טוען נתונים...";
-  try {
-    const res = await fetch("/api/data");
-    const json = await res.json();
-    state.raw = json.rows || [];
-    state.meta = json.meta || {};
-    document.getElementById("badge_file").textContent = "קובץ: " + (state.meta.file || "-");
-    updateSidebarMeta();
-    buildFilters();
-    buildGlobalTimeline();
-    hookTimelineEvents();
-    refreshFilterOptions();
-    applyFilters();
-  } catch (err) { console.error(err); }
-}
-function updateSidebarMeta() {
-  const m = state.meta || {};
-  document.getElementById("sidebar_meta").innerHTML = `
-    <span><span>חברות:</span><span>${(m.companies||[]).length}</span></span>
-    <span><span>מסלולים:</span><span>${(m.tracks||[]).length}</span></span>
-    <span><span>שנים:</span><span>${(m.years||[]).join(", ")||"-"}</span></span>
-    <span><span>סה״כ רשומות:</span><span>${m.total_rows || "-"}</span></span>
-  `;
-}
+    /* ———————————————————————— UTILITIES ———————————————————————— */
+    function safeNumber(v) { const x = Number(v); return isNaN(x) ? null : x; }
+    function nz(v){ const x=safeNumber(v); return x==null?0:x; }
 
-/* FILTERS */
-function buildFilters() {
-  const rows = state.raw;
-  const savingTypes = Array.from(new Set(rows.map(r=>r.saving_type).filter(Boolean))).sort((a,b)=>a.localeCompare(b,"he"));
-  const fundTypes   = Array.from(new Set(rows.map(r=>r.fund_type).filter(Boolean))).sort((a,b)=>a.localeCompare(b,"he"));
-  const tracks      = Array.from(new Set(rows.map(r=>r.track_name).filter(Boolean))).sort((a,b)=>a.localeCompare(b,"he"));
-  const liquidities = Array.from(new Set(rows.map(r=>r.liquidity).filter(Boolean))).sort((a,b)=>a.localeCompare(b,"he"));
-  const categories  = Array.from(new Set(rows.map(r=>r.category).filter(Boolean))).sort((a,b)=>a.localeCompare(b,"he"));
-  const years       = uniqueSortedYears(rows);
-
-  setSelectOptions(document.getElementById("f_saving_type"), savingTypes);
-  setSelectOptions(document.getElementById("f_fund_type"),   fundTypes);
-  setSelectOptions(document.getElementById("f_track"),       tracks, { includeAll:false });
-  setSelectOptions(document.getElementById("f_liquidity"),   liquidities);
-  setSelectOptions(document.getElementById("f_category"),    categories, { includeAll:false });
-  setSelectOptions(document.getElementById("f_year"),        years,      { includeAll:false });
-
-  /* DEFAULTS (טעינה ראשונה) */
-  const defaultSaving   = "השתלמות";
-  const defaultFundType = "כללי";
-  const defaultTrack    = "כללי";
-
-  const selSaving = document.getElementById("f_saving_type");
-  const selFund   = document.getElementById("f_fund_type");
-  const selTrack  = document.getElementById("f_track");
-
-  if ([...selSaving.options].some(o=>o.value===defaultSaving))   selSaving.value = defaultSaving;
-  if ([...selFund.options].some(o=>o.value===defaultFundType))   selFund.value   = defaultFundType;
-  if ([...selTrack.options].some(o=>o.value===defaultTrack))     selTrack.value  = defaultTrack;
-
-  /* Columns selector */
-  const colsSel = document.getElementById("f_cols");
-  const allOptions = [
-    ...SUMMARY_FIELDS.map(f => ({ value: f.key, text: f.label })),
-    ...TABLE_FIELDS.map(f => ({ value: f.key, text: f.label }))
-  ];
-  setSelectOptions(colsSel, allOptions, { includeAll:false });
-  Array.from(colsSel.options).forEach(o => o.selected = true);
-
-  ["f_saving_type","f_fund_type","f_track","f_liquidity","f_category","f_year"].forEach(id=>{
-    document.getElementById(id).addEventListener("change", ()=>{ refreshFilterOptions(); applyFilters(); });
-  });
-  document.getElementById("col_mode").addEventListener("change", ()=>{
-    toggleLiquidityQuarterVisibility();
-    refreshLiquidityFilters();
-    applyFilters();
-  });
-  colsSel.addEventListener("change", ()=>{ renderMatrixTable(); });
-
-  const ly = document.getElementById("liq_year_filter");
-  const lq = document.getElementById("liq_quarter_filter");
-  if (ly) ly.addEventListener("change", ()=>{ refreshLiquidityFilters(); renderLiquidityChart(); });
-  if (lq) lq.addEventListener("change", ()=>{ renderLiquidityChart(); });
-
-  toggleLiquidityQuarterVisibility();
-}
-function getCurrentFilters() {
-  return {
-    saving_type: getSelectValues(document.getElementById("f_saving_type")),
-    fund_type:   getSelectValues(document.getElementById("f_fund_type")),
-    track:       getSelectValues(document.getElementById("f_track"), true),
-    liquidity:   getSelectValues(document.getElementById("f_liquidity")),
-    category:    getSelectValues(document.getElementById("f_category"), true),
-    year:        getSelectValues(document.getElementById("f_year"), true),
-    col_mode:    document.getElementById("col_mode").value || "quarter",
-    table_cols:  getSelectValues(document.getElementById("f_cols"), true)
-  };
-}
-function refreshFilterOptions() {
-  const filters = getCurrentFilters();
-  const rows = state.raw;
-
-  Object.entries(FILTERS).forEach(([key,meta])=>{
-    const sel = document.getElementById(meta.id);
-    const isMulti = !!meta.multi;
-    const prev = isMulti ? Array.from(sel.selectedOptions).map(o=>o.value) : [sel.value];
-
-    const rowsForKey = rows.filter(r=>{
-      if (key!=="saving_type" && filters.saving_type && r.saving_type !== filters.saving_type) return false;
-      if (key!=="fund_type"   && filters.fund_type   && r.fund_type   !== filters.fund_type)   return false;
-      if (key!=="track"       && Array.isArray(filters.track) && filters.track.length && !filters.track.includes(r.track_name)) return false;
-      if (key!=="liquidity"   && filters.liquidity   && r.liquidity   !== filters.liquidity)   return false;
-      if (key!=="category" && Array.isArray(filters.category) && filters.category.length && !filters.category.includes(r.category)) return false;
-      if (key!=="year" && Array.isArray(filters.year) && filters.year.length && !filters.year.includes(String(r.year))) return false;
-      return true;
-    });
-
-    let vals = Array.from(new Set(rowsForKey.map(r=>r[meta.field]).filter(Boolean)));
-    if (meta.sort==="numeric") vals.sort((a,b)=>a-b);
-    else vals.sort((a,b)=>String(a).localeCompare(String(b),"he"));
-
-    setSelectOptions(sel, vals, { includeAll:!isMulti });
-
-    if (isMulti) {
-      Array.from(sel.options).forEach(o=> o.selected = prev.includes(o.value));
-    } else {
-      const keep = prev.find(v => v !== "" && vals.includes(v));
-      sel.value = keep ?? "";
-    }
-  });
-}
-
-/* APPLY FILTERS */
-function applyFilters() {
-  const f = getCurrentFilters();
-  const rows = state.raw.filter(r=>Number(r.year)>=2022);
-
-  state.filtered = rows.filter(r=>{
-    if (f.saving_type && r.saving_type !== f.saving_type) return false;
-    if (f.fund_type   && r.fund_type   !== f.fund_type)   return false;
-    if (Array.isArray(f.track) && f.track.length && !f.track.includes(r.track_name)) return false;
-    if (f.liquidity   && r.liquidity   !== f.liquidity)   return false;
-    if (Array.isArray(f.category) && f.category.length && !f.category.includes(r.category)) return false;
-    if (Array.isArray(f.year) && f.year.length && !f.year.includes(String(r.year))) return false;
-    if (!inTimelineRange(r)) return false;
-    return true;
-  });
-
-  refreshLiquidityFilters();
-  updateFiltersStatus();
-  renderKPIs();
-  renderMatrixTable();
-  renderCharts();
-}
-function updateFiltersStatus() {
-  const f = getCurrentFilters();
-  const cnt = state.filtered.length;
-
-  const labelByKey = new Map([
-    ...SUMMARY_FIELDS.map(x=>[x.key,x.label]),
-    ...TABLE_FIELDS.map(x=>[x.key,x.label]),
-  ]);
-  const selectedLabels = (f.table_cols||[]).map(k=>labelByKey.get(k)).filter(Boolean);
-
-  const parts = [];
-  parts.push("תצוגת עמודות: " + (f.col_mode==="quarter" ? "לפי רבעון" : "לפי שנים"));
-  if (f.saving_type) parts.push("סוג חיסכון: "+f.saving_type);
-  if (f.fund_type)   parts.push("סוג קופה: "+f.fund_type);
-  if (Array.isArray(f.track) && f.track.length) parts.push("מסלול: "+f.track.join(", "));
-  if (f.liquidity)   parts.push("סחירות: "+f.liquidity);
-  if (f.category.length) parts.push("אפיק: "+f.category.join(", "));
-  if (f.year.length)     parts.push("שנים: "+f.year.join(", "));
-  if (state.timeKeys.length) parts.push(`טווח זמן: ${state.timeLabels[state.tlStart]} → ${state.timeLabels[state.tlEnd]}`);
-  if (selectedLabels.length) parts.push("שדות בטבלה: "+selectedLabels.join(", "));
-
-  document.getElementById("status_filters").textContent =
-    (parts.length ? parts.join(" • ") : "ללא סינון") +
-    ` • רשומות לאחר סינון: ${cnt}`;
-}
-
-/* KPI */
-function renderKPIs() {
-  const rows = state.filtered;
-  const kpi = document.getElementById("kpi_row");
-
-  if (!rows.length) {
-    kpi.innerHTML = `<div class="kpi-card"><div class="kpi-label">אין נתונים</div><div class="kpi-value">0</div></div>`;
-    return;
-  }
-
-  const companies = new Set(rows.map(r=>r.company_short));
-  const tracks    = new Set(rows.map(r=>r.track_name));
-
-  kpi.innerHTML = `
-    <div class="kpi-card">
-      <div class="kpi-label">חברות בפילטר</div>
-      <div class="kpi-value">${companies.size}</div>
-      <div class="kpi-badge">מתוך ${(state.meta.companies||[]).length}</div>
-    </div>
-    <div class="kpi-card">
-      <div class="kpi-label">מסלולים בפילטר</div>
-      <div class="kpi-value">${tracks.size}</div>
-      <div class="kpi-badge">סה״כ רשומות: ${rows.length}</div>
-    </div>
-  `;
-}
-
-/* ————————————————————————
-   RETURNS LOGIC (NEW)
-   We receive cumulative return proxy per period: R_q ≈ contribution/weight.
-   We convert to true per-quarter returns:
-   r1 = R1
-   r2 = (1+R2)/(1+R1) - 1
-   r3 = (1+R3)/(1+R2) - 1
-   r4 = (1+R4)/(1+R3) - 1
-   Annual return per year = Π(1+r_q) - 1
-———————————————————————— */
-
-/* Build aggregated map by track/year/quarter (sum weights & contributions) */
-function buildAgg(rows){
-  const agg = {};
-  rows.forEach(r => {
-    const t=r.track_name, y=Number(r.year), q=Number(r.quarter)||null;
-    const w=nz(r.weight), c=nz(r.contribution);
-    if (!t || !y || !q) return;
-    if (!agg[t]) agg[t]={};
-    if (!agg[t][y]) agg[t][y]={};
-    if (!agg[t][y][q]) agg[t][y][q]={w:0,c:0};
-    agg[t][y][q].w += w; agg[t][y][q].c += c;
-  });
-  return agg;
-}
-
-/* From agg with cumulative R=c/w per period, compute per-quarter r and annual */
-function derivePeriodAndAnnual(agg){
-  const period = {};   // period[track][year][q] = r_q (number)
-  const annual = {};   // annual[track][year]     = R_year (number)
-  Object.keys(agg).forEach(t=>{
-    period[t]={}; annual[t]={};
-    Object.keys(agg[t]).map(Number).sort((a,b)=>a-b).forEach(y=>{
-      const qs = Object.keys(agg[t][y]).map(Number).filter(Boolean).sort((a,b)=>a-b);
-      let prevR = null;
-      let prod = 1.0;
-      period[t][y]={};
-      qs.forEach(q=>{
-        const cell = agg[t][y][q];
-        const Rq = (cell && Math.abs(cell.w)>1e-12) ? (cell.c/cell.w) : null;
-        let rq = null;
-        if (Rq==null) rq=null;
-        else if (prevR==null) rq = Rq; // r1 = R1
-        else rq = (1+Rq)/(1+prevR) - 1;
-        period[t][y][q] = rq;
-        if (rq!=null) prod *= (1+rq);
-        prevR = Rq;
+    function setSelectOptions(selectEl, values, { includeAll = true, allLabel = "הכול" } = {}) {
+      const frag = document.createDocumentFragment();
+      selectEl.innerHTML = "";
+      if (includeAll) {
+        const o = document.createElement("option");
+        o.value = "";
+        o.textContent = allLabel;
+        frag.appendChild(o);
+      }
+      values.forEach(v => {
+        const o = document.createElement("option");
+        if (typeof v === "object" && v.value !== undefined) {
+          o.value = String(v.value);
+          o.textContent = String(v.text);
+        } else {
+          o.value = String(v);
+          o.textContent = String(v);
+        }
+        frag.appendChild(o);
       });
-      annual[t][y] = (prod===1.0) ? null : (prod - 1);
-    });
-  });
-  return { period, annual };
-}
+      selectEl.appendChild(frag);
+    }
 
-/* Helpers for table width */
-function selectedTableFields() {
-  const f = getCurrentFilters();
-  const keys = (f.table_cols||[]).filter(k => TABLE_FIELDS.some(x=>x.key===k));
-  return TABLE_FIELDS.filter(x => keys.includes(x.key));
-}
-function selectedSummaryKeys() {
-  const f = getCurrentFilters();
-  return (f.table_cols||[]).filter(k => SUMMARY_FIELDS.some(x=>x.key===k));
-}
-function applyMatrixTableWidthMode() {
-  const table = document.getElementById("matrix_table");
-  if (!table) return;
-  const mode = document.getElementById("col_mode").value || "quarter";
-  table.classList.remove("table-wide","table-fit");
-  if (mode === "quarter") table.classList.add("table-wide");
-  else                    table.classList.add("table-fit");
-}
-function isActiveCell(cell){
-  if (!cell) return false;
-  return (Math.abs(cell.w||0)>1e-9) || (Math.abs(cell.c||0)>1e-9);
-}
-function bestQuarterForYear(agg, track, year) {
-  for (const q of [4,3,2,1]) if (agg?.[track]?.[year]?.[q]) return q;
-  return null;
-}
+    function uniqueSortedYears(rows) {
+      return Array.from(new Set(rows.map(r => r.year).filter(v => Number(v) >= 2022)))
+        .sort((a,b)=>a-b);
+    }
+    function getSelectValues(sel, multi=false) {
+      return multi
+        ? Array.from(sel.selectedOptions).map(o=>o.value).filter(v=>v!=="")
+        : (sel.value || "");
+    }
 
-/* summary (updated to use period/annual) */
-function computeTrackSummaryCum_fromPeriod(periodMap, annualMap, track, yearsDesc, yearMap, mode) {
-  let product = 1.0;
-  let touched = false;
+    /* timeline */
+    function buildGlobalTimeline() {
+      const set = new Set();
+      state.raw.forEach(r=>{
+        const y = Number(r.year), q = Number(r.quarter);
+        if (y>=2022 && q>=1 && q<=4) set.add(`${y}|${q}`);
+      });
+      const keys = Array.from(set).sort((a,b)=>{
+        const [ya,qa]=a.split("|").map(Number);
+        const [yb,qb]=b.split("|").map(Number);
+        return ya===yb ? qa-qb : ya-yb;
+      });
+      state.timeKeys = keys;
+      state.timeLabels = keys.map(k=>{
+        const [y,q]=k.split("|");
+        return `${y} Q${q}`;
+      });
+      state.timeIndexMap = new Map(keys.map((k,i)=>[k,i]));
+      const startEl = document.getElementById("tl_start");
+      const endEl = document.getElementById("tl_end");
+      const lblS = document.getElementById("tl_label_start");
+      const lblE = document.getElementById("tl_label_end");
+      const max = Math.max(0, keys.length-1);
+      startEl.min = 0; startEl.max = String(max);
+      endEl.min   = 0; endEl.max   = String(max);
+      state.tlStart = 0; state.tlEnd = max;
+      startEl.value = String(state.tlStart);
+      endEl.value   = String(state.tlEnd);
+      lblS.textContent = keys.length ? state.timeLabels[state.tlStart] : "-";
+      lblE.textContent = keys.length ? state.timeLabels[state.tlEnd] : "-";
+    }
 
-  if (mode === "quarter") {
-    yearsDesc.forEach(y=>{
-      (yearMap.get(y)||[]).slice().reverse().forEach(qDesc=>{
-        // yearMap holds quarters DESC (later), but we just multiply irrespective of order
-        const rq = periodMap?.[track]?.[y]?.[qDesc];
-        if (rq!=null) { product *= (1+rq); touched = true; }
+    function hookTimelineEvents() {
+      const startEl = document.getElementById("tl_start");
+      const endEl = document.getElementById("tl_end");
+      const lblS = document.getElementById("tl_label_start");
+      const lblE = document.getElementById("tl_label_end");
+      const clampUpdate = ()=>{
+        let s = Number(startEl.value);
+        let e = Number(endEl.value);
+        if (s > e) {
+          if (s - state.tlStart > e - state.tlEnd) endEl.value = String(s);
+          else startEl.value = String(e);
+        }
+        state.tlStart = Number(startEl.value);
+        state.tlEnd = Number(endEl.value);
+        lblS.textContent = state.timeLabels[state.tlStart] ?? "-";
+        lblE.textContent = state.timeLabels[state.tlEnd] ?? "-";
+        applyFilters();
+      };
+      startEl.addEventListener("input", clampUpdate);
+      endEl.addEventListener("input", clampUpdate);
+    }
+
+    function inTimelineRange(row) {
+      const y = Number(row.year), q = Number(row.quarter);
+      if (!(y && q)) return false;
+      const key = `${y}|${q}`;
+      const idx = state.timeIndexMap.get(key);
+      return idx!==undefined && idx>=state.tlStart && idx<=state.tlEnd;
+    }
+
+    /* NAV */
+    document.querySelectorAll(".nav-item").forEach(item => {
+      item.addEventListener("click", () => {
+        document.querySelectorAll(".nav-item").forEach(n=>n.classList.remove("active"));
+        item.classList.add("active");
+        document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
+        const name = item.dataset.view;
+        document.getElementById("view_"+name).classList.add("active");
+        if (name === "charts") renderCharts();
       });
     });
-  } else {
-    yearsDesc.forEach(y=>{
-      const Ry = annualMap?.[track]?.[y];
-      if (Ry!=null) { product *= (1+Ry); touched = true; }
-    });
-  }
 
-  const cumReturn = touched ? (product - 1) : null;
-  return cumReturn==null ? "-" : (cumReturn*100).toFixed(2)+"%";
-}
+    /* LOAD DATA */
+    async function reloadData() {
+      document.getElementById("status_filters").textContent = "טוען נתונים...";
+      try {
+        const res = await fetch("/api/data");
+        const json = await res.json();
+        state.raw = json.rows || [];
+        state.meta = json.meta || {};
+        document.getElementById("badge_file").textContent = "קובץ: " + (state.meta.file || "-");
+        updateSidebarMeta();
+        buildFilters();
+        buildGlobalTimeline();
+        hookTimelineEvents();
+        refreshFilterOptions();
+        applyFilters();
+      } catch (err) {
+        console.error(err);
+      }
+    }
 
-/* sorting helpers */
-function parsePercentText(txt){
-  if (txt==null || txt==="-" || txt==="") return null;
-  const v = Number(String(txt).replace("%","").trim());
-  return Number.isFinite(v) ? v : null;
-}
-function compareValues(a,b,dir){
-  const mul = dir==='asc' ? 1 : -1;
-  if (a==null && b==null) return 0;
-  if (a==null) return 1 * mul;
-  if (b==null) return -1 * mul;
-  if (typeof a === "number" && typeof b === "number") return (a===b?0:(a<b?-1:1)) * mul;
-  return String(a).localeCompare(String(b),"he") * mul;
-}
-function flipDir(dir){ return dir==='asc' ? 'desc' : 'asc'; }
-function clearHeaderCarets(thead){
-  thead.querySelectorAll('.sort-caret').forEach(el=> el.textContent="");
-}
-function setCaret(el,dir){
-  let caret = el.querySelector(".sort-caret");
-  if (!caret){ caret = document.createElement("span"); caret.className="sort-caret"; el.appendChild(caret); }
-  caret.textContent = dir==='asc' ? "▲" : "▼";
-}
+    function updateSidebarMeta() {
+      const m = state.meta || {};
+      document.getElementById("sidebar_meta").innerHTML =
+        `<span><span>חברות:</span><span>${(m.companies||[]).length}</span></span>
+         <span><span>מסלולים:</span><span>${(m.tracks||[]).length}</span></span>
+         <span><span>שנים:</span><span>${(m.years||[]).join(", ")||"-"}</span></span>
+         <span><span>סה״כ רשומות:</span><span>${m.total_rows || "-"}</span></span>`;
+    }
 
-/* RENDER MATRIX TABLE (with sorting) */
-function renderMatrixTable() {
-  const table = document.getElementById("matrix_table");
-  const emptyEl = document.getElementById("matrix_empty");
-  const noFieldsEl = document.getElementById("matrix_no_fields");
-  const titleEl = document.getElementById("matrix_title");
-  if (!table) return;
+    /* FILTERS */
+    function buildFilters() {
+      const rows = state.raw;
+      const savingTypes = Array.from(new Set(rows.map(r=>r.saving_type).filter(Boolean))).sort((a,b)=>a.localeCompare(b,"he"));
+      const fundTypes   = Array.from(new Set(rows.map(r=>r.fund_type).filter(Boolean))).sort((a,b)=>a.localeCompare(b,"he"));
+      const tracks      = Array.from(new Set(rows.map(r=>r.track_name).filter(Boolean))).sort((a,b)=>a.localeCompare(b,"he"));
+      const liquidities = Array.from(new Set(rows.map(r=>r.liquidity).filter(Boolean))).sort((a,b)=>a.localeCompare(b,"he"));
+      const categories  = Array.from(new Set(rows.map(r=>r.category).filter(Boolean))).sort((a,b)=>a.localeCompare(b,"he"));
+      const years       = uniqueSortedYears(rows);
 
-  const mode = document.getElementById("col_mode").value || "quarter";
-  const rows = state.filtered.filter(r => r.track_name && r.year);
+      setSelectOptions(document.getElementById("f_saving_type"), savingTypes);
+      setSelectOptions(document.getElementById("f_fund_type"),   fundTypes);
+      setSelectOptions(document.getElementById("f_track"),       tracks, { includeAll:false }); // multi
+      setSelectOptions(document.getElementById("f_liquidity"),   liquidities);
+      setSelectOptions(document.getElementById("f_category"),    categories, { includeAll:false });
+      setSelectOptions(document.getElementById("f_year"),        years, { includeAll:false });
 
-  const cellFields = selectedTableFields();
-  const summaryKeys = selectedSummaryKeys();
-  const includeCum  = summaryKeys.includes("sum_cum_return");
+      /* DEFAULTS */
+      const defaultSaving = "השתלמות";
+      const defaultFundType = "כללי";
+      const defaultTrack = "כללי";
+      const selSaving = document.getElementById("f_saving_type");
+      const selFund   = document.getElementById("f_fund_type");
+      const selTrack  = document.getElementById("f_track");
+      if ([...selSaving.options].some(o=>o.value===defaultSaving)) selSaving.value = defaultSaving;
+      if ([...selFund.options].some(o=>o.value===defaultFundType)) selFund.value = defaultFundType;
+      if ([...selTrack.options].some(o=>o.value===defaultTrack))   selTrack.value = defaultTrack;
 
-  table.replaceChildren();
+      /* Columns selector */
+      const colsSel = document.getElementById("f_cols");
+      const allOptions = [
+        ...SUMMARY_FIELDS.map(f => ({ value: f.key, text: f.label })),
+        ...TABLE_FIELDS.map(f => ({ value: f.key, text: f.label }))
+      ];
+      setSelectOptions(colsSel, allOptions, { includeAll:false });
+      Array.from(colsSel.options).forEach(o => o.selected = true);
 
-  if (!rows.length) {
-    emptyEl.style.display = "block";
-    noFieldsEl.style.display = "none";
-    applyMatrixTableWidthMode();
-    return;
-  }
-  emptyEl.style.display = "none";
-
-  if (cellFields.length === 0 && !includeCum) {
-    noFieldsEl.style.display = "block";
-    applyMatrixTableWidthMode();
-    return;
-  }
-  noFieldsEl.style.display = "none";
-
-  // Build years/tracks and aggregate (cumulative), then derive period and annual
-  const yearMap = new Map();
-  rows.forEach(r => {
-    const y = Number(r.year);
-    const q = Number(r.quarter);
-    if (!y) return;
-    if (!yearMap.has(y)) yearMap.set(y, new Set());
-    if (q) yearMap.get(y).add(q);
-  });
-  const yearsAll = Array.from(yearMap.keys()).sort((a,b)=>b-a);
-  yearsAll.forEach(y => yearMap.set(y, Array.from(yearMap.get(y)).sort((a,b)=>b-a))); // store DESC for header
-
-  const trackNames = Array.from(new Set(rows.map(r => r.track_name)))
-    .sort((a,b)=>String(a).localeCompare(String(b),"he"));
-
-  const agg = buildAgg(rows);
-  const { period:periodR, annual:annualR } = derivePeriodAndAnnual(agg);
-
-  let years = [];
-  const activeQuartersByYear = new Map();
-  if (mode === "quarter") {
-    years = yearsAll.filter(y=>{
-      const qs = yearMap.get(y)||[];
-      const activeQs = qs.filter(q=>{
-        return trackNames.some(t => periodR?.[t]?.[y]?.[q]!=null);
-      });
-      if (activeQs.length) activeQuartersByYear.set(y, activeQs);
-      return activeQs.length>0;
-    });
-  } else {
-    years = yearsAll.filter(y=>{
-      return trackNames.some(t=> annualR?.[t]?.[y]!=null );
-    });
-  }
-
-  if (!years.length) {
-    emptyEl.style.display = "block";
-    applyMatrixTableWidthMode();
-    return;
-  }
-
-  // pre-compute ranks
-  function buildRankMapsQuarter(){
-    const rankReturnMap={}; const rankWeightMap={};
-    years.forEach(y=>{
-      rankReturnMap[y]={}; rankWeightMap[y]={};
-      (activeQuartersByYear.get(y)||[]).forEach(q=>{
-        const arrR=[], arrW=[];
-        trackNames.forEach(t=>{
-          const cell = agg?.[t]?.[y]?.[q];
-          const rq = periodR?.[t]?.[y]?.[q];
-          if (rq!=null) arrR.push({t,val:rq});
-          if (cell && Math.abs(cell.w)>1e-12) arrW.push({t,val:cell.w});
+      ["f_saving_type","f_fund_type","f_track","f_liquidity","f_category","f_year"].forEach(id=>{
+        document.getElementById(id).addEventListener("change", ()=>{
+          refreshFilterOptions();
+          applyFilters();
         });
-        arrR.sort((a,b)=>b.val-a.val);
-        arrW.sort((a,b)=>b.val-a.val);
-        const mR={}; arrR.forEach((o,i)=>mR[o.t]={rank:i+1,total:arrR.length});
-        const mW={}; arrW.forEach((o,i)=>mW[o.t]={rank:i+1,total:arrW.length});
-        rankReturnMap[y][q]=mR; rankWeightMap[y][q]=mW;
       });
-    });
-    return {rankReturnMap,rankWeightMap};
-  }
-  function buildRankMapsYear(){
-    const rankReturnYear={}, rankWeightYear={};
-    years.forEach(y=>{
-      const arrR=[], arrW=[];
-      trackNames.forEach(t=>{
-        const Ry = annualR?.[t]?.[y];
-        const bq=bestQuarterForYear(agg,t,y); const cell=bq? agg[t]?.[y]?.[bq]:null;
-        if (Ry!=null) arrR.push({t,val:Ry});
-        if (cell && Math.abs(cell.w)>1e-12) arrW.push({t,val:cell.w});
-      });
-      arrR.sort((a,b)=>b.val-a.val);
-      arrW.sort((a,b)=>b.val-a.val);
-      const mR={}; arrR.forEach((o,i)=>mR[o.t]={rank:i+1,total:arrR.length});
-      const mW={}; arrW.forEach((o,i)=>mW[o.t]={rank:i+1,total:arrW.length});
-      rankReturnYear[y]=mR; rankWeightYear[y]=mW;
-    });
-    return {rankReturnYear,rankWeightYear};
-  }
 
-  // helpers for header/td
-  function makeSortable(th, sortSpec){
-    th.classList.add("sortable");
-    th.addEventListener("click", ()=>{
-      const same =
-        state.sort &&
-        state.sort.type === sortSpec.type &&
-        state.sort.year === sortSpec.year &&
-        (state.sort.quarter ?? null) === (sortSpec.quarter ?? null) &&
-        state.sort.fieldKey === sortSpec.fieldKey;
-      const dir = same ? flipDir(state.sort.dir) : 'desc';
-      state.sort = {...sortSpec, dir};
+      document.getElementById("col_mode").addEventListener("change", ()=>{
+        toggleLiquidityQuarterVisibility();
+        refreshLiquidityFilters();
+        applyFilters();
+      });
+      colsSel.addEventListener("change", ()=>{ renderMatrixTable(); });
+
+      const ly = document.getElementById("liq_year_filter");
+      const lq = document.getElementById("liq_quarter_filter");
+      if (ly) ly.addEventListener("change", ()=>{ refreshLiquidityFilters(); renderLiquidityCharts(); });
+      if (lq) lq.addEventListener("change", ()=>{ renderLiquidityCharts(); });
+
+      toggleLiquidityQuarterVisibility();
+    }
+
+    function getCurrentFilters() {
+      return {
+        saving_type: getSelectValues(document.getElementById("f_saving_type")),
+        fund_type:   getSelectValues(document.getElementById("f_fund_type")),
+        track:       getSelectValues(document.getElementById("f_track"), true),
+        liquidity:   getSelectValues(document.getElementById("f_liquidity")),
+        category:    getSelectValues(document.getElementById("f_category"), true),
+        year:        getSelectValues(document.getElementById("f_year"), true),
+        col_mode:    document.getElementById("col_mode").value || "quarter",
+        table_cols:  getSelectValues(document.getElementById("f_cols"), true)
+      };
+    }
+
+    function refreshFilterOptions() {
+      const filters = getCurrentFilters();
+      const rows = state.raw;
+
+      Object.entries(FILTERS).forEach(([key,meta])=>{
+        const sel = document.getElementById(meta.id);
+        const isMulti = !!meta.multi;
+        const prev = isMulti ? Array.from(sel.selectedOptions).map(o=>o.value) : [sel.value];
+
+        const rowsForKey = rows.filter(r=>{
+          if (key!=="saving_type" && filters.saving_type && r.saving_type !== filters.saving_type) return false;
+          if (key!=="fund_type"   && filters.fund_type   && r.fund_type   !== filters.fund_type)   return false;
+          if (key!=="track"       && Array.isArray(filters.track) && filters.track.length && !filters.track.includes(r.track_name)) return false;
+          if (key!=="liquidity"   && filters.liquidity   && r.liquidity   !== filters.liquidity)   return false;
+          if (key!=="category"    && Array.isArray(filters.category) && filters.category.length && !filters.category.includes(r.category)) return false;
+          if (key!=="year"        && Array.isArray(filters.year) && filters.year.length && !filters.year.includes(String(r.year))) return false;
+          return true;
+        });
+
+        let vals = Array.from(new Set(rowsForKey.map(r=>r[meta.field]).filter(Boolean)));
+        if (meta.sort==="numeric") vals.sort((a,b)=>a-b);
+        else vals.sort((a,b)=>String(a).localeCompare(String(b),"he"));
+
+        setSelectOptions(sel, vals, { includeAll:!isMulti });
+        if (isMulti) {
+          Array.from(sel.options).forEach(o=> o.selected = prev.includes(o.value));
+        } else {
+          const keep = prev.find(v => v !== "" && vals.includes(v));
+          sel.value = keep ?? "";
+        }
+      });
+    }
+
+    /* ———————————————————————— חישובים ללא טיימליין ———————————————————————— */
+    function rowsForComputationNoTimeline() {
+      const f = getCurrentFilters();
+      const rows = state.raw.filter(r => Number(r.year) >= 2022);
+      return rows.filter(r => {
+        if (f.saving_type && r.saving_type !== f.saving_type) return false;
+        if (f.fund_type   && r.fund_type   !== f.fund_type)   return false;
+        if (Array.isArray(f.track) && f.track.length && !f.track.includes(r.track_name)) return false;
+        if (f.liquidity   && r.liquidity   !== f.liquidity)   return false;
+        if (Array.isArray(f.category) && f.category.length && !f.category.includes(r.category)) return false;
+        if (Array.isArray(f.year) && f.year.length && !f.year.includes(String(r.year))) return false;
+        return true;
+      });
+    }
+
+    /* APPLY FILTERS */
+    function applyFilters() {
+      const f = getCurrentFilters();
+      const rows = state.raw.filter(r=>Number(r.year)>=2022);
+
+      // לתצוגה (עם טיימליין)
+      state.filtered = rows.filter(r=>{
+        if (f.saving_type && r.saving_type !== f.saving_type) return false;
+        if (f.fund_type   && r.fund_type   !== f.fund_type)   return false;
+        if (Array.isArray(f.track) && f.track.length && !f.track.includes(r.track_name)) return false;
+        if (f.liquidity   && r.liquidity   !== f.liquidity)   return false;
+        if (Array.isArray(f.category) && f.category.length && !f.category.includes(r.category)) return false;
+        if (Array.isArray(f.year) && f.year.length && !f.year.includes(String(r.year))) return false;
+        if (!inTimelineRange(r)) return false;
+        return true;
+      });
+
+      // חישוב תשואות/דירוגים (ללא טיימליין)
+      const rowsCalc = rowsForComputationNoTimeline();
+      const aggCalc = buildAgg(rowsCalc);
+      const { period: periodCalc, annual: annualCalc } = derivePeriodAndAnnual(aggCalc);
+      state.periodCalc = periodCalc;
+      state.annualCalc = annualCalc;
+
+      refreshLiquidityFilters();
+      updateFiltersStatus();
+      renderKPIs();
       renderMatrixTable();
       renderCharts();
-    });
-    const isActive =
-      state.sort &&
-      state.sort.type === sortSpec.type &&
-      state.sort.year === sortSpec.year &&
-      (state.sort.quarter ?? null) === (sortSpec.quarter ?? null) &&
-      state.sort.fieldKey === sortSpec.fieldKey;
-    if (isActive) setCaret(th, state.sort.dir);
-  }
-  function thWith({text="", attrs={}, html=""}) {
-    const th = document.createElement("th");
-    if (text) th.textContent = text;
-    if (html) th.innerHTML = html;
-    Object.entries(attrs).forEach(([k,v])=> th.setAttribute(k,v));
-    return th;
-  }
-  function tdWith({text="", html="", cls=""}) {
-    const td = document.createElement("td");
-    if (cls) td.className = cls;
-    if (html) td.innerHTML = html; else td.textContent = text;
-    return td;
-  }
-
-  const thead = document.createElement("thead");
-  const tbody = document.createElement("tbody");
-
-  if (mode === "quarter") {
-    titleEl.textContent = "מטריצת שיעור מסך התיק, תשואה, דירוגים וסיכום – לפי רבעון";
-
-    const tr1 = document.createElement("tr");
-    const thTrack = thWith({text:"מסלול", attrs:{rowspan:3}});
-    tr1.appendChild(thTrack);
-    const thCum = selectedSummaryKeys().includes("sum_cum_return") ? thWith({text:"תשואה מצטברת", attrs:{rowspan:3}}) : null;
-    if (thCum) tr1.appendChild(thCum);
-    years.forEach(y=>{
-      const qs = (activeQuartersByYear.get(y)||[]);
-      if (qs.length===0) return;
-      tr1.appendChild(thWith({text:String(y), attrs:{colspan: qs.length * selectedTableFields().length}}));
-    });
-    thead.appendChild(tr1);
-
-    const tr2 = document.createElement("tr");
-    years.forEach(y=>{
-      (activeQuartersByYear.get(y)||[]).forEach(q=>{
-        tr2.appendChild(thWith({text:`רבעון ${q}`, attrs:{colspan: selectedTableFields().length}}));
-      });
-    });
-    thead.appendChild(tr2);
-
-    const tr3 = document.createElement("tr");
-    years.forEach(y=>{
-      (activeQuartersByYear.get(y)||[]).forEach(q=>{
-        selectedTableFields().forEach(fld=>{
-          const th = thWith({text: fld.label});
-          makeSortable(th, { type:'cell', year:y, quarter:q, fieldKey:fld.key });
-          tr3.appendChild(th);
-        });
-      });
-    });
-    thead.appendChild(tr3);
-
-    clearHeaderCarets(thead);
-    makeSortable(thTrack, { type:'track' });
-    if (thCum) makeSortable(thCum, { type:'cum' });
-
-    const {rankReturnMap,rankWeightMap} = buildRankMapsQuarter();
-
-    // model for sorting
-    const model = trackNames.map(t=>{
-      const cumStr = includeCum ? computeTrackSummaryCum_fromPeriod(periodR, annualR, t, years, activeQuartersByYear, "quarter") : "-";
-      const values = {};
-      years.forEach(y=>{
-        (activeQuartersByYear.get(y)||[]).forEach(q=>{
-          const cell = agg?.[t]?.[y]?.[q] || null;
-          const w = (cell && Math.abs(cell.w)>1e-9)? (cell.w*100) : null;
-          const rq = periodR?.[t]?.[y]?.[q];
-          const yv = (rq!=null) ? (rq*100) : null;
-          const rRet = rankReturnMap[y]?.[q]?.[t] ? rankReturnMap[y][q][t].rank : null;
-          const rWei = rankWeightMap[y]?.[q]?.[t] ? rankWeightMap[y][q][t].rank : null;
-          values[`w|${y}|${q}`] = w;
-          values[`y|${y}|${q}`] = yv;
-          values[`ry|${y}|${q}`] = rRet;
-          values[`rw|${y}|${q}`] = rWei;
-        });
-      });
-      return { track:t, cumStr, values };
-    });
-
-    if (state.sort){
-      const s = state.sort;
-      if (s.type==='track'){
-        model.sort((a,b)=>compareValues(a.track,b.track,s.dir));
-      } else if (s.type==='cum' && includeCum){
-        model.sort((a,b)=>compareValues(parsePercentText(a.cumStr), parsePercentText(b.cumStr), s.dir));
-      } else if (s.type==='cell'){
-        const key = (s.fieldKey==='weight' ? `w|${s.year}|${s.quarter}` :
-                    s.fieldKey==='yield' ? `y|${s.year}|${s.quarter}` :
-                    s.fieldKey==='rank_yield' ? `ry|${s.year}|${s.quarter}` :
-                    `rw|${s.year}|${s.quarter}`);
-        model.sort((a,b)=>compareValues(a.values[key], b.values[key], s.dir));
-      }
     }
 
-    model.forEach(({track:t, cumStr})=>{
-      const tr = document.createElement("tr");
-      if (rows.some(r=>r.track_name===t && String(r.company_short||"").includes("מנורה"))) tr.className = "row-menora";
-      tr.appendChild(tdWith({html:`${t}`, cls:"matrix-row-header"}));
+    function updateFiltersStatus() {
+      const f = getCurrentFilters();
+      const cnt = state.filtered.length;
+      const labelByKey = new Map([
+        ...SUMMARY_FIELDS.map(x=>[x.key,x.label]),
+        ...TABLE_FIELDS.map(x=>[x.key,x.label]),
+      ]);
+      const selectedLabels = (f.table_cols||[]).map(k=>labelByKey.get(k)).filter(Boolean);
+      const parts = [];
+      parts.push("תצוגת עמודות: " + (f.col_mode==="quarter" ? "לפי רבעון" : "לפי שנים"));
+      if (f.saving_type) parts.push("סוג חיסכון: "+f.saving_type);
+      if (f.fund_type) parts.push("סוג קופה: "+f.fund_type);
+      if (Array.isArray(f.track) && f.track.length) parts.push("מסלול: "+f.track.join(", "));
+      if (f.liquidity) parts.push("סחירות: "+f.liquidity);
+      if (f.category.length) parts.push("אפיק: "+f.category.join(", "));
+      if (f.year.length) parts.push("שנים: "+f.year.join(", "));
+      if (state.timeKeys.length) parts.push(`טווח זמן: ${state.timeLabels[state.tlStart]} → ${state.timeLabels[state.tlEnd]}`);
+      if (selectedLabels.length) parts.push("שדות בטבלה: "+selectedLabels.join(", "));
+      document.getElementById("status_filters").textContent =
+        (parts.length ? parts.join(" • ") : "ללא סינון") + ` • רשומות לאחר סינון: ${cnt}`;
+    }
 
-      if (includeCum) tr.appendChild(tdWith({html:`<span class="num">${cumStr}</span>`}));
+    /* KPI */
+    function renderKPIs() {
+      const rows = state.filtered;
+      const kpi = document.getElementById("kpi_row");
+      if (!rows.length) {
+        kpi.innerHTML = `<div class="kpi-card"><div class="kpi-label">אין נתונים</div><div class="kpi-value">0</div></div>`;
+        return;
+      }
+      const companies = new Set(rows.map(r=>r.company_short));
+      const tracks = new Set(rows.map(r=>r.track_name));
+      kpi.innerHTML =
+        `<div class="kpi-card">
+          <div class="kpi-label">חברות בפילטר</div>
+          <div class="kpi-value">${companies.size}</div>
+          <div class="kpi-badge">מתוך ${(state.meta.companies||[]).length}</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">מסלולים בפילטר</div>
+          <div class="kpi-value">${tracks.size}</div>
+          <div class="kpi-badge">סה״כ רשומות: ${rows.length}</div>
+        </div>`;
+    }
 
-      years.forEach(y=>{
-        (activeQuartersByYear.get(y)||[]).forEach(q=>{
-          const cell=agg[t]?.[y]?.[q]||null;
+    /* ———————————————————————— RETURNS LOGIC ———————————————————————— */
+    function buildAgg(rows){
+      const agg = {};
+      rows.forEach(r => {
+        const t=r.track_name, y=Number(r.year), q=Number(r.quarter)||null;
+        const w=nz(r.weight), c=nz(r.contribution);
+        if (!t || !y || !q) return;
+        if (!agg[t]) agg[t]={};
+        if (!agg[t][y]) agg[t][y]={};
+        if (!agg[t][y][q]) agg[t][y][q]={w:0,c:0};
+        agg[t][y][q].w += w;
+        agg[t][y][q].c += c;
+      });
+      return agg;
+    }
 
-          const wDisp = (cell && Math.abs(cell.w)>1e-9) ? (cell.w*100).toFixed(2)+"%" : "-";
-          let yDisp="-", rRet="", rWei="";
-          const rq = periodR?.[t]?.[y]?.[q];
-          if (rq!=null) yDisp = (rq*100).toFixed(2)+"%";
-          const infoR=rankReturnMap[y]?.[q]?.[t];
-          const infoW=rankWeightMap[y]?.[q]?.[t];
-          if (infoR && infoR.total>0) rRet=`${infoR.rank}/${infoR.total}`;
-          if (infoW && infoW.total>0) rWei=`${infoW.rank}/${infoW.total}`;
-
-          selectedTableFields().forEach(fld=>{
-            if (fld.key==="weight")            tr.appendChild(tdWith({html:`<span class="num">${wDisp}</span>`}));
-            else if (fld.key==="yield")        tr.appendChild(tdWith({html:`<span class="num">${yDisp}</span>`}));
-            else if (fld.key==="rank_yield")   tr.appendChild(tdWith({text:rRet}));
-            else if (fld.key==="rank_weight")  tr.appendChild(tdWith({text:rWei}));
+    function derivePeriodAndAnnual(agg){
+      const period = {};
+      const annual = {};
+      Object.keys(agg).forEach(t=>{
+        period[t]={};
+        annual[t]={};
+        Object.keys(agg[t]).map(Number).sort((a,b)=>a-b).forEach(y=>{
+          const qs = Object.keys(agg[t][y]).map(Number).filter(Boolean).sort((a,b)=>a-b);
+          let prevR = null;
+          let prod = 1.0;
+          period[t][y]={};
+          qs.forEach(q=>{
+            const cell = agg[t][y][q];
+            const Rq = (cell && Math.abs(cell.w)>1e-12) ? (cell.c/cell.w) : null;
+            let rq = null;
+            if (Rq==null) rq=null;
+            else if (prevR==null) rq = Rq;
+            else rq = (1+Rq)/(1+prevR) - 1;
+            period[t][y][q] = rq;
+            if (rq!=null) prod *= (1+rq);
+            prevR = Rq;
           });
+          annual[t][y] = (prod===1.0) ? null : (prod - 1);
         });
       });
-
-      tbody.appendChild(tr);
-    });
-
-  } else {
-    titleEl.textContent = "מטריצת שיעור מסך התיק, תשואה, דירוגים וסיכום – לפי שנים";
-
-    const tr1 = document.createElement("tr");
-    const thTrack = thWith({text:"מסלול", attrs:{rowspan:2}});
-    tr1.appendChild(thTrack);
-    const thCum = includeCum ? thWith({text:"תשואה מצטברת", attrs:{rowspan:2}}) : null;
-    if (thCum) tr1.appendChild(thCum);
-    years.forEach(y=>{
-      tr1.appendChild(thWith({text:String(y), attrs:{colspan: selectedTableFields().length}}));
-    });
-    thead.appendChild(tr1);
-
-    const tr2 = document.createElement("tr");
-    years.forEach(y=>{
-      selectedTableFields().forEach(fld=>{
-        const th = thWith({text: fld.label});
-        makeSortable(th, { type:'cell', year:y, quarter:null, fieldKey:fld.key });
-        tr2.appendChild(th);
-      });
-    });
-    thead.appendChild(tr2);
-
-    clearHeaderCarets(thead);
-    makeSortable(thTrack, { type:'track' });
-    if (thCum) makeSortable(thCum, { type:'cum' });
-
-    const {rankReturnYear,rankWeightYear} = (function(){
-      const rY={}, wY={};
-      years.forEach(y=>{
-        const arrR=[], arrW=[];
-        trackNames.forEach(t=>{
-          const Ry = annualR?.[t]?.[y];
-          const bq=bestQuarterForYear(agg,t,y); const cell=bq? agg[t]?.[y]?.[bq]:null;
-          if (Ry!=null) arrR.push({t,val:Ry});
-          if (cell && Math.abs(cell.w)>1e-12) arrW.push({t,val:cell.w});
-        });
-        arrR.sort((a,b)=>b.val-a.val);
-        arrW.sort((a,b)=>b.val-a.val);
-        const mR={}; arrR.forEach((o,i)=>mR[o.t]={rank:i+1,total:arrR.length});
-        const mW={}; arrW.forEach((o,i)=>mW[o.t]={rank:i+1,total:arrW.length});
-        rY[y]=mR; wY[y]=mW;
-      });
-      return {rankReturnYear:rY,rankWeightYear:wY};
-    })();
-
-    const model = trackNames.map(t=>{
-      const cumStr = includeCum ? computeTrackSummaryCum_fromPeriod(periodR, annualR, t, years, null, "year") : "-";
-      const values = {};
-      years.forEach(y=>{
-        const bq=bestQuarterForYear(agg,t,y); const cell=bq? agg[t]?.[y]?.[bq]:null;
-        const w = (cell && Math.abs(cell.w)>1e-9)? (cell.w*100) : null;
-        const Ry = annualR?.[t]?.[y];
-        const yv = (Ry!=null)? (Ry*100) : null;
-        const rRet = rankReturnYear[y]?.[t] ? rankReturnYear[y][t].rank : null;
-        const rWei = rankWeightYear[y]?.[t] ? rankWeightYear[y][t].rank : null;
-        values[`w|${y}`] = w;
-        values[`y|${y}`] = yv;
-        values[`ry|${y}`] = rRet;
-        values[`rw|${y}`] = rWei;
-      });
-      return { track:t, cumStr, values };
-    });
-
-    if (state.sort){
-      const s = state.sort;
-      if (s.type==='track'){
-        model.sort((a,b)=>compareValues(a.track,b.track,s.dir));
-      } else if (s.type==='cum' && includeCum){
-        model.sort((a,b)=>compareValues(parsePercentText(a.cumStr), parsePercentText(b.cumStr), s.dir));
-      } else if (s.type==='cell'){
-        const key = (s.fieldKey==='weight' ? `w|${s.year}` :
-                    s.fieldKey==='yield' ? `y|${s.year}` :
-                    s.fieldKey==='rank_yield' ? `ry|${s.year}` :
-                    `rw|${s.year}`);
-        model.sort((a,b)=>compareValues(a.values[key], b.values[key], s.dir));
-      }
+      return { period, annual };
     }
 
-    model.forEach(({track:t, cumStr})=>{
-      const tr = document.createElement("tr");
-      if (rows.some(r=>r.track_name===t && String(r.company_short||"").includes("מנורה"))) tr.className = "row-menora";
-      tr.appendChild(tdWith({html:`${t}`, cls:"matrix-row-header"}));
-      if (includeCum) tr.appendChild(tdWith({html:`<span class="num">${cumStr}</span>`}));
-
-      years.forEach(y=>{
-        const bq=bestQuarterForYear(agg,t,y); const cell=bq? agg[t]?.[y]?.[bq]:null;
-
-        const wDisp = (cell && Math.abs(cell.w)>1e-9)? (cell.w*100).toFixed(2)+"%" : "-";
-        const Ry = annualR?.[t]?.[y];
-        const yDisp = (Ry!=null)? (Ry*100).toFixed(2)+"%" : "-";
-
-        const RR=rankReturnYear[y]?.[t]; const RW=rankWeightYear[y]?.[t];
-        const rRet = RR? `${RR.rank}/${RR.total}` : "";
-        const rWei = RW? `${RW.rank}/${RW.total}` : "";
-
-        selectedTableFields().forEach(fld=>{
-          if (fld.key==="weight")            tr.appendChild(tdWith({html:`<span class="num">${wDisp}</span>`}));
-          else if (fld.key==="yield")        tr.appendChild(tdWith({html:`<span class="num">${yDisp}</span>`}));
-          else if (fld.key==="rank_yield")   tr.appendChild(tdWith({text:rRet}));
-          else if (fld.key==="rank_weight")  tr.appendChild(tdWith({text:rWei}));
-        });
-      });
-
-      tbody.appendChild(tr);
-    });
-  }
-
-  table.appendChild(thead);
-  table.appendChild(tbody);
-
-  table.style.tableLayout = "auto";
-  table.style.width = "max-content";
-  applyMatrixTableWidthMode();
-}
-
-/* CHARTS */
-function rowsForLiquidityBase() {
-  const f = getCurrentFilters();
-  const rows = state.raw.filter(r=>Number(r.year)>=2022);
-  return rows.filter(r=>{
-    if (f.saving_type && r.saving_type !== f.saving_type) return false;
-    if (f.fund_type   && r.fund_type   !== f.fund_type)   return false;
-    if (Array.isArray(f.track) && f.track.length && !f.track.includes(r.track_name)) return false;
-    if (Array.isArray(f.year) && f.year.length && !f.year.includes(String(r.year))) return false;
-    return true;
-  });
-}
-function toggleLiquidityQuarterVisibility() {
-  const mode = document.getElementById("col_mode").value || "quarter";
-  const qField = document.getElementById("liq_q_field");
-  const title = document.getElementById("liq_chart_title");
-  if (mode === "year") { qField.style.display = "none"; title.textContent = "אחזקה לפי מסלול וסחירות (%) – לפי שנים (רבעון 4/3/2/1 לפי זמינות)"; }
-  else { qField.style.display = ""; title.textContent = "אחזקה לפי מסלול וסחירות (%)"; }
-}
-
-/* For charts ordering by current sort – now fed by PERIOD returns map */
-function bestQuarterForSeries(seriesObj, year){
-  for (const q of [4,3,2,1]) {
-    const key = `${year}|${q}`;
-    if (seriesObj && (seriesObj[key]!=null)) return key;
-  }
-  return null;
-}
-function orderedKeysByCurrentSort(keys, rSeries, seriesWeight){
-  const s = state.sort;
-  if (!s || s.type!=='cell') return keys.slice();
-  if (s.fieldKey!=='yield' && s.fieldKey!=='weight') return keys.slice();
-
-  const dir = s.dir || 'desc';
-  const withVal = keys.map(name=>{
-    let periodKey = null;
-    if (s.quarter==null){
-      periodKey = bestQuarterForSeries(rSeries[name], s.year);
-    } else {
-      periodKey = `${s.year}|${s.quarter}`;
+    /* Helpers for table width */
+    function selectedTableFields() {
+      const f = getCurrentFilters();
+      const keys = (f.table_cols||[]).filter(k => TABLE_FIELDS.some(x=>x.key===k));
+      return TABLE_FIELDS.filter(x => keys.includes(x.key));
     }
-    let val = null;
-    if (s.fieldKey==='yield'){
-      const rq = rSeries[name]?.[periodKey];
-      if (rq!=null) val = rq*100;
-    } else if (s.fieldKey==='weight'){
-      const w = seriesWeight[name]?.[periodKey];
-      if (w!=null) val = w * 100;
+    function selectedSummaryKeys() {
+      const f = getCurrentFilters();
+      return (f.table_cols||[]).filter(k => SUMMARY_FIELDS.some(x=>x.key===k));
     }
-    return {name, val};
-  });
-
-  withVal.sort((a,b)=>compareValues(a.val, b.val, dir));
-  return withVal.map(x=>x.name);
-}
-
-/* Build per-series period returns from cumulative R=c/w */
-function buildSeriesMaps(rows){
-  const seriesKey = (r)=>{
-    const c = r.company_short || "לא ידוע";
-    const t = r.track_name || "";
-    return t ? `${c} – ${t}` : c;
-  };
-  const seriesCum = {};   // cumulative: {name: { "Y|Q": {w,c} }}
-  const seriesW   = {};   // weight only: {name: { "Y|Q": w }}
-  rows.forEach(r=>{
-    if (!r.year || !r.quarter) return;
-    const tk = `${r.year}|${r.quarter}`;
-    const sk = seriesKey(r);
-    const wAll = nz(r.weight);
-    const cAll = nz(r.contribution);
-
-    if (!seriesCum[sk]) seriesCum[sk]={};
-    if (!seriesCum[sk][tk]) seriesCum[sk][tk]={w:0,c:0};
-    seriesCum[sk][tk].w += wAll;
-    seriesCum[sk][tk].c += cAll;
-
-    if (!seriesW[sk]) seriesW[sk]={};
-    if (!seriesW[sk][tk]) seriesW[sk][tk]=0;
-    seriesW[sk][tk] += wAll;
-  });
-
-  // derive per-period r for each series across time ascending
-  const rSeries = {}; // {name:{ "Y|Q": r }}
-  Object.keys(seriesCum).forEach(name=>{
-    const keys = Object.keys(seriesCum[name]).sort((a,b)=>{
-      const [ya,qa]=a.split("|").map(Number); const [yb,qb]=b.split("|").map(Number);
-      return ya===yb? qa-qb : ya-yb;
-    });
-    rSeries[name]={};
-    let prevR = null;
-    keys.forEach(k=>{
-      const cell = seriesCum[name][k];
-      const Rq = (cell && Math.abs(cell.w)>1e-12) ? (cell.c/cell.w) : null;
-      let rq = null;
-      if (Rq==null) rq=null;
-      else if (prevR==null) rq = Rq;
-      else rq = (1+Rq)/(1+prevR) - 1;
-      rSeries[name][k] = rq;
-      prevR = Rq;
-    });
-  });
-
-  return { seriesCum, seriesW, rSeries };
-}
-
-function refreshLiquidityFilters() {
-  const selYear = document.getElementById("liq_year_filter");
-  const selQuarter = document.getElementById("liq_quarter_filter");
-  if (!selYear || !selQuarter) return;
-
-  const mode = document.getElementById("col_mode").value || "quarter";
-  const rows = rowsForLiquidityBase().filter(r => r.year && r.quarter);
-  if (!rows.length) { selYear.innerHTML=""; selQuarter.innerHTML=""; return; }
-
-  const yearsArr = Array.from(new Set(rows.map(r=>Number(r.year)))).sort((a,b)=>a-b);
-  const prevYear = selYear.value, prevQuarter = selQuarter.value;
-  const defaultYear = yearsArr[yearsArr.length - 1];
-
-  selYear.innerHTML = "";
-  const fragYear = document.createDocumentFragment();
-  yearsArr.forEach(y=>{ const o=document.createElement("option"); o.value=String(y); o.textContent=String(y); fragYear.appendChild(o); });
-  selYear.appendChild(fragYear);
-  selYear.value = yearsArr.includes(Number(prevYear)) ? prevYear : String(defaultYear);
-
-  if (mode === "quarter") {
-    const quartersArr = Array.from(new Set(rows.filter(r=>Number(r.year)===Number(selYear.value)).map(r=>Number(r.quarter)))).sort((a,b)=>a-b);
-    selQuarter.innerHTML = "";
-    const fragQ = document.createDocumentFragment();
-    quartersArr.forEach(q=>{ const o=document.createElement("option"); o.value=String(q); o.textContent=String(q); fragQ.appendChild(o); });
-    selQuarter.appendChild(fragQ);
-    const defaultQuarter = quartersArr[quartersArr.length - 1];
-    selQuarter.value = quartersArr.includes(Number(prevQuarter)) ? prevQuarter : String(defaultQuarter);
-  } else {
-    selQuarter.innerHTML = "";
-  }
-}
-
-function renderCharts() {
-  const rows = state.filtered;
-
-  if (state.chartYield)  { state.chartYield.destroy();  state.chartYield=null; }
-  if (state.chartWeight) { state.chartWeight.destroy(); state.chartWeight=null; }
-  if (!rows.length) {
-    if (state.chartLiquidity) { state.chartLiquidity.destroy(); state.chartLiquidity = null; }
-    return;
-  }
-
-  // Build series maps
-  const { seriesCum, seriesW, rSeries } = buildSeriesMaps(rows);
-
-  const timeSet = new Set();
-  rows.forEach(r=>{ if (r.year && r.quarter) timeSet.add(r.year+"|"+r.quarter); });
-  const timeKeys = Array.from(timeSet).sort((a,b)=>{
-    const [ya,qa]=a.split("|").map(Number);
-    const [yb,qb]=b.split("|").map(Number);
-    return ya===yb ? qa-qb : ya-yb;
-  });
-  const labels = timeKeys.map(k=>{ const [y,q]=k.split("|"); return y+" Q"+q; });
-
-  const palette = ["#53d3ff","#ffb74d","#81c784","#ba68c8","#ff8a65","#4db6ac","#ce93d8","#f06292","#ffd54f","#7986cb","#90caf9","#a5d6a7","#ffe082","#ffab91","#b39ddb"];
-  let keys = Object.keys(seriesCum);
-
-  // Order datasets by current sort (yield uses rSeries, weight uses seriesW)
-  keys = orderedKeysByCurrentSort(keys, rSeries, seriesW);
-
-  const datasetsYield = keys.map((name,i)=>{
-    const color=palette[i%palette.length];
-    const data=timeKeys.map(k=>{
-      const rq = rSeries[name]?.[k];
-      return (rq==null)? null : (rq*100);
-    });
-    return { label:name, data, type:"bar", backgroundColor:color+"cc", borderColor:color, borderWidth:1, skipNull:true };
-  });
-
-  const datasetsWeight = keys.map((name,i)=>{
-    const color=palette[i%palette.length];
-    const data=timeKeys.map(k=>{
-      const w = seriesW[name]?.[k];
-      if (w==null) return null;
-      return w*100;
-    });
-    return { label:name, data, type:"bar", backgroundColor:color+"cc", borderColor:color, borderWidth:1, skipNull:true };
-  });
-
-  const ctxYield  = document.getElementById("chart_yield").getContext("2d");
-  const ctxWeight = document.getElementById("chart_weight").getContext("2d");
-
-  const opt=(title)=>({
-    responsive:true,
-    maintainAspectRatio:false,
-    interaction:{ mode:"index", intersect:false },
-    plugins:{
-      legend:{ position:"bottom", labels:{ color:"#e9eefb", font:{size:11} } },
-      tooltip:{ callbacks:{ label:(c)=>`${c.dataset.label}: ${c.parsed.y?.toFixed(2)||0}%` } }
-    },
-    scales:{
-      x:{ ticks:{color:"#a6b2c9"}, grid:{color:"rgba(255,255,255,0.06)"} },
-      y:{ ticks:{color:"#a6b2c9", callback:v=>v.toFixed(1)+"%"},
-          grid:{color:"rgba(255,255,255,0.04)"},
-          title:{display:true,text:title,color:"#e9eefb"} }
+    function applyMatrixTableWidthMode() {
+      const table = document.getElementById("matrix_table");
+      if (!table) return;
+      const mode = document.getElementById("col_mode").value || "quarter";
+      table.classList.remove("table-wide","table-fit");
+      if (mode === "quarter") table.classList.add("table-wide");
+      else table.classList.add("table-fit");
     }
-  });
+    function bestQuarterForYear(agg, track, year) {
+      for (const q of [4,3,2,1]) if (agg?.[track]?.[year]?.[q]) return q;
+      return null;
+    }
 
-  state.chartYield  = new Chart(ctxYield, { type:"bar", data:{labels,datasets:datasetsYield},  options:opt("תשואה רבעונית מפורקת (%)") });
-  state.chartWeight = new Chart(ctxWeight,{ type:"bar", data:{labels,datasets:datasetsWeight}, options:opt("אחזקה רבעונית ממוצעת לתצוגה (%)") });
-
-  renderLiquidityChart();
-}
-
-/* BOTTOM CHART */
-function renderLiquidityChart() {
-  const canvas = document.getElementById("chart_liquidity");
-  if (!canvas) return;
-  const ctxLiquidity = canvas.getContext("2d");
-  if (state.chartLiquidity) { state.chartLiquidity.destroy(); state.chartLiquidity = null; }
-
-  const selYear = document.getElementById("liq_year_filter");
-  const selQuarter = document.getElementById("liq_quarter_filter");
-  const mode = document.getElementById("col_mode").value || "quarter";
-  if (!selYear || !selYear.value) return;
-  if (mode==="quarter" && (!selQuarter || !selQuarter.value)) return;
-
-  const yearSel = selYear.value;
-  const quarterSel = selQuarter?.value;
-
-  const baseRows = rowsForLiquidityBase();
-
-  let rows = [];
-  if (mode==="quarter") {
-    rows = baseRows.filter(r => String(r.year) === yearSel && String(r.quarter) === quarterSel);
-  } else {
-    const rowsYear = baseRows.filter(r => String(r.year)===yearSel && r.quarter);
-    const agg = {};
-    rowsYear.forEach(r=>{
-      const t=r.track_name; const q=Number(r.quarter);
-      const w=nz(r.weight);
-      const key = `${t}|${q}|${r.liquidity||""}`;
-      if (!agg[key]) agg[key]=0;
-      agg[key]+=w;
-    });
-    const trackSet = new Set(rowsYear.map(r=>r.track_name).filter(Boolean));
-    trackSet.forEach(t=>{
-      for (const q of [4,3,2,1]) {
-        if (Object.keys(agg).some(k=>k.startsWith(`${t}|${q}|`))) {
-          rows.push(...rowsYear.filter(r=>r.track_name===t && Number(r.quarter)===q));
-          break;
-        }
-      }
-    });
-  }
-
-  if (!rows.length) return;
-
-  const trackSet = new Set();
-  rows.forEach(r => { if (r.track_name) trackSet.add(r.track_name); });
-  let tracks = Array.from(trackSet);
-
-  const s = state.sort;
-  if (s && s.type==='cell' && (s.fieldKey==='weight' || s.fieldKey==='yield')) {
-    const dir = s.dir || 'desc';
-    const scoreByTrack = new Map();
-    const yTarget = s.year;
-    const qTarget = s.quarter==null ? null : Number(s.quarter);
-    tracks.forEach(t=>{
-      let relevant = [];
-      if (qTarget==null){
-        for (const q of [4,3,2,1]) {
-          const subset = rows.filter(r=>r.track_name===t && Number(r.year)===Number(yTarget) && Number(r.quarter)===q);
-          if (subset.length){ relevant = subset; break; }
-        }
-      } else {
-        relevant = rows.filter(r=>r.track_name===t && Number(r.year)===Number(yTarget) && Number(r.quarter)===qTarget);
-      }
-      let val = null;
-      if (relevant.length){
-        if (s.fieldKey==='weight'){
-          const w = relevant.reduce((acc,r)=>acc + nz(r.weight), 0);
-          val = w*100;
-        } else if (s.fieldKey==='yield'){
-          // estimate period return for that track/period using cumulative proxy per rows (aggregate then decompose)
-          const aggTmp = {};
-          relevant.forEach(r=>{
-            const y=Number(r.year), q=Number(r.quarter);
-            const w=nz(r.weight), c=nz(r.contribution);
-            if (!aggTmp[y]) aggTmp[y]={};
-            if (!aggTmp[y][q]) aggTmp[y][q]={w:0,c:0};
-            aggTmp[y][q].w+=w; aggTmp[y][q].c+=c;
-          });
-          let prevR=null; let rq=null;
-          const qList = Object.keys(aggTmp[Number(yTarget)]||{}).map(Number).sort((a,b)=>a-b);
-          qList.forEach(q=>{
-            const cell=aggTmp[Number(yTarget)][q];
-            const Rq=(cell && Math.abs(cell.w)>1e-12)? (cell.c/cell.w):null;
-            if (Rq!=null){
-              if (prevR==null) rq=Rq; else rq=(1+Rq)/(1+prevR)-1;
-              prevR=Rq;
+    /* summary */
+    function computeTrackSummaryCum_fromPeriod(periodMap, annualMap, track, yearsDesc, yearMap, mode) {
+      let product = 1.0;
+      let touched = false;
+      if (mode === "quarter") {
+        yearsDesc.forEach(y=>{
+          (yearMap.get(y)||[]).slice().reverse().forEach(qDesc=>{
+            const rq = periodMap?.[track]?.[y]?.[qDesc];
+            if (rq!=null) {
+              product *= (1+rq);
+              touched = true;
             }
           });
-          if (rq!=null) val = rq*100;
-        }
+        });
+      } else {
+        yearsDesc.forEach(y=>{
+          const Ry = annualMap?.[track]?.[y];
+          if (Ry!=null) {
+            product *= (1+Ry);
+            touched = true;
+          }
+        });
       }
-      scoreByTrack.set(t, val);
-    });
-    tracks.sort((a,b)=>compareValues(scoreByTrack.get(a), scoreByTrack.get(b), dir));
-  } else {
-    tracks.sort((a,b)=>String(a).localeCompare(String(b),"he"));
-  }
+      const cumReturn = touched ? (product - 1) : null;
+      return cumReturn==null ? "-" : (cumReturn*100).toFixed(2)+"%";
+    }
 
-  let dataLiquid = []; let dataIlliquid = [];
-  tracks.forEach(track=>{
-    let wLiquid = 0, wIlliquid = 0;
-    rows.forEach(r=>{
-      if (r.track_name !== track) return;
-      const w = nz(r.weight);
-      if (r.liquidity === "סחיר") wLiquid += w; else wIlliquid += w;
-    });
-    dataLiquid.push(wLiquid * 100);
-    dataIlliquid.push(wIlliquid * 100);
-  });
+    /* sorting helpers */
+    function parsePercentText(txt){
+      if (txt==null || txt==="-" || txt==="") return null;
+      const v = Number(String(txt).replace("%","").trim());
+      return Number.isFinite(v) ? v : null;
+    }
+    function compareValues(a,b,dir){
+      const mul = dir==='asc' ? 1 : -1;
+      if (a==null && b==null) return 0;
+      if (a==null) return 1 * mul;
+      if (b==null) return -1 * mul;
+      if (typeof a === "number" && typeof b === "number") return (a===b?0:(a<b?-1:1)) * mul;
+      return String(a).localeCompare(String(b),"he") * mul;
+    }
+    function flipDir(dir){ return dir==='asc' ? 'desc' : 'asc'; }
+    function clearHeaderCarets(thead){ thead.querySelectorAll('.sort-caret').forEach(el=> el.textContent=""); }
+    function setCaret(el,dir){
+      let caret = el.querySelector(".sort-caret");
+      if (!caret){
+        caret = document.createElement("span");
+        caret.className="sort-caret";
+        el.appendChild(caret);
+      }
+      caret.textContent = dir==='asc' ? "▲" : "▼";
+    }
 
-  const datasetsLiquidity = [
-    { label: "סחיר",     data: dataLiquid,   type: "bar", backgroundColor: "#53d3ff", borderColor: "#53d3ff", borderWidth: 1, maxBarThickness: 28 },
-    { label: "לא סחיר",  data: dataIlliquid, type: "bar", backgroundColor: "#ffb74d", borderColor: "#ffb74d", borderWidth: 1, maxBarThickness: 28 }
-  ];
+    /* RENDER MATRIX TABLE (with sorting) */
+    function renderMatrixTable() {
+      const table = document.getElementById("matrix_table");
+      const emptyEl = document.getElementById("matrix_empty");
+      const noFieldsEl = document.getElementById("matrix_no_fields");
+      const titleEl = document.getElementById("matrix_title");
+      if (!table) return;
 
-  const options = {
-    responsive:true,
-    maintainAspectRatio:false,
-    interaction:{ mode:"index", intersect:false },
-    plugins:{
-      legend:{ position:"bottom", labels:{ color:"#e9eefb", font:{size:11} } },
-      tooltip:{ callbacks:{ label:(c)=>`${c.dataset.label}: ${c.parsed.y?.toFixed(2)||0}%` } }
-    },
-    elements: { bar: { maxBarThickness: 28, barPercentage: 0.85, categoryPercentage: 0.6 } },
-    scales:{
-      x:{ ticks:{color:"#a6b2c9"}, grid:{color:"rgba(255,255,255,0.06)"}, title:{display:true,text:"מסלול",color:"#e9eefb"} },
-      y:{ ticks:{color:"#a6b2c9", callback:v=>v.toFixed(1)+"%"},
-          grid:{color:"rgba(255,255,255,0.04)"},
-          title:{display:true,text:"אחזקה מהתיק (%)",color:"#e9eefb"} }
-    },
-    layout: { padding: { left: 8, right: 8 } }
-  };
+      const mode = document.getElementById("col_mode").value || "quarter";
+      const rows = state.filtered.filter(r => r.track_name && r.year);
+      const cellFields = selectedTableFields();
+      const summaryKeys = selectedSummaryKeys();
+      const includeCum = summaryKeys.includes("sum_cum_return");
 
-  state.chartLiquidity = new Chart(ctxLiquidity,{ type: "bar", data: { labels: tracks, datasets: datasetsLiquidity }, options });
-}
+      table.replaceChildren();
 
-/* INIT */
-document.getElementById("btn_reload").addEventListener("click", reloadData);
+      if (!rows.length) {
+        emptyEl.style.display = "block";
+        noFieldsEl.style.display = "none";
+        applyMatrixTableWidthMode();
+        return;
+      }
+      emptyEl.style.display = "none";
+      if (cellFields.length === 0 && !includeCum) {
+        noFieldsEl.style.display = "block";
+        applyMatrixTableWidthMode();
+        return;
+      }
+      noFieldsEl.style.display = "none";
 
-reloadData();
-renderCharts();
-</script>
+      const yearMap = new Map();
+      rows.forEach(r => {
+        const y = Number(r.year);
+        const q = Number(r.quarter);
+        if (!y) return;
+        if (!yearMap.has(y)) yearMap.set(y, new Set());
+        if (q) yearMap.get(y).add(q);
+      });
+      const yearsAll = Array.from(yearMap.keys()).sort((a,b)=>b-a);
+      yearsAll.forEach(y => yearMap.set(y, Array.from(yearMap.get(y)).sort((a,b)=>b-a)));
 
+      const trackNames = Array.from(new Set(rows.map(r => r.track_name)))
+        .sort((a,b)=>String(a).localeCompare(String(b),"he"));
+
+      const aggDisplay = buildAgg(rows);
+      const periodR = state.periodCalc || {};
+      const annualR = state.annualCalc || {};
+
+      let years = [];
+      const activeQuartersByYear = new Map();
+
+      if (mode === "quarter") {
+        years = yearsAll.filter(y=>{
+          const qs = (yearMap.get(y)||[]);
+          const activeQs = qs.filter(q=>{
+            return trackNames.some(t => periodR?.[t]?.[y]?.[q]!=null);
+          });
+          if (activeQs.length) activeQuartersByYear.set(y, activeQs);
+          return activeQs.length>0;
+        });
+      } else {
+        years = yearsAll.filter(y=>{
+          return trackNames.some(t=> annualR?.[t]?.[y]!=null );
+        });
+      }
+
+      if (!years.length) {
+        emptyEl.style.display = "block";
+        applyMatrixTableWidthMode();
+        return;
+      }
+
+      function buildRankMapsQuarter(){
+        const rankReturnMap={};
+        const rankWeightMap={};
+        years.forEach(y=>{
+          rankReturnMap[y]={};
+          rankWeightMap[y]={};
+          (activeQuartersByYear.get(y)||[]).forEach(q=>{
+            const arrR=[], arrW=[];
+            trackNames.forEach(t=>{
+              const cell = aggDisplay?.[t]?.[y]?.[q];
+              const rq = periodR?.[t]?.[y]?.[q];
+              if (rq!=null) arrR.push({t,val:rq});
+              if (cell && Math.abs(cell.w)>1e-12) arrW.push({t,val:cell.w});
+            });
+            arrR.sort((a,b)=>b.val-a.val);
+            arrW.sort((a,b)=>b.val-a.val);
+            const mR={}; arrR.forEach((o,i)=>mR[o.t]={rank:i+1,total:arrR.length});
+            const mW={}; arrW.forEach((o,i)=>mW[o.t]={rank:i+1,total:arrW.length});
+            rankReturnMap[y][q]=mR;
+            rankWeightMap[y][q]=mW;
+          });
+        });
+        return {rankReturnMap,rankWeightMap};
+      }
+      const {rankReturnMap,rankWeightMap} = buildRankMapsQuarter();
+
+      function makeSortable(th, sortSpec){
+        th.classList.add("sortable");
+        th.addEventListener("click", ()=>{
+          const same = state.sort && state.sort.type === sortSpec.type && state.sort.year === sortSpec.year && (state.sort.quarter ?? null) === (sortSpec.quarter ?? null) && state.sort.fieldKey === sortSpec.fieldKey;
+          const dir = same ? flipDir(state.sort.dir) : 'desc';
+          state.sort = {...sortSpec, dir};
+          renderMatrixTable();
+          renderCharts();
+        });
+        const isActive = state.sort && state.sort.type === sortSpec.type && state.sort.year === sortSpec.year && (state.sort.quarter ?? null) === (sortSpec.quarter ?? null) && state.sort.fieldKey === sortSpec.fieldKey;
+        if (isActive) setCaret(th, state.sort.dir);
+      }
+      function thWith({text="", attrs={}, html=""}) {
+        const th = document.createElement("th");
+        if (text) th.textContent = text;
+        if (html) th.innerHTML = html;
+        Object.entries(attrs).forEach(([k,v])=> th.setAttribute(k,v));
+        return th;
+      }
+      function tdWith({text="", html="", cls=""}) {
+        const td = document.createElement("td");
+        if (cls) td.className = cls;
+        if (html) td.innerHTML = html;
+        else td.textContent = text;
+        return td;
+      }
+
+      const thead = document.createElement("thead");
+      const tbody = document.createElement("tbody");
+
+      if (mode === "quarter") {
+        titleEl.textContent = "מטריצת שיעור מסך התיק, תשואה, דירוגים וסיכום – לפי רבעון";
+        const tr1 = document.createElement("tr");
+        const thTrack = thWith({text:"מסלול", attrs:{rowspan:3}});
+        tr1.appendChild(thTrack);
+        const thCum = selectedSummaryKeys().includes("sum_cum_return") ? thWith({text:"תשואה מצטברת", attrs:{rowspan:3}}) : null;
+        if (thCum) tr1.appendChild(thCum);
+        years.forEach(y=>{
+          const qs = (activeQuartersByYear.get(y)||[]);
+          if (qs.length===0) return;
+          tr1.appendChild(thWith({text:String(y), attrs:{colspan: qs.length * selectedTableFields().length}}));
+        });
+        thead.appendChild(tr1);
+
+        const tr2 = document.createElement("tr");
+        years.forEach(y=>{
+          (activeQuartersByYear.get(y)||[]).forEach(q=>{
+            tr2.appendChild(thWith({text:`רבעון ${q}`, attrs:{colspan: selectedTableFields().length}}));
+          });
+        });
+        thead.appendChild(tr2);
+
+        const tr3 = document.createElement("tr");
+        years.forEach(y=>{
+          (activeQuartersByYear.get(y)||[]).forEach(q=>{
+            selectedTableFields().forEach(fld=>{
+              const th = thWith({text: fld.label});
+              makeSortable(th, { type:'cell', year:y, quarter:q, fieldKey:fld.key });
+              tr3.appendChild(th);
+            });
+          });
+        });
+        thead.appendChild(tr3);
+
+        clearHeaderCarets(thead);
+        makeSortable(thTrack, { type:'track' });
+        if (thCum) makeSortable(thCum, { type:'cum' });
+
+        const model = Array.from(new Set(rows.map(r=>r.track_name)))
+          .sort((a,b)=>String(a).localeCompare(String(b),"he"))
+          .map(t=>{
+            const cumStr = selectedSummaryKeys().includes("sum_cum_return")
+              ? computeTrackSummaryCum_fromPeriod(state.periodCalc, state.annualCalc, t, years, activeQuartersByYear, "quarter")
+              : "-";
+            const values = {};
+            years.forEach(y=>{
+              (activeQuartersByYear.get(y)||[]).forEach(q=>{
+                const cell = aggDisplay?.[t]?.[y]?.[q] || null;
+                const w = (cell && Math.abs(cell.w)>1e-9)? (cell.w*100) : null;
+                const rq = state.periodCalc?.[t]?.[y]?.[q];
+                const yv = (rq!=null) ? (rq*100) : null;
+                const rRet = rankReturnMap[y]?.[q]?.[t] ? rankReturnMap[y][q][t].rank : null;
+                const rWei = rankWeightMap[y]?.[q]?.[t] ? rankWeightMap[y][q][t].rank : null;
+                values[`w|${y}|${q}`]  = w;
+                values[`y|${y}|${q}`]  = yv;
+                values[`ry|${y}|${q}`] = rRet;
+                values[`rw|${y}|${q}`] = rWei;
+              });
+            });
+            return { track:t, cumStr, values };
+          });
+
+        if (state.sort){
+          const s = state.sort;
+          if (s.type==='track'){
+            model.sort((a,b)=>compareValues(a.track,b.track,s.dir));
+          } else if (s.type==='cum' && selectedSummaryKeys().includes("sum_cum_return")){
+            model.sort((a,b)=>compareValues(parsePercentText(a.cumStr), parsePercentText(b.cumStr), s.dir));
+          } else if (s.type==='cell'){
+            const key = (s.fieldKey==='weight' ? `w|${s.year}|${s.quarter}`
+                       : s.fieldKey==='yield' ? `y|${s.year}|${s.quarter}`
+                       : s.fieldKey==='rank_yield' ? `ry|${s.year}|${s.quarter}`
+                       : `rw|${s.year}|${s.quarter}`);
+            model.sort((a,b)=>compareValues(a.values[key], b.values[key], s.dir));
+          }
+        }
+
+        model.forEach(({track:t, cumStr})=>{
+          const tr = document.createElement("tr");
+          if (rows.some(r=>r.track_name===t && String(r.company_short||"").includes("מנורה"))) tr.className = "row-menora";
+          tr.appendChild(tdWith({html:`${t}`, cls:"matrix-row-header"}));
+          if (selectedSummaryKeys().includes("sum_cum_return"))
+            tr.appendChild(tdWith({html:`<span class="num">${cumStr}</span>`}));
+
+          years.forEach(y=>{
+            (activeQuartersByYear.get(y)||[]).forEach(q=>{
+              const cell=aggDisplay[t]?.[y]?.[q]||null;
+              const wDisp = (cell && Math.abs(cell.w)>1e-9) ? (cell.w*100).toFixed(2)+"%" : "-";
+              let yDisp="-", rRet="", rWei="";
+              const rq = state.periodCalc?.[t]?.[y]?.[q];
+              if (rq!=null) yDisp = (rq*100).toFixed(2)+"%";
+              const infoR=rankReturnMap[y]?.[q]?.[t];
+              const infoW=rankWeightMap[y]?.[q]?.[t];
+              if (infoR && infoR.total>0) rRet=`${infoR.rank}/${infoR.total}`;
+              if (infoW && infoW.total>0) rWei=`${infoW.rank}/${infoW.total}`;
+
+              selectedTableFields().forEach(fld=>{
+                if (fld.key==="weight") tr.appendChild(tdWith({html:`<span class="num">${wDisp}</span>`}));
+                else if (fld.key==="yield") tr.appendChild(tdWith({html:`<span class="num">${yDisp}</span>`}));
+                else if (fld.key==="rank_yield") tr.appendChild(tdWith({text:rRet}));
+                else if (fld.key==="rank_weight") tr.appendChild(tdWith({text:rWei}));
+              });
+            });
+          });
+          tbody.appendChild(tr);
+        });
+
+      } else {
+        titleEl.textContent = "מטריצת שיעור מסך התיק, תשואה, דירוגים וסיכום – לפי שנים";
+        const tr1 = document.createElement("tr");
+        const thTrack = thWith({text:"מסלול", attrs:{rowspan:2}});
+        tr1.appendChild(thTrack);
+        const thCum = selectedSummaryKeys().includes("sum_cum_return") ? thWith({text:"תשואה מצטברת", attrs:{rowspan:2}}) : null;
+        if (thCum) tr1.appendChild(thCum);
+        const years = Array.from(new Set(rows.map(r=>Number(r.year)).filter(Boolean))).sort((a,b)=>b-a);
+        years.forEach(y=>{
+          tr1.appendChild(thWith({text:String(y), attrs:{colspan: selectedTableFields().length}}));
+        });
+        thead.appendChild(tr1);
+
+        const tr2 = document.createElement("tr");
+        years.forEach(y=>{
+          selectedTableFields().forEach(fld=>{
+            const th = thWith({text: fld.label});
+            makeSortable(th, { type:'cell', year:y, quarter:null, fieldKey:fld.key });
+            tr2.appendChild(th);
+          });
+        });
+        thead.appendChild(tr2);
+
+        clearHeaderCarets(thead);
+        makeSortable(thTrack, { type:'track' });
+        if (thCum) makeSortable(thCum, { type:'cum' });
+
+        const trackNames = Array.from(new Set(rows.map(r=>r.track_name))).sort((a,b)=>String(a).localeCompare(String(b),"he"));
+        const aggDisplay = buildAgg(rows);
+
+        const rankReturnYear={}, rankWeightYear={};
+        years.forEach(y=>{
+          const arrR=[], arrW=[];
+          trackNames.forEach(t=>{
+            const Ry = state.annualCalc?.[t]?.[y];
+            const bq=bestQuarterForYear(aggDisplay,t,y);
+            const cell=bq? aggDisplay[t]?.[y]?.[bq]:null;
+            if (Ry!=null) arrR.push({t,val:Ry});
+            if (cell && Math.abs(cell.w)>1e-12) arrW.push({t,val:cell.w});
+          });
+          arrR.sort((a,b)=>b.val-a.val);
+          arrW.sort((a,b)=>b.val-a.val);
+          const mR={}; arrR.forEach((o,i)=>mR[o.t]={rank:i+1,total:arrR.length});
+          const mW={}; arrW.forEach((o,i)=>mW[o.t]={rank:i+1,total:arrW.length});
+          rankReturnYear[y]=mR; rankWeightYear[y]=mW;
+        });
+
+        const model = trackNames.map(t=>{
+          const cumStr = selectedSummaryKeys().includes("sum_cum_return")
+            ? computeTrackSummaryCum_fromPeriod(state.periodCalc, state.annualCalc, t, years, null, "year")
+            : "-";
+          const values = {};
+          years.forEach(y=>{
+            const bq=bestQuarterForYear(aggDisplay,t,y);
+            const cell=bq? aggDisplay[t]?.[y]?.[bq]:null;
+            const w = (cell && Math.abs(cell.w)>1e-9)? (cell.w*100) : null;
+            const Ry = state.annualCalc?.[t]?.[y];
+            const yv = (Ry!=null)? (Ry*100) : null;
+            const rRet = rankReturnYear[y]?.[t] ? rankReturnYear[y][t].rank : null;
+            const rWei = rankWeightYear[y]?.[t] ? rankWeightYear[y][t].rank : null;
+            values[`w|${y}`]  = w;
+            values[`y|${y}`]  = yv;
+            values[`ry|${y}`] = rRet;
+            values[`rw|${y}`] = rWei;
+          });
+          return { track:t, cumStr, values };
+        });
+
+        if (state.sort){
+          const s = state.sort;
+          if (s.type==='track'){
+            model.sort((a,b)=>compareValues(a.track,b.track,s.dir));
+          } else if (s.type==='cum' && selectedSummaryKeys().includes("sum_cum_return")){
+            model.sort((a,b)=>compareValues(parsePercentText(a.cumStr), parsePercentText(b.cumStr), s.dir));
+          } else if (s.type==='cell'){
+            const key = (s.fieldKey==='weight' ? `w|${s.year}`
+                       : s.fieldKey==='yield' ? `y|${s.year}`
+                       : s.fieldKey==='rank_yield' ? `ry|${s.year}`
+                       : `rw|${s.year}`);
+            model.sort((a,b)=>compareValues(a.values[key], b.values[key], s.dir));
+          }
+        }
+
+        model.forEach(({track:t, cumStr})=>{
+          const tr = document.createElement("tr");
+          if (rows.some(r=>r.track_name===t && String(r.company_short||"").includes("מנורה"))) tr.className = "row-menora";
+          tr.appendChild(tdWith({html:`${t}`, cls:"matrix-row-header"}));
+          if (selectedSummaryKeys().includes("sum_cum_return")) tr.appendChild(tdWith({html:`<span class="num">${cumStr}</span>`}));
+
+          years.forEach(y=>{
+            const bq=bestQuarterForYear(aggDisplay,t,y);
+            const cell=bq? aggDisplay[t]?.[y]?.[bq]:null;
+            const wDisp = (cell && Math.abs(cell.w)>1e-9)? (cell.w*100).toFixed(2)+"%" : "-";
+            const Ry = state.annualCalc?.[t]?.[y];
+            const yDisp = (Ry!=null)? (Ry*100).toFixed(2)+"%" : "-";
+            const RR=rankReturnYear[y]?.[t];
+            const RW=rankWeightYear[y]?.[t];
+            const rRet = RR? `${RR.rank}/${RR.total}` : "";
+            const rWei = RW? `${RW.rank}/${RW.total}` : "";
+
+            selectedTableFields().forEach(fld=>{
+              if (fld.key==="weight") tr.appendChild(tdWith({html:`<span class="num">${wDisp}</span>`}));
+              else if (fld.key==="yield") tr.appendChild(tdWith({html:`<span class="num">${yDisp}</span>`}));
+              else if (fld.key==="rank_yield") tr.appendChild(tdWith({text:rRet}));
+              else if (fld.key==="rank_weight") tr.appendChild(tdWith({text:rWei}));
+            });
+          });
+          tbody.appendChild(tr);
+        });
+      }
+
+      table.appendChild(thead);
+      table.appendChild(tbody);
+      table.style.tableLayout = "auto";
+      table.style.width = "max-content";
+      applyMatrixTableWidthMode();
+    }
+
+    /* CHARTS – helpers */
+    function rowsForLiquidityBase() {
+      const f = getCurrentFilters();
+      const rows = state.raw.filter(r=>Number(r.year)>=2022);
+      return rows.filter(r=>{
+        if (f.saving_type && r.saving_type !== f.saving_type) return false;
+        if (f.fund_type   && r.fund_type   !== f.fund_type)   return false;
+        if (Array.isArray(f.track) && f.track.length && !f.track.includes(r.track_name)) return false;
+        if (Array.isArray(f.year) && f.year.length && !f.year.includes(String(r.year))) return false;
+        return true;
+      });
+    }
+
+    function toggleLiquidityQuarterVisibility() {
+      const mode = document.getElementById("col_mode").value || "quarter";
+      const qField = document.getElementById("liq_q_field");
+      if (mode === "year") qField.style.display = "none";
+      else qField.style.display = "";
+    }
+
+    /* Build per-series maps for top charts (unchanged logic) */
+    function buildSeriesMaps(rows){
+      const seriesKey =(r)=>{
+        const c = r.company_short || "לא ידוע";
+        const t = r.track_name || "";
+        return `${c} – ${t}`;
+      };
+      const seriesCum = {};
+      const seriesW   = {};
+      rows.forEach(r=>{
+        if (!r.year || !r.quarter) return;
+        const tk = `${r.year}|${r.quarter}`;
+        const sk = seriesKey(r);
+        const wAll = nz(r.weight);
+        const cAll = nz(r.contribution);
+
+        if (!seriesCum[sk]) seriesCum[sk]={};
+        if (!seriesCum[sk][tk]) seriesCum[sk][tk]={w:0,c:0};
+        seriesCum[sk][tk].w += wAll;
+        seriesCum[sk][tk].c += cAll;
+
+        if (!seriesW[sk]) seriesW[sk]={};
+        if (!seriesW[sk][tk]) seriesW[sk][tk]=0;
+        seriesW[sk][tk] += wAll;
+      });
+
+      const rSeries = {};
+      Object.keys(seriesCum).forEach(name=>{
+        const keys = Object.keys(seriesCum[name]).sort((a,b)=>{
+          const [ya,qa]=a.split("|").map(Number);
+          const [yb,qb]=b.split("|").map(Number);
+          return ya===yb? qa-qb : ya-yb;
+        });
+        rSeries[name]={};
+        let prevR = null;
+        keys.forEach(k=>{
+          const cell = seriesCum[name][k];
+          const Rq = (cell && Math.abs(cell.w)>1e-12) ? (cell.c/cell.w) : null;
+          let rq = null;
+          if (Rq==null) rq=null;
+          else if (prevR==null) rq = Rq;
+          else rq = (1+Rq)/(1+prevR) - 1;
+          rSeries[name][k] = rq;
+          prevR = Rq;
+        });
+      });
+      return { seriesCum, seriesW, rSeries };
+    }
+
+    /* ======= צבעים לפי הדרישה =======
+       - כל החברות: כחול
+       - מנורה בלבד: צהוב
+    */
+    const BLUE_BG = "#42A5F5";     // כחול לעמודות
+    const BLUE_BR = "#1E88E5";
+    const YELL_BG = "#FFD54F";     // צהוב למנורה
+    const YELL_BR = "#FFC107";
+
+    function datasetColorByName(name){
+      const isMenora = /מנורה/.test(name);
+      return {
+        backgroundColor: isMenora ? YELL_BG : BLUE_BG,
+        borderColor:     isMenora ? YELL_BR : BLUE_BR
+      };
+    }
+
+    /* CHARTS */
+    function renderCharts() {
+      const rowsDisplay = state.filtered;
+
+      if (state.chartYield)  { state.chartYield.destroy();  state.chartYield=null; }
+      if (state.chartWeight) { state.chartWeight.destroy(); state.chartWeight=null; }
+
+      if (!rowsDisplay.length) {
+        if (state.chartLiquidityIlliquid) { state.chartLiquidityIlliquid.destroy(); state.chartLiquidityIlliquid = null; }
+        if (state.chartLiquidityLiquid)   { state.chartLiquidityLiquid.destroy();   state.chartLiquidityLiquid   = null; }
+        return;
+      }
+
+      const timeSet = new Set();
+      rowsDisplay.forEach(r=>{
+        if (r.year && r.quarter) timeSet.add(r.year+"|"+r.quarter);
+      });
+      const timeKeys = Array.from(timeSet).sort((a,b)=>{
+        const [ya,qa]=a.split("|").map(Number);
+        const [yb,qb]=b.split("|").map(Number);
+        return ya===yb ? qa-qb : ya-yb;
+      });
+      const labels = timeKeys.map(k=>{
+        const [y,q]=k.split("|");
+        return y+" Q"+q;
+      });
+
+      const { seriesW, rSeries } = buildSeriesMaps(rowsDisplay);
+
+      // מיון סדרות בהתאם למיון הטבלה (אם רלוונטי)
+      let keys = Object.keys(seriesW);
+      const s = state.sort;
+      if (s && s.type==='cell' && (s.fieldKey==='yield' || s.fieldKey==='weight')) {
+        const dir = s.dir || 'desc';
+        const withVal = keys.map(name=>{
+          const periodKey = (s.quarter==null)
+            ? (function() {
+                for (const qq of [4,3,2,1]) {
+                  const key = `${s.year}|${qq}`;
+                  if (rSeries[name] && rSeries[name][key]!=null) return key;
+                }
+                return null;
+              })()
+            : `${s.year}|${s.quarter}`;
+          let val = null;
+          if (s.fieldKey==='yield'){
+            const rq = rSeries[name]?.[periodKey];
+            if (rq!=null) val = rq*100;
+          } else if (s.fieldKey==='weight'){
+            const w = seriesW[name]?.[periodKey];
+            if (w!=null) val = w*100;
+          }
+          return {name, val};
+        });
+        withVal.sort((a,b)=>compareValues(a.val, b.val, dir));
+        keys = withVal.map(x=>x.name);
+      } else {
+        keys.sort((a,b)=>String(a).localeCompare(String(b),"he"));
+      }
+
+      const datasetsYield = keys.map((name)=> {
+        const col = datasetColorByName(name);
+        const data=timeKeys.map(k=>{
+          const rq = rSeries[name]?.[k];
+          return (rq==null)? null : (rq*100);
+        });
+        return { label:name, data, type:"bar", ...col, borderWidth:1, skipNull:true };
+      });
+
+      const datasetsWeight = keys.map((name)=>{
+        const col = datasetColorByName(name);
+        const data=timeKeys.map(k=>{
+          const w = seriesW[name]?.[k];
+          return (w==null)? null : (w*100);
+        });
+        return { label:name, data, type:"bar", ...col, borderWidth:1, skipNull:true };
+      });
+
+      const ctxYield  = document.getElementById("chart_yield").getContext("2d");
+      const ctxWeight = document.getElementById("chart_weight").getContext("2d");
+
+      // אופציות בסיס – כולל תווית ערך מעל העמודה וכותרת X: "מסלול"
+      const opt=(title)=>({
+        responsive:true,
+        maintainAspectRatio:false,
+        interaction:{ mode:"index", intersect:false },
+        plugins:{
+          legend:{ position:"bottom", labels:{ color:"#e9eefb", font:{size:11} } },
+          tooltip:{ callbacks:{ label:(c)=>`${c.dataset.label}: ${(c.parsed.y??0).toFixed(2)}%` } },
+          datalabels:{
+            anchor:'end',
+            align:'end',
+            color:'#FFFFFF',
+            formatter:(value)=> (value==null? '' : value.toFixed(2)+'%'),
+            clamp:true,
+            offset:2,
+            font:{ size:10, weight:'600' }
+          }
+        },
+        scales:{
+          x:{
+            ticks:{color:"#a6b2c9"},
+            grid:{color:"rgba(255,255,255,0.06)"},
+            title:{ display:true, text:"מסלול", color:"#e9eefb" }  /* הדרישה: שם מסלול מתחת לציר X */
+          },
+          y:{
+            ticks:{color:"#a6b2c9", callback:v=>v.toFixed(1)+"%"},
+            grid:{color:"rgba(255,255,255,0.04)"},
+            title:{display:true,text:title,color:"#e9eefb"}
+          }
+        }
+      });
+
+      state.chartYield = new Chart(ctxYield, {
+        type:"bar",
+        data:{labels,datasets:datasetsYield},
+        options:opt("תשואה רבעונית מפורקת (%)")
+      });
+
+      state.chartWeight = new Chart(ctxWeight,{
+        type:"bar",
+        data:{labels,datasets:datasetsWeight},
+        options:opt("אחזקה רבעונית ממוצעת לתצוגה (%)")
+      });
+
+      renderLiquidityCharts();
+    }
+
+    /* === שני גרפי סחירות נפרדים באותה שורה === */
+    function renderLiquidityCharts() {
+      const canvasIll = document.getElementById("chart_liquidity_illiquid");
+      const canvasLiq = document.getElementById("chart_liquidity_liquid");
+      if (!canvasIll || !canvasLiq) return;
+      const ctxIll = canvasIll.getContext("2d");
+      const ctxLiq = canvasLiq.getContext("2d");
+
+      if (state.chartLiquidityIlliquid) { state.chartLiquidityIlliquid.destroy(); state.chartLiquidityIlliquid = null; }
+      if (state.chartLiquidityLiquid)   { state.chartLiquidityLiquid.destroy();   state.chartLiquidityLiquid   = null; }
+
+      const selYear = document.getElementById("liq_year_filter");
+      const selQuarter = document.getElementById("liq_quarter_filter");
+      const mode = document.getElementById("col_mode").value || "quarter";
+
+      if (!selYear || !selYear.value) return;
+      if (mode==="quarter" && (!selQuarter || !selQuarter.value)) return;
+
+      const yearSel = Number(selYear.value);
+      const quarterSel = selQuarter?.value ? Number(selQuarter.value) : null;
+
+      const baseRows = rowsForLiquidityBase();
+
+      // אגרגציה לפי "מסלול" בלבד (ללא חברה)
+      const totalsByTrack = new Map(); // track -> {liquid, illiquid}
+      const addToTrack = (track, liqVal, illVal)=>{
+        if (!totalsByTrack.has(track)) totalsByTrack.set(track,{liquid:0, illiquid:0});
+        const o = totalsByTrack.get(track);
+        o.liquid += liqVal;
+        o.illiquid += illVal;
+      };
+
+      if (mode==="quarter") {
+        const rows = baseRows.filter(r => Number(r.year)===yearSel && Number(r.quarter)===quarterSel);
+        rows.forEach(r=>{
+          const track = r.track_name || "";
+          const w = nz(r.weight);
+          if (r.liquidity === "סחיר") addToTrack(track, w, 0);
+          else addToTrack(track, 0, w);
+        });
+      } else {
+        const rowsYear = baseRows.filter(r => Number(r.year)===yearSel && r.quarter);
+        const lastQ = new Map(); // "<company>|<track>" -> מקס' רבעון
+        rowsYear.forEach(r=>{
+          const key = `${r.company_short||""}|${r.track_name||""}`;
+          const q = Number(r.quarter);
+          lastQ.set(key, Math.max(lastQ.get(key)||0, q));
+        });
+        rowsYear.forEach(r=>{
+          const key = `${r.company_short||""}|${r.track_name||""}`;
+          if (Number(r.quarter) !== lastQ.get(key)) return;
+          const track = r.track_name || "";
+          const w = nz(r.weight);
+          if (r.liquidity === "סחיר") addToTrack(track, w, 0);
+          else addToTrack(track, 0, w);
+        });
+      }
+
+      const entries = Array.from(totalsByTrack.entries()).map(([track, o])=>({ track, liquid: o.liquid * 100, illiquid: o.illiquid * 100 }));
+      const illSorted = entries.filter(e=>e.illiquid>0).sort((a,b)=>a.illiquid - b.illiquid);
+      const liqSorted = entries.filter(e=>e.liquid>0).sort((a,b)=>a.liquid - b.liquid);
+
+      const labelsIll = illSorted.map(e=>e.track);
+      const dataIll   = illSorted.map(e=>e.illiquid);
+      const labelsLiq = liqSorted.map(e=>e.track);
+      const dataLiq   = liqSorted.map(e=>e.liquid);
+
+      const baseOptions = (title)=>({
+        responsive:true,
+        maintainAspectRatio:false,
+        interaction:{ mode:"nearest", intersect:false },
+        plugins:{
+          legend:{ display:false },
+          tooltip:{ callbacks:{ title:(items)=> items?.[0]?.label || "", label:(c)=> `${(c.parsed.y??0).toFixed(2)}%` } },
+          datalabels:{
+            anchor:'end',
+            align:'end',
+            color:'#FFFFFF',
+            formatter:(value)=> (value==null? '' : value.toFixed(2)+'%'),
+            clamp:true,
+            offset:2,
+            font:{ size:10, weight:'600' }
+          }
+        },
+        elements: { bar: { maxBarThickness: 28, barPercentage: 0.9, categoryPercentage: 0.9 } },
+        scales:{
+          x:{
+            ticks:{ color:"#a6b2c9" }, // רק שם מסלול
+            grid:{ color:"rgba(255,255,255,0.06)" },
+            title:{ display:true, text:"מסלול", color:"#e9eefb" } /* הדרישה: שם מסלול מתחת לציר X */
+          },
+          y:{
+            ticks:{ color:"#a6b2c9", callback:v=>v.toFixed(1)+"%" },
+            grid:{ color:"rgba(255,255,255,0.04)" },
+            title:{ display:true, text:title, color:"#e9eefb" }
+          }
+        },
+        layout: { padding: { left: 8, right: 8, top: 12 } }
+      });
+
+      // שני הגרפים בצבע כחול לפי הדרישה הכללית (אין חלוקה לפי חברה כאן)
+      state.chartLiquidityIlliquid = new Chart(ctxIll,{
+        type:"bar",
+        data:{ labels: labelsIll, datasets:[{ label:"לא סחיר (%)", data: dataIll, backgroundColor: BLUE_BG, borderColor: BLUE_BR, borderWidth: 1, maxBarThickness: 28 }] },
+        options: baseOptions("אחזקה לא סחיר (%)")
+      });
+
+      state.chartLiquidityLiquid = new Chart(ctxLiq,{
+        type:"bar",
+        data:{ labels: labelsLiq, datasets:[{ label:"סחיר (%)", data: dataLiq, backgroundColor: BLUE_BG, borderColor: BLUE_BR, borderWidth: 1, maxBarThickness: 28 }] },
+        options: baseOptions("אחזקה סחיר (%)")
+      });
+    }
+
+    function refreshLiquidityFilters() {
+      const selYear = document.getElementById("liq_year_filter");
+      const selQuarter = document.getElementById("liq_quarter_filter");
+      if (!selYear || !selQuarter) return;
+      const mode = document.getElementById("col_mode").value || "quarter";
+      const rows = rowsForLiquidityBase().filter(r => r.year && r.quarter);
+      if (!rows.length) { selYear.innerHTML=""; selQuarter.innerHTML=""; return; }
+
+      const yearsArr = Array.from(new Set(rows.map(r=>Number(r.year)))).sort((a,b)=>a-b);
+      const prevYear = selYear.value, prevQuarter = selQuarter.value;
+      const defaultYear = yearsArr[yearsArr.length - 1];
+
+      selYear.innerHTML = "";
+      const fragYear = document.createDocumentFragment();
+      yearsArr.forEach(y=>{
+        const o=document.createElement("option");
+        o.value=String(y); o.textContent=String(y);
+        fragYear.appendChild(o);
+      });
+      selYear.appendChild(fragYear);
+      selYear.value = yearsArr.includes(Number(prevYear)) ? prevYear : String(defaultYear);
+
+      if (mode === "quarter") {
+        const quartersArr = Array.from(new Set(rows.filter(r=>Number(r.year)===Number(selYear.value)).map(r=>Number(r.quarter)))).sort((a,b)=>a-b);
+        selQuarter.innerHTML = "";
+        const fragQ = document.createDocumentFragment();
+        quartersArr.forEach(q=>{
+          const o=document.createElement("option");
+          o.value=String(q); o.textContent=String(q);
+          fragQ.appendChild(o);
+        });
+        selQuarter.appendChild(fragQ);
+        const defaultQuarter = quartersArr[quartersArr.length - 1];
+        selQuarter.value = quartersArr.includes(Number(prevQuarter)) ? prevQuarter : String(defaultQuarter);
+      } else {
+        selQuarter.innerHTML = "";
+      }
+    }
+
+    /* INIT */
+    document.getElementById("btn_reload").addEventListener("click", reloadData);
+    reloadData();
+    renderCharts();
+  </script>
 </body>
 </html>

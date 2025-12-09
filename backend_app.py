@@ -152,7 +152,6 @@ def api_data():
         "חברה מקוצר": "company_short",
         "סוג חיסכון": "saving_type",
         "סוג קופה": "fund_type",
-        "סוג מסלול": "track_type",
         "ח.פ": "company_id",
         "שנה": "year",
         "רבעון": "quarter",
