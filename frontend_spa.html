@@ -137,14 +137,42 @@
     .view { display: none; }
     .view.active { display: block; }
 
-    /* Chart panel */
-    .chart-title { margin: 6px 0 4px; font-size: 0.9rem; color: var(--text-main); display: flex; align-items: center; gap: 6px; }
-    .chart-container { position: relative; width: 100%; height: 260px; }
-    .chart-container.narrow-right { max-width: 1100px; margin-left: auto; margin-right: 0; }
-    .chart-filters-row { margin-top: 6px; display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; }
+        /* Chart panel */
+    .chart-title {
+      margin: 8px 0 4px;
+      font-size: 1rem;
+      font-weight: 600;
+      color: #f3f6ff;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      letter-spacing: 0.02em;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      padding-bottom: 4px;
+    }
 
-    /* two charts on same row */
-    .chart-row-two { margin-top: 8px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-items: stretch; }
+    .chart-filters-row {
+      margin-top: 12px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      justify-content: flex-start;
+      align-items: flex-end;
+      padding: 10px 12px;
+      background: rgba(255,255,255,0.03);
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .field label {
+      font-size: 0.78rem;
+      color: #b9c3d9;
+      margin-bottom: 3px;
+    }
+
+
+    .chart-row-two { margin-top: 8px; display: grid; grid-template-columns: 1fr; gap: 12px; align-items: stretch; }
+
 
     @media (max-width: 840px) {
       .app-shell { grid-template-columns: 1fr; }
@@ -154,6 +182,28 @@
       .kpi-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .chart-row-two { grid-template-columns: 1fr; }
     }
+      /* אחידות גודל גרפים – כדי שלא יתמתחו על כל הרוחב */
+      .chart-container {
+        width: 800px;          /* רוחב קבוע לגרף */
+        height: 260px;         /* גובה זהה לכל הגרפים */
+        margin: 0 auto;        /* למרכז את הגרפים */
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+
+      .chart-container canvas {
+        max-width: 100%;
+        max-height: 100%;
+      }
+        #f_cols {
+    display: none !important;
+  }
+      #f_cols + label,
+      label[for="f_cols"],
+      #f_cols ~ label {
+        display: none !important;
+      }
   </style>
 </head>
 <body>
@@ -301,7 +351,17 @@
               <div class="panel-header-title"><span class="icon">📈</span><span>גרפים</span></div>
               <div class="panel-header-sub">שני הגרפים העליונים רבעוניים • ציר Y באחוזים</div>
             </div>
-
+            <!-- כאן הפילטרים -->
+            <div class="chart-filters-row">
+              <div class="field">
+                <label>שנה</label>
+                <select id="liq_year_filter"></select>
+              </div>
+              <div class="field" id="liq_q_field">
+                <label>רבעון</label>
+                <select id="liq_quarter_filter"></select>
+              </div>
+            </div>
             <div class="chart-block">
               <div class="chart-title">תשואה רבעונית (מפורקת) (%)</div>
               <div class="chart-container">
@@ -316,16 +376,10 @@
               </div>
             </div>
 
-            <div class="chart-filters-row">
-              <div class="field">
-                <label>שנה (גרף אחזקה לפי מסלול וסחירות)</label>
-                <select id="liq_year_filter"></select>
-              </div>
-              <div class="field" id="liq_q_field">
-                <label>רבעון</label>
-                <select id="liq_quarter_filter"></select>
-              </div>
-            </div>
+
+
+
+
 
             <!-- שתי עמודות: לא-סחיר וסחיר, באותה שורה -->
             <div class="chart-row-two">
@@ -551,6 +605,11 @@
       setSelectOptions(document.getElementById("f_liquidity"),   liquidities);
       setSelectOptions(document.getElementById("f_category"),    categories, { includeAll:false });
       setSelectOptions(document.getElementById("f_year"),        years, { includeAll:false });
+            // ברירת מחדל לשנת דיווח 2025 אם קיימת
+      const selYear = document.getElementById("f_year");
+      if ([...selYear.options].some(o => o.value === "2025")) {
+        selYear.value = "2025";
+      }
 
       /* DEFAULTS */
       const defaultSaving = "השתלמות";
@@ -588,11 +647,22 @@
 
       const ly = document.getElementById("liq_year_filter");
       const lq = document.getElementById("liq_quarter_filter");
-      if (ly) ly.addEventListener("change", ()=>{ refreshLiquidityFilters(); renderLiquidityCharts(); });
-      if (lq) lq.addEventListener("change", ()=>{ renderLiquidityCharts(); });
+
+      // ← כאן התיקון: מאזינים מעדכנים גם את הגרפים העליונים
+      if (ly) ly.addEventListener("change", ()=>{
+        refreshLiquidityFilters();   // עדכון רשימת רבעונים לפי שנה
+        renderLiquidityCharts();     // עדכון גרפי הסחירות
+        renderCharts();              // עדכון הגרפים העליונים
+      });
+
+      if (lq) lq.addEventListener("change", ()=>{
+        renderLiquidityCharts();     // עדכון גרפי הסחירות
+        renderCharts();              // עדכון הגרפים העליונים
+      });
 
       toggleLiquidityQuarterVisibility();
     }
+
 
     function getCurrentFilters() {
       return {
@@ -684,6 +754,7 @@
       renderKPIs();
       renderMatrixTable();
       renderCharts();
+      renderLiquidityCharts();
     }
 
     function updateFiltersStatus() {
@@ -1290,133 +1361,170 @@
       };
     }
 
-    /* CHARTS */
     function renderCharts() {
-      const rowsDisplay = state.filtered;
+      const canvasYield = document.getElementById("chart_yield");
+      const canvasWeight = document.getElementById("chart_weight");
+      if (!canvasYield || !canvasWeight) return;
 
-      if (state.chartYield)  { state.chartYield.destroy();  state.chartYield=null; }
-      if (state.chartWeight) { state.chartWeight.destroy(); state.chartWeight=null; }
+      if (state.chartYield) { state.chartYield.destroy(); state.chartYield = null; }
+      if (state.chartWeight) { state.chartWeight.destroy(); state.chartWeight = null; }
 
-      if (!rowsDisplay.length) {
-        if (state.chartLiquidityIlliquid) { state.chartLiquidityIlliquid.destroy(); state.chartLiquidityIlliquid = null; }
-        if (state.chartLiquidityLiquid)   { state.chartLiquidityLiquid.destroy();   state.chartLiquidityLiquid   = null; }
-        return;
-      }
+      const selYear = document.getElementById("liq_year_filter");
+      const selQuarter = document.getElementById("liq_quarter_filter");
+      const mode = document.getElementById("col_mode").value || "quarter";
 
-      const timeSet = new Set();
-      rowsDisplay.forEach(r=>{
-        if (r.year && r.quarter) timeSet.add(r.year+"|"+r.quarter);
-      });
-      const timeKeys = Array.from(timeSet).sort((a,b)=>{
-        const [ya,qa]=a.split("|").map(Number);
-        const [yb,qb]=b.split("|").map(Number);
-        return ya===yb ? qa-qb : ya-yb;
-      });
-      const labels = timeKeys.map(k=>{
-        const [y,q]=k.split("|");
-        return y+" Q"+q;
-      });
+      if (!selYear || !selYear.value) return;
+      if (mode === "quarter" && (!selQuarter || !selQuarter.value)) return;
 
-      const { seriesW, rSeries } = buildSeriesMaps(rowsDisplay);
+      const yearSel = Number(selYear.value);
+      const quarterSel = mode === "quarter" ? Number(selQuarter.value) : null;
 
-      // מיון סדרות בהתאם למיון הטבלה (אם רלוונטי)
-      let keys = Object.keys(seriesW);
-      const s = state.sort;
-      if (s && s.type==='cell' && (s.fieldKey==='yield' || s.fieldKey==='weight')) {
-        const dir = s.dir || 'desc';
-        const withVal = keys.map(name=>{
-          const periodKey = (s.quarter==null)
-            ? (function() {
-                for (const qq of [4,3,2,1]) {
-                  const key = `${s.year}|${qq}`;
-                  if (rSeries[name] && rSeries[name][key]!=null) return key;
-                }
-                return null;
-              })()
-            : `${s.year}|${s.quarter}`;
-          let val = null;
-          if (s.fieldKey==='yield'){
-            const rq = rSeries[name]?.[periodKey];
-            if (rq!=null) val = rq*100;
-          } else if (s.fieldKey==='weight'){
-            const w = seriesW[name]?.[periodKey];
-            if (w!=null) val = w*100;
-          }
-          return {name, val};
-        });
-        withVal.sort((a,b)=>compareValues(a.val, b.val, dir));
-        keys = withVal.map(x=>x.name);
+      const baseRows = state.filtered.filter(r => Number(r.year) >= 2022);
+      let rowsForCharts;
+      if (mode === "quarter") {
+        rowsForCharts = baseRows.filter(
+          r => Number(r.year) === yearSel && Number(r.quarter) === quarterSel
+        );
       } else {
-        keys.sort((a,b)=>String(a).localeCompare(String(b),"he"));
+        const lastQ = new Map();
+        baseRows.forEach(r => {
+          if (Number(r.year) === yearSel && r.quarter) {
+            const key = `${r.company_short || ""}|${r.track_name || ""}`;
+            const q = Number(r.quarter);
+            lastQ.set(key, Math.max(lastQ.get(key) || 0, q));
+          }
+        });
+        rowsForCharts = baseRows.filter(r => {
+          const key = `${r.company_short || ""}|${r.track_name || ""}`;
+          return Number(r.year) === yearSel && Number(r.quarter) === lastQ.get(key);
+        });
       }
 
-      const datasetsYield = keys.map((name)=> {
-        const col = datasetColorByName(name);
-        const data=timeKeys.map(k=>{
-          const rq = rSeries[name]?.[k];
-          return (rq==null)? null : (rq*100);
-        });
-        return { label:name, data, type:"bar", ...col, borderWidth:1, skipNull:true };
+      if (!rowsForCharts.length) return;
+
+      const { seriesW, rSeries } = buildSeriesMaps(rowsForCharts);
+
+      // *** מיון נפרד לכל גרף ***
+      // לגרף התשואה – לפי תשואה (מהקטן לגדול)
+      const keysYield = Object.keys(rSeries).sort((a, b) => {
+        const av = Object.values(rSeries[a] || {})[0] ?? 0;
+        const bv = Object.values(rSeries[b] || {})[0] ?? 0;
+        return av - bv;
       });
 
-      const datasetsWeight = keys.map((name)=>{
-        const col = datasetColorByName(name);
-        const data=timeKeys.map(k=>{
-          const w = seriesW[name]?.[k];
-          return (w==null)? null : (w*100);
-        });
-        return { label:name, data, type:"bar", ...col, borderWidth:1, skipNull:true };
+      // לגרף האחזקה – לפי אחזקה (מהקטן לגדול)
+      const keysWeight = Object.keys(seriesW).sort((a, b) => {
+        const av = Object.values(seriesW[a] || {})[0] ?? 0;
+        const bv = Object.values(seriesW[b] || {})[0] ?? 0;
+        return av - bv;
       });
 
-      const ctxYield  = document.getElementById("chart_yield").getContext("2d");
-      const ctxWeight = document.getElementById("chart_weight").getContext("2d");
+      // נתונים לגרף התשואה (labels ו-data לפי keysYield)
+      const labelsYield = keysYield;
+      const dataYield = keysYield.map(k => {
+        const val = Object.values(rSeries[k] || {})[0];
+        return val == null ? null : (val * 100);
+      });
+      const bgColorsYield = keysYield.map(k => /מנורה/.test(k) ? YELL_BG : BLUE_BG);
+      const brColorsYield = keysYield.map(k => /מנורה/.test(k) ? YELL_BR : BLUE_BR);
 
-      // אופציות בסיס – כולל תווית ערך מעל העמודה וכותרת X: "מסלול"
-      const opt=(title)=>({
-        responsive:true,
-        maintainAspectRatio:false,
-        interaction:{ mode:"index", intersect:false },
-        plugins:{
-          legend:{ position:"bottom", labels:{ color:"#e9eefb", font:{size:11} } },
-          tooltip:{ callbacks:{ label:(c)=>`${c.dataset.label}: ${(c.parsed.y??0).toFixed(2)}%` } },
-          datalabels:{
-            anchor:'end',
-            align:'end',
-            color:'#FFFFFF',
-            formatter:(value)=> (value==null? '' : value.toFixed(2)+'%'),
-            clamp:true,
-            offset:2,
-            font:{ size:10, weight:'600' }
+      // נתונים לגרף האחזקה (labels ו-data לפי keysWeight)
+      const labelsWeight = keysWeight;
+      const dataWeight = keysWeight.map(k => {
+        const val = Object.values(seriesW[k] || {})[0];
+        return val == null ? null : (val * 100);
+      });
+      const bgColorsWeight = keysWeight.map(k => /מנורה/.test(k) ? YELL_BG : BLUE_BG);
+      const brColorsWeight = keysWeight.map(k => /מנורה/.test(k) ? YELL_BR : BLUE_BR);
+
+      const baseOptions = (title) => ({
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: "nearest", intersect: false },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              title: (items) => items?.[0]?.label || "",
+              label: (c) => `${(c.parsed.y ?? 0).toFixed(2)}%`
+            }
+          },
+          datalabels: {
+            anchor: 'end',
+            align: 'end',
+            color: '#FFFFFF',
+            formatter: (value) => (value == null ? '' : value.toFixed(2) + '%'),
+            clamp: true,
+            offset: 2,
+            font: { size: 10, weight: '600' }
           }
         },
-        scales:{
-          x:{
-            ticks:{color:"#a6b2c9"},
-            grid:{color:"rgba(255,255,255,0.06)"},
-            title:{ display:true, text:"מסלול", color:"#e9eefb" }  /* הדרישה: שם מסלול מתחת לציר X */
-          },
-          y:{
-            ticks:{color:"#a6b2c9", callback:v=>v.toFixed(1)+"%"},
-            grid:{color:"rgba(255,255,255,0.04)"},
-            title:{display:true,text:title,color:"#e9eefb"}
+        elements: {
+          bar: {
+            maxBarThickness: 28,
+            barPercentage: 0.95,
+            categoryPercentage: 0.9
           }
-        }
+        },
+        scales: {
+          x: {
+            ticks: { color: "#a6b2c9" },
+            grid: { color: "rgba(255,255,255,0.06)" },
+            title: { display: true, text: "מסלול", color: "#e9eefb" }
+          },
+          y: {
+            ticks: { color: "#a6b2c9", callback: v => v.toFixed(1) + "%" },
+            grid: { color: "rgba(255,255,255,0.04)" },
+            title: { display: true, text: title, color: "#e9eefb" }
+          }
+        },
+        layout: { padding: { left: 8, right: 8, top: 12, bottom: 0 } }
       });
 
-      state.chartYield = new Chart(ctxYield, {
-        type:"bar",
-        data:{labels,datasets:datasetsYield},
-        options:opt("תשואה רבעונית מפורקת (%)")
+      // גובה קבוע לשני הגרפים
+      canvasYield.parentElement.style.height = "260px";
+      canvasWeight.parentElement.style.height = "260px";
+      canvasYield.parentElement.classList.add("narrow-right");
+      canvasWeight.parentElement.classList.add("narrow-right");
+
+      // ───── גרף תשואה רבעונית (ממויין לפי תשואה) ─────
+      state.chartYield = new Chart(canvasYield.getContext("2d"), {
+        type: "bar",
+        data: {
+          labels: labelsYield,
+          datasets: [{
+            label: "תשואה רבעונית (%)",
+            data: dataYield,
+            backgroundColor: bgColorsYield,
+            borderColor: brColorsYield,
+            borderWidth: 1,
+            maxBarThickness: 24
+          }]
+        },
+        options: baseOptions("תשואה רבעונית (%)")
       });
 
-      state.chartWeight = new Chart(ctxWeight,{
-        type:"bar",
-        data:{labels,datasets:datasetsWeight},
-        options:opt("אחזקה רבעונית ממוצעת לתצוגה (%)")
+      // ───── גרף אחזקה רבעונית ממוצעת (ממויין לפי אחזקה) ─────
+      state.chartWeight = new Chart(canvasWeight.getContext("2d"), {
+        type: "bar",
+        data: {
+          labels: labelsWeight,
+          datasets: [{
+            label: "אחזקה ממוצעת (%)",
+            data: dataWeight,
+            backgroundColor: bgColorsWeight,
+            borderColor: brColorsWeight,
+            borderWidth: 1,
+            maxBarThickness: 24
+          }]
+        },
+        options: baseOptions("אחזקה ממוצעת לפי מסלול (%)")
       });
-
-      renderLiquidityCharts();
     }
+
+
+
+
 
     /* === שני גרפי סחירות נפרדים באותה שורה === */
     function renderLiquidityCharts() {
@@ -1521,13 +1629,35 @@
       // שני הגרפים בצבע כחול לפי הדרישה הכללית (אין חלוקה לפי חברה כאן)
       state.chartLiquidityIlliquid = new Chart(ctxIll,{
         type:"bar",
-        data:{ labels: labelsIll, datasets:[{ label:"לא סחיר (%)", data: dataIll, backgroundColor: BLUE_BG, borderColor: BLUE_BR, borderWidth: 1, maxBarThickness: 28 }] },
+        data:{
+          labels: labelsIll,
+          datasets:[{
+            label:"לא סחיר (%)",
+            data: dataIll,
+            backgroundColor: labelsIll.map(n => /מנורה/.test(n) ? YELL_BG : BLUE_BG),
+            borderColor:     labelsIll.map(n => /מנורה/.test(n) ? YELL_BR : BLUE_BR),
+            borderWidth: 1,
+            maxBarThickness: 28
+          }]
+        },
+
         options: baseOptions("אחזקה לא סחיר (%)")
       });
 
       state.chartLiquidityLiquid = new Chart(ctxLiq,{
         type:"bar",
-        data:{ labels: labelsLiq, datasets:[{ label:"סחיר (%)", data: dataLiq, backgroundColor: BLUE_BG, borderColor: BLUE_BR, borderWidth: 1, maxBarThickness: 28 }] },
+        data:{
+          labels: labelsLiq,
+          datasets:[{
+            label:"סחיר (%)",
+            data: dataLiq,
+            backgroundColor: labelsLiq.map(n => /מנורה/.test(n) ? YELL_BG : BLUE_BG),
+            borderColor:     labelsLiq.map(n => /מנורה/.test(n) ? YELL_BR : BLUE_BR),
+            borderWidth: 1,
+            maxBarThickness: 28
+          }]
+        },
+
         options: baseOptions("אחזקה סחיר (%)")
       });
     }
