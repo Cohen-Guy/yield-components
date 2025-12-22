@@ -613,13 +613,13 @@
 
       /* DEFAULTS */
       const defaultSaving = "השתלמות";
-      const defaultFundType = "כללי";
+      const defaultFundType = "";
       const defaultTrack = "כללי";
       const selSaving = document.getElementById("f_saving_type");
       const selFund   = document.getElementById("f_fund_type");
       const selTrack  = document.getElementById("f_track");
       if ([...selSaving.options].some(o=>o.value===defaultSaving)) selSaving.value = defaultSaving;
-      if ([...selFund.options].some(o=>o.value===defaultFundType)) selFund.value = defaultFundType;
+      if (defaultFundType && [...selFund.options].some(o=>o.value===defaultFundType)) selFund.value = defaultFundType;
       if ([...selTrack.options].some(o=>o.value===defaultTrack))   selTrack.value = defaultTrack;
 
       /* Columns selector */
